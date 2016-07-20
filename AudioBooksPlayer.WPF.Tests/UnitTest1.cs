@@ -17,7 +17,7 @@ namespace AudioBooksPlayer.WPF.Tests
             var bookInfo = processor.ProcessAudoiBookFolder(@"TestData\The War of the Worlds");
 
             //A
-            Assert.IsTrue(true);
+            Assert.IsTrue(bookInfo.Files.Length > 1);
         }
     }
 }

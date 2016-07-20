@@ -5,8 +5,40 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AudioBooksPlayer.WPF"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
-    <Grid>
-        
+        d:DataContext="{d:DesignInstance local:MainViewModel}"
+        Title="MainWindow" Height="350" Width="525"
+        Loaded="MainWindow_OnLoaded"
+        Closed="MainWindow_OnClosed">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </Window.Resources>
+    <Grid Margin="5">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <DockPanel>
+            <Button DockPanel.Dock="Bottom" Command="{Binding AddAudioBookCommand}">Add book</Button>
+            <ListView DockPanel.Dock="Bottom" SelectedItem="{Binding SelectedAudioBook, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged }" ItemsSource="{Binding AudioBooks, Mode=OneWay}" DisplayMemberPath="BookName"/>
+        </DockPanel>
+        <ListView Grid.Column="1" ItemsSource="{Binding SelectedBookFiles, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"/>
+        <DockPanel Grid.Row="1">
+            <Button Margin="5" Command="{Binding PlaySelectedAudioBook}">Play</Button>
+            <Button Margin="5" Command="{Binding StopPlayingAudioBook}">Stop</Button>
+        </DockPanel>
+        <ProgressBar IsIndeterminate="True" Visibility="{Binding IsPlaying, Converter={StaticResource BooleanToVisibilityConverter}}" Grid.Row="2"></ProgressBar>
+        <Grid Grid.Row="2" Visibility="{Binding IsBussy, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <ProgressBar IsIndeterminate="True"></ProgressBar>
+            <TextBlock Grid.Row="1">Busy...</TextBlock>
+        </Grid>
     </Grid>
 </Window>

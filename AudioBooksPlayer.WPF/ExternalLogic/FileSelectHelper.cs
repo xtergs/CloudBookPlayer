@@ -7,7 +7,7 @@ using System.Windows.Forms;
 
 namespace AudioBooksPlayer.WPF.ExternalLogic
 {
-    interface IFileSelectHelper
+    public interface IFileSelectHelper
     {
         string SelectFolder();
     }
@@ -17,6 +17,9 @@ namespace AudioBooksPlayer.WPF.ExternalLogic
         public string SelectFolder()
         {
             var folderDialog = new FolderBrowserDialog();
+#if DEBUG
+            folderDialog.SelectedPath = Environment.CurrentDirectory;
+#endif
             if (folderDialog.ShowDialog() != DialogResult.OK)
                 return null;
             return folderDialog.SelectedPath;

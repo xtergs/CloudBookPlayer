@@ -11,6 +11,6 @@ namespace AudioBooksPlayer.WPF.Model
         public string FileName { get; set; }
         public string FilePath { get; set; }
         public int Order { get; set; }
-        public double Duration { get; set; }
+        public TimeSpan Duration { get; set; }
     }
 }

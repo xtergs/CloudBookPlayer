@@ -1,17 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using AudioBooksPlayer.WPF.ExternalLogic;
+using Microsoft.Practices.Unity;
 
 namespace AudioBooksPlayer.WPF
 {
@@ -20,9 +10,27 @@ namespace AudioBooksPlayer.WPF
     /// </summary>
     public partial class MainWindow : Window
     {
+        private UnityContainer container;
+        private MainViewModel main;
         public MainWindow()
         {
             InitializeComponent();
+            container = new UnityContainer();
+            container.RegisterType<MainViewModel>();
+            container.RegisterType<IFileSelectHelper, WPFFileSelectHelper>();
+            main = container.Resolve<MainViewModel>();
+            DataContext = main;
+        }
+
+        private void MainWindow_OnLoaded(object sender, RoutedEventArgs e)
+        {
+            main.LoadData.Execute(null);
+        }
+
+        private void MainWindow_OnClosed(object sender, EventArgs e)
+        {
+            main.StopPlayingAudioBook.Execute(null);
+            main.SaveDataCommand.Execute(null);
         }
     }
 }
