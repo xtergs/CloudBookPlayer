@@ -34,9 +34,21 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
         private string _source;
         private volatile bool _isListen;
         private double _packageLoss;
+        private AudioBookInfoRemote _selectedBroadcastAudioBook;
 
-        public ObservableCollection<AudioBooksInfoBroadcast> RemoteBooks { get; set; } =
-            new ObservableCollection<AudioBooksInfoBroadcast>(); 
+        public ObservableCollection<AudioBooksInfoRemote> RemoteBooks { get; set; } =
+            new ObservableCollection<AudioBooksInfoRemote>();
+
+        public AudioBookInfoRemote SelectedBroadcastAudioBook
+        {
+            get { return _selectedBroadcastAudioBook; }
+            set
+            {
+                if (Equals(value, _selectedBroadcastAudioBook)) return;
+                _selectedBroadcastAudioBook = value;
+                OnPropertyChanged();
+            }
+        }
 
         public bool IsListen
         {
@@ -63,8 +75,8 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
 
         private async void TestStreamListenExecute()
         {
-            var stream = await bookStreamer.GetStreamingBook(RemoteBooks.First().Books.First().Files.First().FilePath,
-                RemoteBooks.First().IpAddress, new Progress<ReceivmentProgress>(Handler));
+            var stream = await bookStreamer.GetStreamingBook(SelectedBroadcastAudioBook,
+               new Progress<ReceivmentProgress>(Handler));
             //streamerUdp.SendCommand(new IPEndPoint( RemoteBooks.First().IpAddress, 8000), new CommandFrame()
             //{
             //    Book = RemoteBooks.First().Books.First().Files.First().FilePath,
@@ -72,6 +84,7 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
             //});
             //MemorySecReadStream stream = new MemorySecReadStream(new byte[1024*4*10000]);
             //streamerUdp.StartListeneningSteam(stream, new IPEndPoint(IPAddress.Parse("192.168.0.100"), 7894), new Progress<ReceivmentProgress>(Handler));
+            await Task.Delay(500);
             player.PlayStream(stream);
         }
 
@@ -101,7 +114,7 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
             var elem = RemoteBooks.FirstOrDefault(x => Equals(x.IpAddress, audioBooksInfoBroadcast.IpAddress));
             if (elem != null)
                 RemoteBooks.Remove(elem);
-            RemoteBooks.Add(audioBooksInfoBroadcast);
+            RemoteBooks.Add(new AudioBooksInfoRemote(audioBooksInfoBroadcast));
         }
 
         private void StartListen()

@@ -14,13 +14,14 @@
         <TabItem Header="by udp">
             <StackPanel>
                 <Button Command="{Binding ListenCommand}" Content="Start listen"/>
-                <TreeView VerticalAlignment="Stretch" VerticalContentAlignment="Stretch" Height="200" ItemsSource="{Binding RemoteBooks, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+                <TreeView VerticalAlignment="Stretch" VerticalContentAlignment="Stretch" Height="200" ItemsSource="{Binding RemoteBooks, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                           SelectedItemChanged="TreeView_OnSelectedItemChanged">
                     <TreeView.Resources>
-                        <HierarchicalDataTemplate DataType="{x:Type streaming:AudioBooksInfoBroadcast}" ItemsSource="{Binding Books}">
+                        <HierarchicalDataTemplate DataType="{x:Type streaming:AudioBooksInfoRemote}" ItemsSource="{Binding Books}">
                             <TextBlock Text="{Binding IpAddress}"/>
                         </HierarchicalDataTemplate>
-                        <DataTemplate DataType="{x:Type model:AudioBooksInfo}">
-                            <TextBlock Text="{Binding BookName}"/>
+                        <DataTemplate DataType="{x:Type streaming:AudioBookInfoRemote}">
+                            <TextBlock Text="{Binding Book.BookName}"/>
                         </DataTemplate>
                     </TreeView.Resources>
                 </TreeView>

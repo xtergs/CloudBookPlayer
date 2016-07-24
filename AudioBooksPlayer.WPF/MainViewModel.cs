@@ -60,7 +60,10 @@ namespace AudioBooksPlayer.WPF
             SetupCommands();
 
             if (startupDiscovery)
+            {
                 StartDiscovery.Execute(null);
+                TestStreamingCommand.Execute(null);
+            }
         }
 
         private async void StreamerOnGetCommand(object sender, CommandFrame commandFrame)

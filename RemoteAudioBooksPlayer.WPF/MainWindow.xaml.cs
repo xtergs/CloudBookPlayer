@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using AudioBooksPlayer.WPF.Streaming;
 using Ninject;
 using Ninject.Parameters;
 using RemoteAudioBooksPlayer.WPF.Logic;
@@ -24,6 +25,7 @@ namespace RemoteAudioBooksPlayer.WPF
     /// </summary>
     public partial class MainWindow : Window
     {
+        private MainViewModel model;
         public MainWindow()
         {
             InitializeComponent();
@@ -32,8 +34,15 @@ namespace RemoteAudioBooksPlayer.WPF
             kernel.Bind<StreamPlayer>().ToSelf();
 
             var mainViewModel = kernel.Get<MainViewModel>();
-
+            model = mainViewModel;
             DataContext = mainViewModel;
+        }
+
+        private void TreeView_OnSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        {
+            if (e.NewValue is AudioBookInfoRemote)
+                model.SelectedBroadcastAudioBook = (AudioBookInfoRemote) e.NewValue;
+            e.Handled = true;
         }
     }
 }

@@ -172,48 +172,59 @@ namespace AudioBooksPlayer.WPF.Streaming
                     throw;
                 }
                 bool isContinue = true;
-                await Task.Run(async () =>
+                try
                 {
-                    while (isContinue)
+                    await Task.Run(async () =>
                     {
-                        await client.ReceiveAsync().ContinueWith((state) =>
+                        while (isContinue)
                         {
-                            if (totalMissed > 0)
+                            await client.ReceiveAsync().ContinueWith((state) =>
                             {
-                                recProg.PackageReceivmetns = totalMissed/(double) totalReceeive;
-                                reporter.Report(recProg);
-                            }
-                            totalReceeive++;
-                            var frame =
-                                JsonConvert.DeserializeObject<UdpFrame>(Encoding.ASCII.GetString(state.Result.Buffer));
-                            if (frame.Data == null)
-                            {
-                                isContinue = false;
-                                return;
-                            }
-                            if (receivmentTable.ContainsKey(frame.Id))
-                                if (receivmentTable[frame.Id] > frame.Order)
-                                    return;
-                                else
+                                if (totalMissed > 0)
                                 {
-                                    totalMissed += frame.Order - receivmentTable[frame.Id];
-                                    receivmentTable[frame.Id] = ++frame.Order;
-                                    lock (o)
-                                    {
-                                        var pos = stream.Position;
-                                        stream.Position = posInStream;
-                                        stream.Write(frame.Data, 0, frame.Length);
-                                        posInStream = stream.Position;
-                                        stream.Position = pos;
-                                    }
+                                    recProg.PackageReceivmetns = totalMissed/(double) totalReceeive;
+                                    reporter.Report(recProg);
+                                }
+                                totalReceeive++;
+                                var frame =
+                                    JsonConvert.DeserializeObject<UdpFrame>(Encoding.ASCII.GetString(state.Result.Buffer));
+                                if (frame.Data == null)
+                                {
+                                    isContinue = false;
                                     return;
                                 }
-                            receivmentTable.Add(frame.Id, ++frame.Order);
-                            lock (o)
-                                stream.Write(frame.Data, 0, frame.Length);
-                        });
+                                if (receivmentTable.ContainsKey(frame.Id))
+                                    if (receivmentTable[frame.Id] > frame.Order)
+                                        return;
+                                    else
+                                    {
+                                        totalMissed += frame.Order - receivmentTable[frame.Id];
+                                        receivmentTable[frame.Id] = ++frame.Order;
+                                        lock (o)
+                                        {
+                                            stream.Write(frame.Data, 0, frame.Length);
+                                        }
+                                        return;
+                                    }
+                                receivmentTable.Add(frame.Id, ++frame.Order);
+                                lock (o)
+                                    stream.Write(frame.Data, 0, frame.Length);
+                            });
+                        }
+                    });
+                    OnFileStreamingComplited();
+                }
+                catch (TimeoutException e)
+                {
+                    if (!isContinue)
+                    {
+                        OnFileStreamingComplited();
+                        return;
                     }
-                });
+                    throw;
+
+
+                }
             }
         }
 
@@ -342,10 +353,16 @@ namespace AudioBooksPlayer.WPF.Streaming
         }
 
         public event EventHandler<CommandFrame> GetCommand;
+        public event EventHandler FileStreamingComplited; 
 
         protected virtual void OnGetCommand(CommandFrame e)
         {
             GetCommand?.Invoke(this, e);
+        }
+
+        protected virtual void OnFileStreamingComplited()
+        {
+            FileStreamingComplited?.Invoke(this, EventArgs.Empty);
         }
     }
 }
