@@ -1,0 +1,45 @@
+﻿<Window x:Class="RemoteAudioBooksPlayer.WPF.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:RemoteAudioBooksPlayer.WPF"
+        xmlns:viewModel="clr-namespace:RemoteAudioBooksPlayer.WPF.ViewModel"
+        xmlns:streaming="clr-namespace:AudioBooksPlayer.WPF.Streaming;assembly=AudioBooksPlayer.WPF"
+        xmlns:model="clr-namespace:AudioBooksPlayer.WPF.Model;assembly=AudioBooksPlayer.WPF"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance viewModel:MainViewModel}"
+        Title="MainWindow" Height="350" Width="525">
+    <TabControl>
+        <TabItem Header="by udp">
+            <StackPanel>
+                <Button Command="{Binding ListenCommand}" Content="Start listen"/>
+                <TreeView VerticalAlignment="Stretch" VerticalContentAlignment="Stretch" Height="200" ItemsSource="{Binding RemoteBooks, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+                    <TreeView.Resources>
+                        <HierarchicalDataTemplate DataType="{x:Type streaming:AudioBooksInfoBroadcast}" ItemsSource="{Binding Books}">
+                            <TextBlock Text="{Binding IpAddress}"/>
+                        </HierarchicalDataTemplate>
+                        <DataTemplate DataType="{x:Type model:AudioBooksInfo}">
+                            <TextBlock Text="{Binding BookName}"/>
+                        </DataTemplate>
+                    </TreeView.Resources>
+                </TreeView>
+                <Button Command="{Binding TestStreamListen}" Content="Start stream listen"/>
+                <Label Content="{Binding PackageLoss, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}Package loss: {0}%}"></Label>
+            </StackPanel>
+        </TabItem>
+        <TabItem Header="by Url">
+            <StackPanel Margin="5">
+                <Label>Set a source to play</Label>
+                <TextBox Text="{Binding Source, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                <Button Content="Play" Command="{Binding PlayCommand}">
+                    <Button.Triggers>
+
+                    </Button.Triggers>
+                </Button>
+                <ProgressBar></ProgressBar>
+            </StackPanel>
+        </TabItem>
+    </TabControl>
+    
+</Window>

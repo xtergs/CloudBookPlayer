@@ -30,6 +30,15 @@
         <DockPanel Grid.Row="1">
             <Button Margin="5" Command="{Binding PlaySelectedAudioBook}">Play</Button>
             <Button Margin="5" Command="{Binding StopPlayingAudioBook}">Stop</Button>
+            <StackPanel>
+            <Button Margin="5" Command="{Binding TestStreamingCommand}">Test streaming</Button>
+                <ProgressBar Minimum="{Binding SendingProgress.Minimum, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" Maximum="{Binding SendingProgress.Length, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                             Value="{Binding SendingProgress.Position, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"></ProgressBar>
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Grid.Row="1" Grid.Column="1">
+            <Button Margin="5" Command="{Binding StartDiscovery}">Start Discovery</Button>
+            <Label Content="{Binding DiscoveryStatus, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"/>
         </DockPanel>
         <ProgressBar IsIndeterminate="True" Visibility="{Binding IsPlaying, Converter={StaticResource BooleanToVisibilityConverter}}" Grid.Row="2"></ProgressBar>
         <Grid Grid.Row="2" Visibility="{Binding IsBussy, Converter={StaticResource BooleanToVisibilityConverter}}">

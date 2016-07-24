@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace AudioBooksPlayer.WPF.Properties {
+namespace RemoteAudioBooksPlayer.WPF.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
@@ -26,12 +26,12 @@ namespace AudioBooksPlayer.WPF.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool SturtupDiscovery {
+        public bool startupDiscoveryListener {
             get {
-                return ((bool)(this["SturtupDiscovery"]));
+                return ((bool)(this["startupDiscoveryListener"]));
             }
             set {
-                this["SturtupDiscovery"] = value;
+                this["startupDiscoveryListener"] = value;
             }
         }
     }

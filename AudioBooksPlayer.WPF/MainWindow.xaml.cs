@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Windows;
 using AudioBooksPlayer.WPF.ExternalLogic;
+using AudioBooksPlayer.WPF.Properties;
 using Microsoft.Practices.Unity;
 
 namespace AudioBooksPlayer.WPF
@@ -18,7 +19,8 @@ namespace AudioBooksPlayer.WPF
             container = new UnityContainer();
             container.RegisterType<MainViewModel>();
             container.RegisterType<IFileSelectHelper, WPFFileSelectHelper>();
-            main = container.Resolve<MainViewModel>();
+            main = container.Resolve<MainViewModel>(new ParameterOverride("startupDiscovery", Settings.Default.SturtupDiscovery));
+
             DataContext = main;
         }
 
