@@ -37,6 +37,8 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
         private VolumeWaveProvider16 volumeProvider;
         private Timer timer1;
 
+        private WaveStream streamm;
+
         public void PlayStream(string url)
         {
             if (playbackState == StreamingPlaybackState.Stopped)
@@ -89,6 +91,8 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
                         Mp3Frame frame;
                         try
                         {
+                            readFullyStream.Read(new byte[this.moving], 0, this.moving);
+                            this.moving = 0;
                             frame = Mp3Frame.LoadFromStream(readFullyStream);
                         }
                         catch (EndOfStreamException e)
@@ -112,6 +116,7 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
                             // until we have a frame
                             decompressor = CreateFrameDecompressor(frame);
                             bufferedWaveProvider = new BufferedWaveProvider(decompressor.OutputFormat);
+                            //waveOut.Init(new RawSourceWaveStream(new MemoryStream(), new Mp3WaveFormat(1, 2, 2, 3)));
                             bufferedWaveProvider.BufferDuration = TimeSpan.FromSeconds(20);
                             // allow us to get well ahead of ourselves
                             //this.bufferedWaveProvider.BufferedDuration = 250;
@@ -286,7 +291,17 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
 
         private IWavePlayer CreateWaveOut()
         {
-            return new WaveOut();
+            var xx =  new WaveOut();
+            //var yy = );
+            //xx.Init(yy);
+            return xx;
+        }
+
+        private int moving = 0;
+        public void Forward(int ms)
+        {
+            this.moving = bufferedWaveProvider.WaveFormat.AverageBytesPerSecond*ms;
+            bufferedWaveProvider.ClearBuffer();
         }
     }
 }

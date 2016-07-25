@@ -17,7 +17,7 @@ namespace AudioBooksPlayer.WPF.Logic
                 throw new ArgumentNullException(nameof(folder));
             if (!Directory.Exists(folder))
                 throw new DirectoryNotFoundException($"path can't be found, {folder}");
-            var files = Directory.EnumerateFiles(folder).Select(x =>
+            var files = Directory.EnumerateFiles(folder, "*.mp3").OrderBy(Path.GetFileNameWithoutExtension).Select(x =>
             {
                 using (var audioTags = new Mp3File(x, Mp3Permissions.Read))
                 {

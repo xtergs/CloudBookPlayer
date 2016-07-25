@@ -26,16 +26,52 @@
             <Button DockPanel.Dock="Bottom" Command="{Binding AddAudioBookCommand}">Add book</Button>
             <ListView DockPanel.Dock="Bottom" SelectedItem="{Binding SelectedAudioBook, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged }" ItemsSource="{Binding AudioBooks, Mode=OneWay}" DisplayMemberPath="BookName"/>
         </DockPanel>
-        <ListView Grid.Column="1" ItemsSource="{Binding SelectedBookFiles, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"/>
-        <DockPanel Grid.Row="1">
-            <Button Margin="5" Command="{Binding PlaySelectedAudioBook}">Play</Button>
-            <Button Margin="5" Command="{Binding StopPlayingAudioBook}">Stop</Button>
+        <ListView Grid.Column="1" ItemsSource="{Binding SelectedBookFiles, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+            <ListView.View>
+                <GridView>
+                    <GridView.Columns>
+                        <GridViewColumn Header="#" DisplayMemberBinding="{Binding Order}"/>
+                        <GridViewColumn Header="Name" DisplayMemberBinding="{Binding FileName}"/>
+                        <GridViewColumn Header="Duration" DisplayMemberBinding="{Binding Duration}"/>
+                        <GridViewColumn Header="File path" DisplayMemberBinding="{Binding FilePath}"/>
+                    </GridView.Columns>
+                </GridView>
+            </ListView.View>
+        </ListView>
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Label Grid.ColumnSpan="4" HorizontalAlignment="Center" Content="{Binding PlayingAudioBook.BookName, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}"></Label>
+            <Slider Grid.Row="1" Grid.ColumnSpan="3" Minimum="0" Maximum="{Binding PlayingAudioBook.Files.Length, Mode=OneWay}"
+                    Value="{Binding PlayingAudioBook.CurrentFile, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"></Slider>
+            <Label Grid.Row="1" Grid.Column="3" Content="{Binding PlayingAudioBook.TotalDuration, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"></Label>
+            <Label Grid.Row="2" Grid.ColumnSpan="4" HorizontalAlignment="Center" Content="{Binding PlayingFile.FileName, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"></Label>
+            <Slider Grid.Row="3" Grid.ColumnSpan="3" Minimum="0" Maximum="{Binding TotalFileTime, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                    Value="{Binding CurrentFileTime, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Delay=50}"></Slider>
+            <Label Grid.Row="3" Grid.Column="3" Content="{Binding PlayingFile.Duration, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"></Label>
+            <Button Grid.Row="4" Grid.Column="0" Margin="5" Command="{Binding PlayPrevFile}" Content="Prev"></Button>
+            <Button Grid.Row="4" Grid.Column="1" Margin="5" Command="{Binding PlaySelectedAudioBook}">Play</Button>
+            <Button Grid.Row="4" Grid.Column="2" Margin="5" Command="{Binding StopPlayingAudioBook}">Stop</Button>
+            <Button Grid.Row="4" Grid.Column="3" Margin="5" Content="Next" Command="{Binding PlayNextFile}"/>
+        </Grid>
+        <!--<DockPanel Grid.Row="1">
             <StackPanel>
             <Button Margin="5" Command="{Binding TestStreamingCommand}">Test streaming</Button>
                 <ProgressBar Minimum="{Binding SendingProgress.Minimum, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" Maximum="{Binding SendingProgress.Length, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                              Value="{Binding SendingProgress.Position, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"></ProgressBar>
             </StackPanel>
-        </DockPanel>
+        </DockPanel>-->
         <DockPanel Grid.Row="1" Grid.Column="1">
             <Button Margin="5" Command="{Binding StartDiscovery}">Start Discovery</Button>
             <Label Content="{Binding DiscoveryStatus, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"/>

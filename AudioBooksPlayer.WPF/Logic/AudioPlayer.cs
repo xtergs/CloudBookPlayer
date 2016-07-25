@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,9 +13,31 @@ namespace AudioBooksPlayer.WPF.Logic
 {
     public class AudioPlayer
     {
+        public event EventHandler PlayingNextFile;
+        public event EventHandler PlaybackStoped; 
         private AudioBooksInfo plyyingBook;
 
         private ISoundOut soundOut;
+
+        public TimeSpan TotalTime
+        {
+            get
+            {
+                if (soundOut == null)
+                    return TimeSpan.Zero;
+                return soundOut.WaveSource.GetLength();
+            }
+        }
+
+        public TimeSpan CurrentTime
+        {
+            get
+            {
+                if (soundOut == null)
+                    return TimeSpan.Zero;
+                return soundOut.WaveSource.GetPosition();
+            }
+        }
 
         public void PlayAudioBook(AudioBooksInfo book)
         {
@@ -28,7 +51,11 @@ namespace AudioBooksPlayer.WPF.Logic
             //Contains the sound to play
             IWaveSource soundSource = GetSoundSource();
             if (soundSource == null)
+            {
+                OnPlaybackStoped();
+                StopPlay();
                 return;
+            }
 
             //SoundOut implementation which plays the sound
             if (soundOut != null && soundOut.PlaybackState == PlaybackState.Playing)
@@ -43,7 +70,6 @@ namespace AudioBooksPlayer.WPF.Logic
             soundOut.WaveSource.Position = plyyingBook.PositionInFile;
             //Play the sound
             soundOut.Play();
-
 
         }
 
@@ -62,11 +88,10 @@ namespace AudioBooksPlayer.WPF.Logic
         {
             if (soundOut == null)
                 return;
-            if (soundOut.WaveSource.Position == soundOut.WaveSource.Length)
+            if (soundOut.WaveSource.Position / (double)soundOut.WaveSource.Length > 0.9)
             {
-                plyyingBook.CurrentFile++;
-                plyyingBook.PositionInFile = 0;
-                PlayASound();
+                PlayNext();
+                return;
             }
             plyyingBook.PositionInFile = soundOut.WaveSource.Position;
         }
@@ -84,6 +109,38 @@ namespace AudioBooksPlayer.WPF.Logic
             if (plyyingBook.CurrentFile < plyyingBook.Files.Length)
                 return CodecFactory.Instance.GetCodec(plyyingBook.Files[plyyingBook.CurrentFile].FilePath);
             return null;
+        }
+
+        public void SetTimePosition(TimeSpan time)
+        {
+            soundOut.WaveSource.SetPosition(time);
+            plyyingBook.PositionInFile = soundOut.WaveSource.Position;
+        }
+
+        public void PlayNext()
+        {
+            plyyingBook.CurrentFile++;
+            plyyingBook.PositionInFile = 0;
+            PlayASound();
+            OnPlayingNextFile();
+        }
+
+        public void PlayPrev()
+        {
+            plyyingBook.CurrentFile--;
+            plyyingBook.PositionInFile = 0;
+            PlayASound();
+            OnPlayingNextFile();
+        }
+
+        protected virtual void OnPlayingNextFile()
+        {
+            PlayingNextFile?.Invoke(this, EventArgs.Empty);
+        }
+
+        protected virtual void OnPlaybackStoped()
+        {
+            PlaybackStoped?.Invoke(this, EventArgs.Empty);
         }
     }
 }

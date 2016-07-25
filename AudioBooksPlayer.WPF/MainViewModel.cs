@@ -12,6 +12,7 @@ using AudioBooksPlayer.WPF.Streaming;
 using GalaSoft.MvvmLight.CommandWpf;
 using System.IO;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AudioBooksPlayer.WPF
@@ -55,15 +56,26 @@ namespace AudioBooksPlayer.WPF
             streamer = new StreamingUDP();
             bookStreamer = new BookStreamer();
 
+            audioPlayer.PlayingNextFile += AudioPlayerOnPlayingNextFile;
             streamer.GetCommand += StreamerOnGetCommand;
 
             SetupCommands();
+
+            
 
             if (startupDiscovery)
             {
                 StartDiscovery.Execute(null);
                 TestStreamingCommand.Execute(null);
             }
+        }
+
+        private void AudioPlayerOnPlayingNextFile(object sender, EventArgs eventArgs)
+        {
+            if (PlayingAudioBook.Files.Length <= PlayingAudioBook.CurrentFile)
+                return;
+            PlayingFile = PlayingAudioBook.Files[PlayingAudioBook.CurrentFile];
+            OnPropertyChanged(nameof(PlayingFile));
         }
 
         private async void StreamerOnGetCommand(object sender, CommandFrame commandFrame)
@@ -203,6 +215,9 @@ namespace AudioBooksPlayer.WPF
         private volatile bool _isDiscoverying;
         private string _discoveryStatus;
         private StreamProgress _progress;
+        private AudioBooksInfo _playingAudioBook;
+        private AudioFileInfo _playingFile;
+        private Timer updateCurrentPositionTimer;
 
         public ICommand AddAudioBookCommand
         {
@@ -226,15 +241,62 @@ namespace AudioBooksPlayer.WPF
                 StartDiscovery.Execute(true);
         }
 
+        public AudioBooksInfo PlayingAudioBook
+        {
+            get { return _playingAudioBook; }
+            private set
+            {
+                if (Equals(value, _playingAudioBook)) return;
+                _playingAudioBook = value;
+                PlayingFile = PlayingAudioBook.Files[PlayingAudioBook.CurrentFile];
+                OnPropertyChanged();
+            }
+        }
+
+        public AudioFileInfo PlayingFile
+        {
+            get { return _playingFile; }
+            private set
+            {
+                if (Equals(value, _playingFile)) return;
+                _playingFile = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TotalFileTime));
+            }
+        }
+
+        public double CurrentFileTime
+        {
+            get { return audioPlayer.CurrentTime.TotalSeconds; }
+            set
+            {
+                if (value > 0)
+                    audioPlayer.SetTimePosition(new TimeSpan(0,0,0, (int)value));
+                OnPropertyChanged();
+            }
+        }
+
+        public double TotalFileTime => PlayingFile.Duration.TotalSeconds;
+
+        private void updateCurrentPositionTick(object state)
+        {
+            CurrentFileTime = -1;
+        }
+
         public ICommand PlaySelectedAudioBook
         {
             get
             {
                 return new RelayCommand(() =>
                 {
-
-                    audioPlayer.PlayAudioBook(SelectedAudioBook);
+                    PlayingAudioBook = SelectedAudioBook;
+                    audioPlayer.PlayAudioBook(PlayingAudioBook);
                     IsPlaying = true;
+                    if (updateCurrentPositionTimer == null)
+                    {
+                        var timeSpan = new TimeSpan(0, 0, 0, 1, 0);
+                        updateCurrentPositionTimer = new Timer(updateCurrentPositionTick, null, timeSpan, timeSpan);
+                    }
                 }, () => SelectedAudioBook != null);
             }
         }
@@ -246,8 +308,32 @@ namespace AudioBooksPlayer.WPF
                 return new RelayCommand(() =>
                 {
                     audioPlayer.StopPlay();
+                    updateCurrentPositionTimer?.Dispose();
+                    updateCurrentPositionTimer = null;
                     IsPlaying = false;
                 }, ()=> IsPlaying);
+            }
+        }
+
+        public ICommand PlayNextFile
+        {
+            get
+            {
+                return new RelayCommand(() =>
+                {
+                    audioPlayer.PlayNext();
+                }, () => PlayingAudioBook?.LeftFilesToPlay() > 1);
+            }
+        }
+
+        public ICommand PlayPrevFile
+        {
+            get
+            {
+                return new RelayCommand(() =>
+                {
+                    audioPlayer.PlayPrev();
+                }, () => PlayingAudioBook?.CurrentFile > 0);
             }
         }
 

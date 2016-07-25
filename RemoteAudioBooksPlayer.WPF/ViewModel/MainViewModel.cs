@@ -28,7 +28,7 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
     }
     public class MainViewModel : BaseViewModel
     {
-        private StreamPlayer player;
+        public StreamPlayer player;
         private StreamingUDP streamerUdp;
         private BookStreamer bookStreamer;
         private string _source;

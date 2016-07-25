@@ -27,6 +27,7 @@
                 </TreeView>
                 <Button Command="{Binding TestStreamListen}" Content="Start stream listen"/>
                 <Label Content="{Binding PackageLoss, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}Package loss: {0}%}"></Label>
+                <Button Click="Button_Click">Tests</Button>
             </StackPanel>
         </TabItem>
         <TabItem Header="by Url">

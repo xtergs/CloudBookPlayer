@@ -44,5 +44,10 @@ namespace RemoteAudioBooksPlayer.WPF
                 model.SelectedBroadcastAudioBook = (AudioBookInfoRemote) e.NewValue;
             e.Handled = true;
         }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            model.player.Forward(10);
+        }
     }
 }
