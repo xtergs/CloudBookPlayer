@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
-using System.Net;
-using System.Net.Sockets;
 using System.Runtime.CompilerServices;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using AudioBooksPlayer.WPF.Streaming;
@@ -35,6 +32,7 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
         private volatile bool _isListen;
         private double _packageLoss;
         private AudioBookInfoRemote _selectedBroadcastAudioBook;
+        private Timer streamStatusTimer;
 
         public ObservableCollection<AudioBooksInfoRemote> RemoteBooks { get; set; } =
             new ObservableCollection<AudioBooksInfoRemote>();
@@ -67,11 +65,70 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
 
             PlayCommand = new RelayCommand(PlayStream, CanPlayStream);
             ListenCommand = new RelayCommand(StartListen, CanStartToListen);
-            TestStreamListen = new RelayCommand(TestStreamListenExecute);
+            PlayStreamCommand = new RelayCommand(TestStreamListenExecute, PlayStreamCanExecute);
+            PausePlayCommand = new RelayCommand(PausePlayExecute, PausePlayCanExecute);
+            CancelPlayingCommand = new RelayCommand(CancelPlayingExecute, CancelPlayingCanExecute);
+
+            var timeSpan = new TimeSpan(0, 0, 0, 1, 0);
+            streamStatusTimer = new Timer(UpdateStatusStream, null, timeSpan, timeSpan );
 
             if (startupDiscoveryListener)
                 ListenCommand.Execute(null);
         }
+
+        private bool CancelPlayingCanExecute()
+        {
+            return true;
+        }
+
+        private void CancelPlayingExecute()
+        {
+            player.Stop();
+            bookStreamer.StopStream();
+            isPaused = false;
+        }
+
+        private bool PlayStreamCanExecute()
+        {
+            return SelectedBroadcastAudioBook != null;
+        }
+
+        private bool PausePlayCanExecute()
+        {
+            return !isPaused && player.PlaybackState == StreamPlayer.StreamingPlaybackState.Playing;
+        }
+
+        private void PausePlayExecute()
+        {
+            bookStreamer.PauseStream();
+            player.Pause();
+            isPaused = true;
+        }
+
+        private volatile bool isPaused = false;
+        private void UpdateStatusStream(object state)
+        {
+            OnPropertyChanged(nameof(LeftToRead));
+            OnPropertyChanged(nameof(LeftToWrite));
+            OnPropertyChanged(nameof(ReadPosition));
+            OnPropertyChanged(nameof(WritePositon));
+
+            if (bookStreamer.Stream.LeftToWrite / ((double)bookStreamer.Stream.Capacity) < 0.5 && !isPaused)
+            {
+                bookStreamer.PauseStream();
+                isPaused = true;
+            }
+            else if (isPaused && ReadPosition / ((double)bookStreamer.Stream.Capacity) < 0.3)
+            {
+                bookStreamer.ResumeStream();
+                isPaused = false;
+            }
+        }
+
+        public double LeftToRead => bookStreamer.Stream.Capacity ;
+        public double LeftToWrite => bookStreamer.Stream.Capacity ;
+        public double ReadPosition => bookStreamer.Stream.LeftToRead;
+        public double WritePositon => bookStreamer.Stream.LeftToWrite;
 
         private async void TestStreamListenExecute()
         {
@@ -149,7 +206,9 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
 
         public ICommand PlayCommand { get; private set; }
         public ICommand ListenCommand { get; private set; }
-        public ICommand TestStreamListen { get; private set; }
+        public ICommand PlayStreamCommand { get; private set; }
+        public ICommand PausePlayCommand { get; private set; }
+        public ICommand CancelPlayingCommand { get; private set; }
 
     }
 }

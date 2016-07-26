@@ -14,7 +14,17 @@ namespace AudioBooksPlayer.WPF.Streaming
     public enum CommandEnum
     {
         StreamFile,
-        Ok
+        Ok,
+        PauseStreaming,
+        ResumeStreaming,
+        CancelStream
+    }
+
+    enum StreamingStatus
+    {
+        Stream,
+        Pause,
+        Cancel
     }
 
     public class StreamingUDP
@@ -95,6 +105,7 @@ namespace AudioBooksPlayer.WPF.Streaming
         public async Task StartSendStream(UdpClient client, Stream stream, IPEndPoint endpoint, IProgress<StreamProgress> reporter,
             int transferePerMs = 50)
         {
+            streamingStatus.Add(client, StreamingStatus.Stream);
             using (client)
             {
                 byte[] buffer = new byte[1024 * 4 * 4];
@@ -122,6 +133,11 @@ namespace AudioBooksPlayer.WPF.Streaming
                             b = Encoding.ASCII.GetBytes(bytes);
                             await client.SendAsync(b, b.Length, endpoint);
                             await Task.Delay(transferePerMs);
+
+                            while (streamingStatus[client] == StreamingStatus.Pause)
+                                await Task.Delay(new TimeSpan(0, 0, 0, 1));
+                            if (streamingStatus[client] == StreamingStatus.Cancel)
+                                return;
                             prs.Position = stream.Position;
                             reporter.Report(prs);
                             frame.Order++;
@@ -133,7 +149,8 @@ namespace AudioBooksPlayer.WPF.Streaming
                     bytes = JsonConvert.SerializeObject(frame);
                     b = Encoding.ASCII.GetBytes(bytes);
                     await client.SendAsync(b, b.Length, endpoint);
-                }
+                streamingStatus.Remove(client);
+            }
             
         }
         public Task StartSendStream(Stream stream, IPEndPoint endpoint, IProgress<StreamProgress> reporter, 
@@ -148,7 +165,8 @@ namespace AudioBooksPlayer.WPF.Streaming
 
         private Dictionary<Guid, int> receivmentTable = new Dictionary<Guid, int>();
         private Dictionary<Guid,List<UdpFrame>> bufFrames = new Dictionary<Guid, List<UdpFrame>>();
-        public Dictionary<Guid, UdpClient> awaitingUdpClients = new Dictionary<Guid, UdpClient>(); 
+        public Dictionary<Guid, UdpClient> awaitingUdpClients = new Dictionary<Guid, UdpClient>();
+        private Dictionary<UdpClient, StreamingStatus> streamingStatus = new Dictionary<UdpClient, StreamingStatus>(); 
         static object o = new object();
 
         public async Task StartListeneningSteam(UdpClient client, Stream stream, IPEndPoint endPoint,
@@ -255,7 +273,7 @@ namespace AudioBooksPlayer.WPF.Streaming
             var client = (TcpClient) state;
             byte[] buffer = new byte[4096];
             if (!client.Connected)
-                client.Connect((IPEndPoint)client.Client.RemoteEndPoint);
+                client.Connect((IPEndPoint) client.Client.RemoteEndPoint);
             CommandFrame commandFrame;
             using (var stream = client.GetStream())
             {
@@ -265,9 +283,36 @@ namespace AudioBooksPlayer.WPF.Streaming
                 switch (commandFrame.Type)
                 {
                     case CommandEnum.StreamFile:
-                        commandFrame  = EstablishUdpChanel(stream, commandFrame);
+                        commandFrame = EstablishUdpChanel(stream, commandFrame);
                         commandFrame.Type = CommandEnum.StreamFile;
                         break;
+                    case CommandEnum.PauseStreaming:
+                    {
+                        var cl = awaitingUdpClients[Guid.Parse(commandFrame.Book)];
+                        streamingStatus[cl] = StreamingStatus.Pause;
+                        commandFrame.Type = CommandEnum.Ok;
+                        var bytes = CommandToBytes(commandFrame);
+                        stream.Write(bytes, 0, bytes.Length);
+                        break;
+                    }
+                    case CommandEnum.ResumeStreaming:
+                    {
+                        var cl = awaitingUdpClients[Guid.Parse(commandFrame.Book)];
+                        streamingStatus[cl] = StreamingStatus.Stream;
+                        commandFrame.Type = CommandEnum.Ok;
+                        var bytes = CommandToBytes(commandFrame);
+                        stream.Write(bytes, 0, bytes.Length);
+                        break;
+                    }
+                        case CommandEnum.CancelStream:
+                    {
+                            var cl = awaitingUdpClients[Guid.Parse(commandFrame.Book)];
+                        streamingStatus[cl] = StreamingStatus.Cancel;
+                            commandFrame.Type = CommandEnum.Ok;
+                            var bytes = CommandToBytes(commandFrame);
+                            stream.Write(bytes, 0, bytes.Length);
+                            break;
+                    }
                 }
             }
             OnGetCommand(commandFrame);

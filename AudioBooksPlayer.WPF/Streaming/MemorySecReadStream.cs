@@ -15,6 +15,9 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
         private long writePosition = 0;
         private bool writeOverflowed = false;
 
+        public long ReadPosition => readPosition;
+        public long WritePosition => writePosition;
+
         public long LeftToWrite
         {
             get
@@ -97,6 +100,19 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
             Array.Copy(this.buffer, readPosition, buf, offset, maxLen);
             readPosition += maxLen;
             return (int) maxLen;
+        }
+
+        public override long Length => LeftToRead;
+        public override long Position { get { return readPosition; } set { readPosition = value; } }
+        public override bool CanSeek => true;
+        public override bool CanRead => true;
+        public override bool CanWrite => true;
+        public override int Capacity => buffer.Length;
+
+        public void Clear()
+        {
+            writePosition = 0;
+            readPosition = 0;
         }
     }
 }

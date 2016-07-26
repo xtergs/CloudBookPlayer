@@ -21,7 +21,8 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
             timer1.Interval = 250;
             timer1.Elapsed += timer1_Tick;
         }
-        enum StreamingPlaybackState
+
+        public enum StreamingPlaybackState
         {
             Stopped,
             Playing,
@@ -38,6 +39,8 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
         private Timer timer1;
 
         private WaveStream streamm;
+
+        public StreamingPlaybackState PlaybackState => playbackState;
 
         public void PlayStream(string url)
         {
@@ -277,11 +280,11 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
             }
         }
 
-        private void Pause()
+        public void Pause()
         {
             lock (o)
             {
-                if (waveOut.PlaybackState != PlaybackState.Playing)
+                if (waveOut.PlaybackState != playbackState.Playing)
                     return;
                 playbackState = StreamingPlaybackState.Buffering;
                 waveOut.Pause();
@@ -302,6 +305,11 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
         {
             this.moving = bufferedWaveProvider.WaveFormat.AverageBytesPerSecond*ms;
             bufferedWaveProvider.ClearBuffer();
+        }
+
+        public void Stop()
+        {
+            StopPlayback();
         }
     }
 }

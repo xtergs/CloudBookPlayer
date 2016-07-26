@@ -9,7 +9,7 @@
         xmlns:model="clr-namespace:AudioBooksPlayer.WPF.Model;assembly=AudioBooksPlayer.WPF"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModel:MainViewModel}"
-        Title="MainWindow" Height="350" Width="525">
+        Title="RemoteBookPlayer" Height="350" Width="525">
     <TabControl>
         <TabItem Header="by udp">
             <StackPanel>
@@ -25,9 +25,23 @@
                         </DataTemplate>
                     </TreeView.Resources>
                 </TreeView>
-                <Button Command="{Binding TestStreamListen}" Content="Start stream listen"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <Button Margin="5" Command="{Binding PlayStreamCommand}" Content="Play"/>
+                    <Button Margin="5" Grid.Column="1" Command="{Binding PausePlayCommand}" Content="Pause"/>
+                    <Button Margin="5" Grid.Column="2" Command="{Binding CancelPlayingCommand}" Content="Stop"/>
+                    
+                </Grid>
                 <Label Content="{Binding PackageLoss, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}Package loss: {0}%}"></Label>
                 <Button Click="Button_Click">Tests</Button>
+                <Label Content="Left to read"/>
+                <ProgressBar Minimum="0" Maximum="{Binding LeftToRead, Mode=OneWay}" Value="{Binding ReadPosition, Mode=OneWay}"/>
+                <Label Content="Left to write"/>
+                <ProgressBar Minimum="0" Maximum="{Binding LeftToWrite, Mode=OneWay}" Value="{Binding WritePositon, Mode=OneWay}"/>
             </StackPanel>
         </TabItem>
         <TabItem Header="by Url">
