@@ -16,17 +16,28 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
             <ColumnDefinition/>
+            <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <DockPanel>
-            <Button DockPanel.Dock="Bottom" Command="{Binding AddAudioBookCommand}">Add book</Button>
+        <ToolBarPanel Grid.ColumnSpan="2" Margin="5">
+            <Menu>
+                <MenuItem Header="Discovery settings" Click="ShowDiscoverySettings"/>
+            </Menu>
+        </ToolBarPanel>
+        <DockPanel Grid.Row="1">
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom">
+            <Button Margin="5" DockPanel.Dock="Bottom" Command="{Binding AddAudioBookCommand}">Add book</Button>
+            <Button Margin="5" DockPanel.Dock="Bottom"  Command="{Binding RemoteAudioBookCommand}">Remote book</Button>
+                
+            </StackPanel>
             <ListView DockPanel.Dock="Bottom" SelectedItem="{Binding SelectedAudioBook, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged }" ItemsSource="{Binding AudioBooks, Mode=OneWay}" DisplayMemberPath="BookName"/>
         </DockPanel>
-        <ListView Grid.Column="1" ItemsSource="{Binding SelectedBookFiles, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+        <ListView Grid.Row="1" Grid.Column="1" ItemsSource="{Binding SelectedBookFiles, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
             <ListView.View>
                 <GridView>
                     <GridView.Columns>
@@ -38,7 +49,7 @@
                 </GridView>
             </ListView.View>
         </ListView>
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -72,12 +83,12 @@
                              Value="{Binding SendingProgress.Position, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"></ProgressBar>
             </StackPanel>
         </DockPanel>-->
-        <DockPanel Grid.Row="1" Grid.Column="1">
+        <DockPanel Grid.Row="2" Grid.Column="1">
             <Button Margin="5" Command="{Binding StartDiscovery}">Start Discovery</Button>
             <Label Content="{Binding DiscoveryStatus, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"/>
         </DockPanel>
-        <ProgressBar IsIndeterminate="True" Visibility="{Binding IsPlaying, Converter={StaticResource BooleanToVisibilityConverter}}" Grid.Row="2"></ProgressBar>
-        <Grid Grid.Row="2" Visibility="{Binding IsBussy, Converter={StaticResource BooleanToVisibilityConverter}}">
+        <ProgressBar IsIndeterminate="True" Visibility="{Binding IsPlaying, Converter={StaticResource BooleanToVisibilityConverter}}" Grid.Row="3"></ProgressBar>
+        <Grid Grid.Row="3" Visibility="{Binding IsBussy, Converter={StaticResource BooleanToVisibilityConverter}}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -85,5 +96,48 @@
             <ProgressBar IsIndeterminate="True"></ProgressBar>
             <TextBlock Grid.Row="1">Busy...</TextBlock>
         </Grid>
+        <Expander Header="Operations" Grid.Column="3" Grid.RowSpan="3" DataContext="{Binding Operations}">
+            <Expander.LayoutTransform>
+                <TransformGroup>
+                    <ScaleTransform/>
+                    <SkewTransform/>
+                    <RotateTransform Angle="90"/>
+                    <TranslateTransform/>
+                </TransformGroup>
+            </Expander.LayoutTransform>
+            <ListView Width="200" ItemsSource="{Binding Operations, Mode=OneWay}">
+                <ListView.LayoutTransform>
+                    <TransformGroup>
+                        <ScaleTransform/>
+                        <SkewTransform/>
+                        <RotateTransform Angle="-90"/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </ListView.LayoutTransform>
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Label Content="{Binding Name}"></Label>
+                            <ProgressBar HorizontalAlignment="Stretch" Grid.Row="2" Grid.ColumnSpan="3" Minimum="{Binding Minimum}" Value="{Binding CurrentValue}" Maximum="{Binding Maximum}"></ProgressBar>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Expander>
+        <StatusBar Grid.Row="4" Grid.ColumnSpan="4">
+            <StatusBarItem Content="{Binding ActiveConnections, Mode=OneWay, StringFormat=Connections:\{0\}}" ToolTip="Active connections"/>
+            <StatusBarItem Content="{Binding ActiveStreams, Mode=OneWay, StringFormat=Streams:\{0\}}" ToolTip="Active streams"/>
+        </StatusBar>
     </Grid>
 </Window>

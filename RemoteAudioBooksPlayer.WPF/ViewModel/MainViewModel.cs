@@ -5,7 +5,9 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using AudioBooksPlayer.WPF.Streaming;
 using GalaSoft.MvvmLight.CommandWpf;
 using RemoteAudioBooksPlayer.WPF.Annotations;
@@ -27,6 +29,7 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
     {
         public StreamPlayer player;
         private StreamingUDP streamerUdp;
+        private readonly DiscoverModule discoverModule;
         private BookStreamer bookStreamer;
         private string _source;
         private volatile bool _isListen;
@@ -60,8 +63,9 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
                 throw new ArgumentNullException(nameof(player));
             this.player = player;
             streamerUdp = new StreamingUDP();
-            bookStreamer = new BookStreamer();
-            streamerUdp.DiscoveredNewSource += StreamerUdpOnDiscoveredNewSource;
+            discoverModule = new DiscoverModule();
+            bookStreamer = new BookStreamer(streamerUdp);
+            discoverModule.DiscoveredNewSource += StreamerUdpOnDiscoveredNewSource;
 
             PlayCommand = new RelayCommand(PlayStream, CanPlayStream);
             ListenCommand = new RelayCommand(StartListen, CanStartToListen);
@@ -95,7 +99,7 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
 
         private bool PausePlayCanExecute()
         {
-            return !isPaused && player.PlaybackState == StreamPlayer.StreamingPlaybackState.Playing;
+            return isPaused && player.PlaybackState == StreamPlayer.StreamingPlaybackState.Playing;
         }
 
         private void PausePlayExecute()
@@ -112,7 +116,10 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
             OnPropertyChanged(nameof(LeftToWrite));
             OnPropertyChanged(nameof(ReadPosition));
             OnPropertyChanged(nameof(WritePositon));
+            OnPropertyChanged(nameof(CurrentPosition));
+            OnPropertyChanged(nameof(TotalLengthPlayingFile));
 
+            if (player.PlaybackState != StreamPlayer.StreamingPlaybackState.Paused)
             if (bookStreamer.Stream.LeftToWrite / ((double)bookStreamer.Stream.Capacity) < 0.5 && !isPaused)
             {
                 bookStreamer.PauseStream();
@@ -130,8 +137,37 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
         public double ReadPosition => bookStreamer.Stream.LeftToRead;
         public double WritePositon => bookStreamer.Stream.LeftToWrite;
 
+        public TimeSpan TotalLengthPlayingFile
+        {
+            get
+            {
+                if (SelectedBroadcastAudioBook != null)
+                    return SelectedBroadcastAudioBook.Book.Files.First().Duration;
+                return TimeSpan.Zero;
+            }
+        }
+
+        private TimeSpan BasicPosition { get; set; }
+
+        public TimeSpan CurrentPosition
+        {
+            get
+            {
+                if (SelectedBroadcastAudioBook?.Book?.Files == null)
+                    return default(TimeSpan);
+
+                return (new TimeSpan(0, 0, 0,
+                    (int)
+                        (player.PlayedTime/(2494464/SelectedBroadcastAudioBook.Book.Files.First().Duration.TotalSeconds)),
+                    0) - player.BufferedTime);
+            }
+        }
+
+
         private async void TestStreamListenExecute()
         {
+            BasicPosition = TimeSpan.Zero;
+            player.Stop();
             var stream = await bookStreamer.GetStreamingBook(SelectedBroadcastAudioBook,
                new Progress<ReceivmentProgress>(Handler));
             //streamerUdp.SendCommand(new IPEndPoint( RemoteBooks.First().IpAddress, 8000), new CommandFrame()
@@ -169,9 +205,12 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
         private void StreamerUdpOnDiscoveredNewSource(object sender, AudioBooksInfoBroadcast audioBooksInfoBroadcast)
         {
             var elem = RemoteBooks.FirstOrDefault(x => Equals(x.IpAddress, audioBooksInfoBroadcast.IpAddress));
-            if (elem != null)
-                RemoteBooks.Remove(elem);
-            RemoteBooks.Add(new AudioBooksInfoRemote(audioBooksInfoBroadcast));
+            Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                if (elem != null)
+                    RemoteBooks.Remove(elem);
+                RemoteBooks.Add(new AudioBooksInfoRemote(audioBooksInfoBroadcast));
+            }, DispatcherPriority.DataBind);
         }
 
         private void StartListen()
@@ -179,7 +218,7 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
             if (IsListen)
                 return;
             IsListen = true;
-            streamerUdp.StartListen();
+            discoverModule.StartListen();
         }
 
         private bool CanPlayStream()
@@ -210,5 +249,9 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
         public ICommand PausePlayCommand { get; private set; }
         public ICommand CancelPlayingCommand { get; private set; }
 
+        public DiscoverModule Module
+        {
+            get { return discoverModule; }
+        }
     }
 }

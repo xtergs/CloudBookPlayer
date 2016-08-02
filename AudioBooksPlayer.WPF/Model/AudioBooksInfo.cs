@@ -5,8 +5,9 @@ namespace AudioBooksPlayer.WPF.Model
 {
     public class AudioBooksInfo
     {
-
         public string BookName { get; set; }
+        public string FolderPath { get; set; }
+
         public AudioFileInfo[] Files { get; set; }
         public long PositionInFile { get; set; }
         public int CurrentFile { get; set; }

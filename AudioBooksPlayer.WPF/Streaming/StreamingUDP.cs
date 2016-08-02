@@ -20,103 +20,43 @@ namespace AudioBooksPlayer.WPF.Streaming
         CancelStream
     }
 
-    enum StreamingStatus
+    public enum StreamingStatus
     {
         Stream,
         Pause,
         Cancel
     }
 
+    public struct StreamStatus
+    {
+        public StreamingStatus Status { get; set; }
+        public Guid operationId { get; set; }
+    }
+
     public class StreamingUDP
     {
-        private int port = 18121;
-        private Timer broadcastTimer;
-        private List<AudioBooksInfo> AuduioBooks;
-        private UdpClient broadcastClient;
-        private volatile bool isBroadcasting = false;
 
-        private UdpClient listenClient;
-        private volatile bool isListen = false;
-
-        public void StartDiscoverty(List<AudioBooksInfo> books )
-        {
-            this.AuduioBooks = books;
-            if (isBroadcasting)
-                return;
-            isBroadcasting = true;
-            broadcastClient = new UdpClient();
-            broadcastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            //broadcastClient.Client.Bind(new IPEndPoint(IPAddress.Parse("255.255.255.255"), port));
-            broadcastClient.EnableBroadcast = true;
-            broadcastTimer = new Timer(BroadcastTimerCallback, null, new TimeSpan(0,0,0,10), new TimeSpan(0,0,0,20,0) );
-        }
-
-        public void StopDiscovery()
-        {
-            broadcastClient.Dispose();
-            broadcastClient = null;
-            broadcastTimer.Dispose();
-            broadcastTimer = null;
-            AuduioBooks = null;
-            isBroadcasting = false;
-        }
-
-        private async void BroadcastTimerCallback(object state)
-        {
-            var jsdata = JsonConvert.SerializeObject((AuduioBooks.ToArray()));
-            var sendData = Encoding.ASCII.GetBytes(jsdata);
-            //broadcastClient.Connect(new IPEndPoint(IPAddress.Broadcast, port));
-            var res = await broadcastClient.SendAsync(sendData, sendData.Length, new IPEndPoint(IPAddress.Parse("255.255.255.255"), port)).ConfigureAwait(false);
-        }
-
-        public event EventHandler<AudioBooksInfoBroadcast> DiscoveredNewSource; 
-
-        public async void StartListen()
-        {
-            if (isListen)
-                return;
-            isListen = true;
-            var ipAddress = new IPEndPoint(IPAddress.Any, port+1);
-            var addres = new IPEndPoint(IPAddress.Any, port);
-            listenClient = new UdpClient();
-            listenClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            listenClient.Client.Bind(addres);
-            //listenClient.EnableBroadcast = true;
-            //listenClient.Connect(addres);
-            while (isListen)
-            {
-                var data = await listenClient.ReceiveAsync();
-                var jsdata = Encoding.ASCII.GetString(data.Buffer);
-                var discoveredBooks = JsonConvert.DeserializeObject<AudioBooksInfo[]>(jsdata);
-                OnDiscoveredNewSource(new AudioBooksInfoBroadcast()
-                {
-                    Books = discoveredBooks,
-                    IpAddress = data.RemoteEndPoint.Address,
-                    LastDiscoveryUtcTime = DateTime.UtcNow
-                });
-            }
-        }
-
-        protected virtual void OnDiscoveredNewSource(AudioBooksInfoBroadcast e)
-        {
-            DiscoveredNewSource?.Invoke(this, e);
-        }
+        public int Port { get; set; }
 
         public async Task StartSendStream(UdpClient client, Stream stream, IPEndPoint endpoint, IProgress<StreamProgress> reporter,
             int transferePerMs = 50)
         {
             streamingStatus.Add(client, StreamingStatus.Stream);
-            using (client)
+            Guid operationId = Guid.NewGuid();
+            OnStreamStatusChanged(new StreamStatus() {operationId = operationId, Status = StreamingStatus.Stream});
+            try
             {
-                byte[] buffer = new byte[1024 * 4 * 4];
-                UdpFrame frame = new UdpFrame()
+                using (client)
                 {
-                    Id = Guid.NewGuid(),
-                    Order = 0
-                };
-                int order = 0;
-                var prs = new StreamProgress();
-                
+                    byte[] buffer = new byte[1024*4*4];
+                    UdpFrame frame = new UdpFrame()
+                    {
+                        Id = Guid.NewGuid(),
+                        Order = 0
+                    };
+                    int order = 0;
+                    var prs = new StreamProgress() {OperationId = operationId};
+
 
                     client.EnableBroadcast = true;
                     string bytes;
@@ -149,9 +89,14 @@ namespace AudioBooksPlayer.WPF.Streaming
                     bytes = JsonConvert.SerializeObject(frame);
                     b = Encoding.ASCII.GetBytes(bytes);
                     await client.SendAsync(b, b.Length, endpoint);
-                streamingStatus.Remove(client);
+                    streamingStatus.Remove(client);
+                }
             }
-            
+            finally
+            {
+                OnStreamStatusChanged(new StreamStatus() { operationId = operationId, Status = StreamingStatus.Cancel });
+            }
+
         }
         public Task StartSendStream(Stream stream, IPEndPoint endpoint, IProgress<StreamProgress> reporter, 
             int transferePerMs = 50)
@@ -270,52 +215,61 @@ namespace AudioBooksPlayer.WPF.Streaming
 
         private void TcpCommandListenerCallBack(object state)
         {
-            var client = (TcpClient) state;
-            byte[] buffer = new byte[4096];
-            if (!client.Connected)
-                client.Connect((IPEndPoint) client.Client.RemoteEndPoint);
-            CommandFrame commandFrame;
-            using (var stream = client.GetStream())
+            OnConnectionChanged(true);
+            try
             {
-                int readed = stream.Read(buffer, 0, buffer.Length);
-                commandFrame = CommandFromBytes(buffer, readed);
-                commandFrame.ToIp = ((IPEndPoint) client.Client.RemoteEndPoint).Address.GetAddressBytes();
-                switch (commandFrame.Type)
+                var client = (TcpClient) state;
+                byte[] buffer = new byte[4096];
+                if (!client.Connected)
+                    client.Connect((IPEndPoint) client.Client.RemoteEndPoint);
+                CommandFrame commandFrame;
+                using (var stream = client.GetStream())
                 {
-                    case CommandEnum.StreamFile:
-                        commandFrame = EstablishUdpChanel(stream, commandFrame);
-                        commandFrame.Type = CommandEnum.StreamFile;
-                        break;
-                    case CommandEnum.PauseStreaming:
+                    int readed = stream.Read(buffer, 0, buffer.Length);
+                    commandFrame = CommandFromBytes(buffer, readed);
+                    commandFrame.ToIp = ((IPEndPoint) client.Client.RemoteEndPoint).Address.GetAddressBytes();
+                    switch (commandFrame.Type)
                     {
-                        var cl = awaitingUdpClients[Guid.Parse(commandFrame.Book)];
-                        streamingStatus[cl] = StreamingStatus.Pause;
-                        commandFrame.Type = CommandEnum.Ok;
-                        var bytes = CommandToBytes(commandFrame);
-                        stream.Write(bytes, 0, bytes.Length);
-                        break;
-                    }
-                    case CommandEnum.ResumeStreaming:
-                    {
-                        var cl = awaitingUdpClients[Guid.Parse(commandFrame.Book)];
-                        streamingStatus[cl] = StreamingStatus.Stream;
-                        commandFrame.Type = CommandEnum.Ok;
-                        var bytes = CommandToBytes(commandFrame);
-                        stream.Write(bytes, 0, bytes.Length);
-                        break;
-                    }
-                        case CommandEnum.CancelStream:
-                    {
+                        case CommandEnum.StreamFile:
+                            commandFrame = EstablishUdpChanel(stream, commandFrame);
+                            commandFrame.Type = CommandEnum.StreamFile;
+                            break;
+                        case CommandEnum.PauseStreaming:
+                        {
                             var cl = awaitingUdpClients[Guid.Parse(commandFrame.Book)];
-                        streamingStatus[cl] = StreamingStatus.Cancel;
+                            streamingStatus[cl] = StreamingStatus.Pause;
                             commandFrame.Type = CommandEnum.Ok;
                             var bytes = CommandToBytes(commandFrame);
                             stream.Write(bytes, 0, bytes.Length);
                             break;
+                        }
+                        case CommandEnum.ResumeStreaming:
+                        {
+                            var cl = awaitingUdpClients[Guid.Parse(commandFrame.Book)];
+                            streamingStatus[cl] = StreamingStatus.Stream;
+                            commandFrame.Type = CommandEnum.Ok;
+                            var bytes = CommandToBytes(commandFrame);
+                            stream.Write(bytes, 0, bytes.Length);
+                            break;
+                        }
+                        case CommandEnum.CancelStream:
+                        {
+                            var cl = awaitingUdpClients[Guid.Parse(commandFrame.Book)];
+                            streamingStatus[cl] = StreamingStatus.Cancel;
+                            commandFrame.Type = CommandEnum.Ok;
+                            var bytes = CommandToBytes(commandFrame);
+                            stream.Write(bytes, 0, bytes.Length);
+                            break;
+                        }
                     }
                 }
+
+                OnGetCommand(commandFrame);
             }
-            OnGetCommand(commandFrame);
+            finally
+            {
+                OnConnectionChanged(false);
+            }
         }
 
         public CommandFrame SendCommand(IPEndPoint endpoint, CommandFrame command)
@@ -397,6 +351,9 @@ namespace AudioBooksPlayer.WPF.Streaming
             return commandFrame;
         }
 
+        public event EventHandler<bool> ConnectionChanged;
+        public event EventHandler<StreamStatus> StreamStatusChanged;
+          
         public event EventHandler<CommandFrame> GetCommand;
         public event EventHandler FileStreamingComplited; 
 
@@ -408,6 +365,16 @@ namespace AudioBooksPlayer.WPF.Streaming
         protected virtual void OnFileStreamingComplited()
         {
             FileStreamingComplited?.Invoke(this, EventArgs.Empty);
+        }
+
+        protected virtual void OnConnectionChanged(bool isNew)
+        {
+            ConnectionChanged?.Invoke(this, isNew);
+        }
+
+        protected virtual void OnStreamStatusChanged(StreamStatus isStarted)
+        {
+            StreamStatusChanged?.Invoke(this, isStarted);
         }
     }
 }

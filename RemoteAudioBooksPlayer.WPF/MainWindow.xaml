@@ -10,7 +10,17 @@
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModel:MainViewModel}"
         Title="RemoteBookPlayer" Height="350" Width="525">
-    <TabControl>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <ToolBarPanel>
+            <Menu>
+                <MenuItem Header="Discovery" Click="MenuItem_OnClick"></MenuItem>
+            </Menu>
+        </ToolBarPanel>
+    <TabControl Grid.Row="1">
         <TabItem Header="by udp">
             <StackPanel>
                 <Button Command="{Binding ListenCommand}" Content="Start listen"/>
@@ -26,7 +36,22 @@
                     </TreeView.Resources>
                 </TreeView>
                 <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Content="{Binding CurrentPosition, Mode=OneWay}"></Label>
+                    <Slider Grid.Column="1" Minimum="0" Maximum="{Binding TotalLengthPlayingFile.TotalSeconds, Mode=OneWay}"
+                            Value="{Binding CurrentPosition.TotalSeconds, Mode=OneWay}"></Slider>
+                    <Label Grid.Column="2" Content="{Binding TotalLengthPlayingFile, Mode=OneWay}"></Label>
+                </Grid>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
                         <ColumnDefinition/>
                         <ColumnDefinition/>
                         <ColumnDefinition/>
@@ -34,10 +59,10 @@
                     <Button Margin="5" Command="{Binding PlayStreamCommand}" Content="Play"/>
                     <Button Margin="5" Grid.Column="1" Command="{Binding PausePlayCommand}" Content="Pause"/>
                     <Button Margin="5" Grid.Column="2" Command="{Binding CancelPlayingCommand}" Content="Stop"/>
+                    <Button Margin="5" Grid.Column="3" Click="Button_Click" Content=">> 10 sec"></Button>
                     
                 </Grid>
                 <Label Content="{Binding PackageLoss, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}Package loss: {0}%}"></Label>
-                <Button Click="Button_Click">Tests</Button>
                 <Label Content="Left to read"/>
                 <ProgressBar Minimum="0" Maximum="{Binding LeftToRead, Mode=OneWay}" Value="{Binding ReadPosition, Mode=OneWay}"/>
                 <Label Content="Left to write"/>
@@ -57,5 +82,6 @@
             </StackPanel>
         </TabItem>
     </TabControl>
+    </Grid>
     
 </Window>

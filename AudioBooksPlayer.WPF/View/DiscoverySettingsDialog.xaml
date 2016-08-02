@@ -1,0 +1,47 @@
+﻿<Window x:Class="AudioBooksPlayer.WPF.View.DiscoverySettingsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:sys="clr-namespace:System.Net;assembly=System"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:AudioBooksPlayer.WPF.View"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance local:DiscoverySettingsDialog}"
+        Title="DiscoverySettingsDialog" WindowStartupLocation="CenterOwner" SizeToContent="WidthAndHeight" WindowStyle="ToolWindow">
+    <Grid Margin="5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition />
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <Label Content="Discovery:"/>
+        <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Grid.Row="1" Margin="0,5,0,5">
+            <Label Content="Port: "/>
+            <xctk:IntegerUpDown Value="{Binding Port, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Minimum="{x:Static sys:IPEndPoint.MinPort}" Maximum="{x:Static sys:IPEndPoint.MaxPort }"></xctk:IntegerUpDown>
+            <Label Content="{Binding CurrentPort, Mode=OneWay, StringFormat=Current port: \{0\}}"></Label>
+        </StackPanel>
+        <Button Grid.Row="2" Margin="5" Content="Start" Command="{Binding StartDiscoveryCommand}"/>
+        <Button Grid.Row="2" Margin="5" Grid.Column="1" Content="Stop" Command="{Binding StopDiscoveryCommand}"/>
+        <Label Grid.Row="3" Content="{Binding Status, Mode=OneWay, StringFormat=Broadcast status: \{0\}}"/>
+        <Label Grid.Row="4" Content="Listen:"/>
+        <Button Grid.Row="5" Margin="5" Command="{Binding StartListeningCommand}" Content="Start"/>
+        <Button Grid.Row="5" Margin="5" Grid.Column="1" Command="{Binding StopListenCommand}" Content="Stop"></Button>
+        <Button Grid.Row="6" Margin="5" Content="Apply" Command="{Binding ApplyChangesCommand}"/>
+        <Button Grid.Row="6" Margin="5" Grid.Column="1" Content="Close" Click="ButtonBase_OnClick"/>
+    </Grid>
+</Window>

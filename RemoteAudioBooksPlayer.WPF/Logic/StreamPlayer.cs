@@ -72,6 +72,7 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
             }
         }
 
+            ReadFullyStream readFullyStream;
         private void StreamMp3(Stream stream)
         {
             fullyDownloaded = false;
@@ -80,7 +81,7 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
             IMp3FrameDecompressor decompressor = null;
             try
             {
-                var readFullyStream = new ReadFullyStream(stream);
+                readFullyStream = new ReadFullyStream(stream);
                 do
                 {
                     if (IsBufferNearlyFull)
@@ -250,7 +251,7 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
             {
                 if (!fullyDownloaded)
                 {
-                    webRequest.Abort();
+                    webRequest?.Abort();
                 }
 
                 playbackState = StreamingPlaybackState.Stopped;
@@ -272,7 +273,7 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
         {
             lock (o)
             {
-                if (waveOut.PlaybackState == PlaybackState.Playing)
+                if (waveOut.PlaybackState == NAudio.Wave.PlaybackState.Playing)
                     return;
                 waveOut.Play();
                 Debug.WriteLine(String.Format("Started playing, waveOut.PlaybackState={0}", waveOut.PlaybackState));
@@ -284,9 +285,9 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
         {
             lock (o)
             {
-                if (waveOut.PlaybackState != playbackState.Playing)
+                if (waveOut.PlaybackState != NAudio.Wave.PlaybackState.Playing)
                     return;
-                playbackState = StreamingPlaybackState.Buffering;
+                playbackState = StreamingPlaybackState.Paused;
                 waveOut.Pause();
                 Debug.WriteLine(String.Format("Paused to buffer, waveOut.PlaybackState={0}", waveOut.PlaybackState));
             }
@@ -311,5 +312,17 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
         {
             StopPlayback();
         }
+
+        public double PlayedTime
+        {
+            get
+            {
+                if (readFullyStream == null)
+                    return 0;
+                return readFullyStream.Position;
+            }
+        }
+
+        public TimeSpan BufferedTime => bufferedWaveProvider.BufferDuration;
     }
 }

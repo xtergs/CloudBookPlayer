@@ -2,6 +2,7 @@
 using System.Windows;
 using AudioBooksPlayer.WPF.ExternalLogic;
 using AudioBooksPlayer.WPF.Properties;
+using AudioBooksPlayer.WPF.View;
 using Microsoft.Practices.Unity;
 
 namespace AudioBooksPlayer.WPF
@@ -19,7 +20,7 @@ namespace AudioBooksPlayer.WPF
             container = new UnityContainer();
             container.RegisterType<MainViewModel>();
             container.RegisterType<IFileSelectHelper, WPFFileSelectHelper>();
-            main = container.Resolve<MainViewModel>(new ParameterOverride("startupDiscovery", Settings.Default.SturtupDiscovery));
+            main = container.Resolve<MainViewModel>(new ParameterOverride("startupDiscovery", Settings.Default.SturtupDiscovery), new ParameterOverride("discoverPort", -1));
 
             DataContext = main;
         }
@@ -33,6 +34,12 @@ namespace AudioBooksPlayer.WPF
         {
             main.StopPlayingAudioBook.Execute(null);
             main.SaveDataCommand.Execute(null);
+        }
+
+        private void ShowDiscoverySettings(object sender, RoutedEventArgs e)
+        {
+            (new DiscoverySettingsDialog(main.ModuleDiscoverModule)).ShowDialog();
+            main.DiscoveryChnages();
         }
     }
 }

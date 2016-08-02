@@ -34,6 +34,7 @@ namespace AudioBooksPlayer.WPF.Logic
                         FileName = Path.GetFileName(x),
                         FilePath = x,
                         Order = order,
+                        Size = new FileInfo(x).Length,
                         Duration = audioTags.Audio.Duration
                     };
                 }
@@ -42,6 +43,7 @@ namespace AudioBooksPlayer.WPF.Logic
             return new AudioBooksInfo()
             {
                 BookName = Path.GetDirectoryName(folder),
+                FolderPath = folder,
                 Files = files,
                 TotalDuration = files.Select(x=> x.Duration).Aggregate((x,y)=> y + x),
                 CurrentFile =  files.Min(x=> x.Order),

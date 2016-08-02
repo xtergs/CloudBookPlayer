@@ -46,5 +46,10 @@ namespace AudioBooksPlayer.WPF.DAL
                 conv.Serialize(wr, AudioBooks);
             }
         }
+
+        public void RemoteAudioBook(AudioBooksInfo selectedAudioBook)
+        {
+            _audioBooks.Remove(selectedAudioBook);
+        }
     }
 }

@@ -16,7 +16,7 @@ namespace AudioBooksPlayer.WPF.Streaming
 
     public class BookStreamer
     {
-        StreamingUDP streamer = new StreamingUDP();
+        StreamingUDP streamer;
         private UdpClient client;
         private Progress<StreamProgress> streamProgresss;
         private MemorySecReadStream memoryStream = new MemorySecReadStream(new byte[1024*1024*1]);
@@ -25,6 +25,14 @@ namespace AudioBooksPlayer.WPF.Streaming
         private AudioBookInfoRemote streamingBook;
         private int streamingFileOrder = 0;
         private IProgress<ReceivmentProgress> receivmentReporter;
+
+        public BookStreamer(StreamingUDP cl)
+        {
+            if (cl == null)
+                streamer = new StreamingUDP();
+            else
+                streamer = cl;
+        }
 
         public MemorySecReadStream Stream => memoryStream;
 

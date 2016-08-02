@@ -14,6 +14,7 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using AudioBooksPlayer.WPF.ViewModel;
 
 namespace AudioBooksPlayer.WPF
 {
@@ -39,7 +40,7 @@ namespace AudioBooksPlayer.WPF
 
 
         public MainViewModel(IFileSelectHelper fileSelectHelper, AudioPlayer audioPlayer, Context context
-            ,bool startupDiscovery = false)
+            ,bool startupDiscovery = false, int discoverPort = -1)
         {
             if (fileSelectHelper == null)
                 throw new ArgumentNullException(nameof(fileSelectHelper));
@@ -52,22 +53,57 @@ namespace AudioBooksPlayer.WPF
             this.audioPlayer = audioPlayer;
             this.context = context;
 
+            Operations = new OperationsViewModel();
+
+            discoverModule = new DiscoverModule();
+            
             audioProcessor = new AudioBooksProcessor();
             streamer = new StreamingUDP();
-            bookStreamer = new BookStreamer();
+            bookStreamer = new BookStreamer(streamer);
 
             audioPlayer.PlayingNextFile += AudioPlayerOnPlayingNextFile;
-            streamer.GetCommand += StreamerOnGetCommand;
+            //streamer.GetCommand += StreamerOnGetCommand;
+            streamer.ConnectionChanged += StreamerOnConnectionChanged;
+            streamer.StreamStatusChanged += StreamerOnStreamStatusChanged;
 
             SetupCommands();
 
-            
 
+
+            if (discoverPort >= 0)
+                discoverModule.Port = discoverPort;
             if (startupDiscovery)
             {
                 StartDiscovery.Execute(null);
                 TestStreamingCommand.Execute(null);
             }
+        }
+
+        public OperationsViewModel Operations { get; private set; }
+
+        private void StreamerOnStreamStatusChanged(object sender, StreamStatus streamStatus)
+        {
+            if (streamStatus.Status == StreamingStatus.Stream)
+            {
+                Interlocked.Increment(ref _activeStreams);
+                Operations.AddOperation(streamStatus);
+                OnPropertyChanged(nameof(ActiveStreams));
+            }
+
+            else
+            {
+                Interlocked.Decrement(ref _activeStreams);
+                Operations.RemoteOperation(streamStatus.operationId);
+                OnPropertyChanged(nameof(ActiveStreams));
+            }
+        }
+
+        private void StreamerOnConnectionChanged(object sender, bool b)
+        {
+            if (b)
+                ActiveConnections++;
+            else
+                ActiveConnections--;
         }
 
         private void AudioPlayerOnPlayingNextFile(object sender, EventArgs eventArgs)
@@ -84,8 +120,8 @@ namespace AudioBooksPlayer.WPF
             {
                 case CommandEnum.StreamFile:
                 {
-                    var book = AudioBooks.First(x => x.BookName == commandFrame.Book);
-                    using (var stream = File.OpenRead(book.Files.First().FilePath))
+                    var book = AudioBooks.Select(x => x.Files.First(y=> y.FilePath == commandFrame.Book)).FirstOrDefault();
+                    using (var stream = File.OpenRead(book.FilePath))
                         await streamer.StartSendStream(stream,
                             new IPEndPoint(new IPAddress(commandFrame.ToIp), commandFrame.ToIpPort),
                             new Progress<StreamProgress>());
@@ -97,7 +133,7 @@ namespace AudioBooksPlayer.WPF
         private void SetupCommands()
         {
             TestStreamingCommand = new RelayCommand(TestStreamingExecute, TestStreamingCanExecute);
-            StartDiscovery = new RelayCommand<bool>(StartDiscoveryExecute, (f) => f || !IsDiscoverying);
+            StartDiscovery = new RelayCommand<bool>(StartDiscoveryExecute, (f) => f || discoverModule != null);
         }
 
         private bool TestStreamingCanExecute()
@@ -116,7 +152,8 @@ namespace AudioBooksPlayer.WPF
 
         private void Handler(StreamProgress streamProgress)
         {
-            SendingProgress = streamProgress;
+            //SendingProgress = streamProgress;
+            Operations.OperationStatusChanged(streamProgress.OperationId, streamProgress.Position, streamProgress.Length);
         }
 
         public StreamProgress SendingProgress
@@ -191,7 +228,7 @@ namespace AudioBooksPlayer.WPF
 
         public AudioBooksInfo[] AudioBooks => context.AudioBooks;
 
-        public AudioFileInfo[] SelectedBookFiles => SelectedAudioBook.Files;
+        public AudioFileInfo[] SelectedBookFiles => SelectedAudioBook?.Files;
 
         public AudioBooksInfo SelectedAudioBook
         {
@@ -219,6 +256,28 @@ namespace AudioBooksPlayer.WPF
         private AudioFileInfo _playingFile;
         private Timer updateCurrentPositionTimer;
 
+        public int ActiveConnections
+        {
+            get { return _activeConnections; }
+            private set
+            {
+                if (value == _activeConnections) return;
+                _activeConnections = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public int ActiveStreams
+        {
+            get { return _activeStreams; }
+            private set
+            {
+                if (value == _activeStreams) return;
+                _activeStreams = value;
+                OnPropertyChanged();
+            }
+        }
+
         public ICommand AddAudioBookCommand
         {
             get
@@ -233,6 +292,16 @@ namespace AudioBooksPlayer.WPF
                 });
             }
         }
+        public ICommand RemoteAudioBookCommand
+        {
+            get
+            {
+                return new RelayCommand(() =>
+                {
+                    context.RemoteAudioBook(SelectedAudioBook);
+                    NotifyAudioBooksChanged();
+                }, () => SelectedAudioBook != null);
+            } }
 
         public void NotifyAudioBooksChanged()
         {
@@ -276,7 +345,7 @@ namespace AudioBooksPlayer.WPF
             }
         }
 
-        public double TotalFileTime => PlayingFile.Duration.TotalSeconds;
+        public double TotalFileTime => PlayingFile?.Duration.TotalSeconds ?? 0;
 
         private void updateCurrentPositionTick(object state)
         {
@@ -369,19 +438,38 @@ namespace AudioBooksPlayer.WPF
                 }, () => !IsBussy);
             }
         }
+        #region Discovery
+        private readonly DiscoverModule discoverModule;
+        private int _activeConnections = 0;
+        private int _activeStreams;
 
         public ICommand StartDiscovery { get; private set; }
 
         private void StartDiscoveryExecute(bool force)
         {
-            IsDiscoverying = true;
-            streamer.StartDiscoverty(AudioBooks.ToList());
-            DiscoveryStatus = "Broadcast";
+            if (IsDiscoverying && !force)
+            {
+                IsDiscoverying = false;
+                discoverModule.StopDiscovery();
+                DiscoveryStatus = "Discovery stoped";
+            }
+            else
+            {
+                IsDiscoverying = true;
+                discoverModule.StartDiscoverty(AudioBooks.ToList());
+                DiscoveryStatus = "Broadcast";
+            }
         }
+
+        public void DiscoveryChnages()
+        {
+            if (IsDiscoverying)
+                discoverModule.StartDiscoverty(AudioBooks.ToList());
+        }
+        #endregion
 
         public ICommand TestStreamingCommand { get; private set; }
 
-
-
+        public DiscoverModule ModuleDiscoverModule => discoverModule;
     }
 }

@@ -13,6 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using AudioBooksPlayer.WPF.Streaming;
+using AudioBooksPlayer.WPF.View;
 using Ninject;
 using Ninject.Parameters;
 using RemoteAudioBooksPlayer.WPF.Logic;
@@ -48,6 +49,11 @@ namespace RemoteAudioBooksPlayer.WPF
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             model.player.Forward(10);
+        }
+
+        private void MenuItem_OnClick(object sender, RoutedEventArgs e)
+        {
+            (new DiscoverySettingsDialog(model.Module)).ShowDialog();
         }
     }
 }
