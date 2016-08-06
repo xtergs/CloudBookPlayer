@@ -11,5 +11,6 @@ namespace AudioBooksPlayer.WPF.Streaming
         public byte[] ToIp { get; set; }
         public int ToIpPort { get; set; }
         public string Book { get; set; }
+		public string Command { get; set; }
     }
 }

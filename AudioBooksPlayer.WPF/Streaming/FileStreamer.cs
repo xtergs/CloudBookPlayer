@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Pipes;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -17,9 +18,9 @@ namespace AudioBooksPlayer.WPF.Streaming
     public class BookStreamer
     {
         StreamingUDP streamer;
-        private UdpClient client;
+        private IStreamer client;
         private Progress<StreamProgress> streamProgresss;
-        private MemorySecReadStream memoryStream = new MemorySecReadStream(new byte[1024*1024*1]);
+        private MemorySecReadStream memoryStream = new MemorySecReadStream(new byte[1024*1024]);
 
         private Guid streamCommandId;
         private AudioBookInfoRemote streamingBook;
@@ -41,35 +42,63 @@ namespace AudioBooksPlayer.WPF.Streaming
             this.streamingBook = book;
             this.receivmentReporter = reporter;
             streamer.FileStreamingComplited += StreamerOnFileStreamingComplited;
-            return GetStreamingBook(book.Book.Files.First().FilePath, book.IpAddress, receivmentReporter);
+            return GetStreamingBookPipe(book.Book.Files.First().FilePath, book.IpAddress, receivmentReporter);
         }
 
-        public async Task<Stream> GetStreamingBook(string filePath, IPAddress endpoint, IProgress<ReceivmentProgress> reporter )
+	    private async Task<Stream> GetStreamingBookPipe(string filePath, IPAddress endpoint, IProgress<ReceivmentProgress> repoerter)
+	    {
+			IsPausedStream = false;
+			//UdpClient udpClient = new UdpClient(new IPEndPoint(IPAddress.Any, 0));
+			CommandFrame command = new CommandFrame()
+			{
+				Book = filePath,
+				Type = CommandEnum.StreamFilePipe,
+				IdCommand = Guid.NewGuid(),
+				FromIp = endpoint.GetAddressBytes(),
+			};
+			var endpointt = new IPEndPoint(endpoint, 8000);
+			command = streamer.SendCommand(endpointt, command);
+			if (command.Type != CommandEnum.Ok)
+			{
+				Debug.WriteLine("error while trying to stream book");
+
+				return null;
+			}
+			var listenEndpoint = new IPEndPoint(new IPAddress(command.FromIp), command.ToIpPort);
+			streamCommandId = command.IdCommand;
+			ClientFactory fa = new ClientFactory();
+		    var client = fa.GetPipeClient();
+			streamer.StartListeneningSteam(client, command.Command, memoryStream, listenEndpoint, repoerter);
+			//client = udpClient;
+			//streamer.FileStreamingComplited += StreamerOnFileStreamingComplited;
+			return memoryStream;
+		}
+
+        private async Task<Stream> GetStreamingBook(string filePath, IPAddress endpoint, IProgress<ReceivmentProgress> reporter )
         {
             IsPausedStream = false;
-            UdpClient udpClient = new UdpClient(new IPEndPoint(IPAddress.Any, 0));
+            ClientFactory factory = new ClientFactory();
+	        var client = factory.GetUdpClient();
             CommandFrame command = new CommandFrame()
             {
                 Book = filePath,
-                Type = CommandEnum.StreamFile,
+                Type = CommandEnum.StreamFileUdp,
+				Command = client.GetConnectionInfo(),
                 IdCommand = Guid.NewGuid(),
                 FromIp = endpoint.GetAddressBytes(),
-                ToIpPort = ((IPEndPoint)udpClient.Client.LocalEndPoint).Port
+               // ToIpPort = ((IPEndPoint)client.GetConnectionInfo().Client.LocalEndPoint).Port
             };
             var endpointt = new IPEndPoint(endpoint, 8000);
             command = streamer.SendCommand(endpointt, command);
             if (command.Type != CommandEnum.Ok)
             {
                 Debug.WriteLine("error while trying to stream book");
-                udpClient.Close();
-                udpClient.Dispose();
                 
                 return null;
             }
             var listenEndpoint = new IPEndPoint(new IPAddress(command.FromIp), command.ToIpPort);
             streamCommandId = command.IdCommand;
-            streamer.StartListeneningSteam(udpClient, memoryStream, listenEndpoint, reporter);
-            client = udpClient;
+            streamer.StartListeneningSteam(client, "", memoryStream, listenEndpoint, reporter);
             //streamer.FileStreamingComplited += StreamerOnFileStreamingComplited;
             return memoryStream;
         }
@@ -82,7 +111,7 @@ namespace AudioBooksPlayer.WPF.Streaming
                 streamer.FileStreamingComplited -= StreamerOnFileStreamingComplited;
                 return;
             }
-            GetStreamingBook(streamingBook.Book.Files[streamingFileOrder].FilePath, streamingBook.IpAddress,
+            GetStreamingBookPipe(streamingBook.Book.Files[streamingFileOrder].FilePath, streamingBook.IpAddress,
                 receivmentReporter);
         }
 
@@ -97,7 +126,8 @@ namespace AudioBooksPlayer.WPF.Streaming
         {
             switch (commandFrame.Type)
             {
-                    case CommandEnum.StreamFile:
+					case CommandEnum.StreamFilePipe:
+                    case CommandEnum.StreamFileUdp:
                     StreamFile(commandFrame);
                     break;
             }
@@ -106,14 +136,42 @@ namespace AudioBooksPlayer.WPF.Streaming
         private Task StreamFile(CommandFrame commandFrame)
         {
             var stream = File.OpenRead(commandFrame.Book);
-            var endpoint = new IPEndPoint(new IPAddress(commandFrame.ToIp), commandFrame.ToIpPort);
-            return streamer.StartSendStream(streamer.awaitingUdpClients[commandFrame.IdCommand], stream, endpoint,
-                streamProgresss).ContinueWith(x => stream.Close());
+	        var endpoint = new IPEndPoint(new IPAddress(commandFrame.ToIp), commandFrame.ToIpPort);
+            return streamer.StartSendStream(commandFrame.IdCommand, stream, commandFrame.Command,
+				endpoint,streamProgresss).ContinueWith(x =>
+                {
+	                stream.Close();
+					stream.Dispose();
+				});
         }
 
-        static object o = new object();
+		public Task StreamFileBroadcast(string path)
+		{
+			var stream = File.OpenRead(path);
+			var endpoint = new IPEndPoint(IPAddress.Any, 0);
+			streamCommandId = Guid.NewGuid();
+			return streamer.StartBroadcastStream(streamCommandId, stream,"", endpoint,
+				streamProgresss).ContinueWith(x =>
+				{
+					stream.Close();
+				});
+		}
+
+	    public async Task DownloadFile(string book, IPEndPoint endpoint, string downloadTo)
+	    {
+		    var stream = await GetStreamingBook(book, endpoint.Address, new Progress<ReceivmentProgress>());
+
+	    }
+
+		static object o = new object();
         public bool IsPausedStream { get; private set; }
-        public bool PauseStream()
+
+	    public AudioBookInfoRemote StreamingBook
+	    {
+		    get { return streamingBook; }
+	    }
+
+	    public bool PauseStream()
         {
             lock (o)
             {
@@ -187,8 +245,6 @@ namespace AudioBooksPlayer.WPF.Streaming
                     Debug.WriteLine("error while trying to cancel book streaming");
                     return false;
                 }
-                client.Close();
-                client.Dispose();
                 client = null;
                 Stream.Clear();
                 return true;

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Windows.Markup;
 
 namespace AudioBooksPlayer.WPF.Model
 {
@@ -12,7 +14,24 @@ namespace AudioBooksPlayer.WPF.Model
         public long PositionInFile { get; set; }
         public int CurrentFile { get; set; }
         public TimeSpan TotalDuration { get; set; }
+
+
+	    public AudioFileInfo CurrentFileInfo
+	    {
+		    get
+		    {
+			    if (CurrentFile == Files.Length)
+				    return null;
+			    return Files[CurrentFile];
+		    }
+	    }
     }
+
+	public class RootFolderAudioBooks
+	{
+		public string Folder { get; set; }
+		public List<AudioBooksInfo> Books { get; set; }
+	}
 
     public static class AudioBooksInfoExtension
     {

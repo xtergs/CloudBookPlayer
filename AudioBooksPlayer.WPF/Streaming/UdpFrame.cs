@@ -9,4 +9,6 @@ namespace AudioBooksPlayer.WPF.Streaming
         public byte[] Data { get; set; }
         public int Length { get; set; }
     }
+
+	
 }

@@ -37,5 +37,51 @@ namespace AudioBooksPlayer.WPF.Tests
 
             //A
         }
-    }
+
+		[ExpectedException(typeof(ArgumentOutOfRangeException))]
+		[TestMethod]
+		public void OverflowExceptionMemoryStream()
+		{
+			//A
+			byte[] buffer = new byte[10];
+			byte[] testBuf = new byte[1];
+			MemorySecReadStream stream = new MemorySecReadStream(buffer);
+
+			//A
+			for (int i = 0; i < 7; i++)
+			{
+				testBuf[0] = (byte)i;
+				stream.Write(testBuf, 0, testBuf.Length);
+			}
+
+			stream.Write(new byte[] {7, 8}, 0, 2);
+			stream.Write(new byte[] { 9,108 }, 0, 2);
+
+			//A
+			Assert.AreEqual(108, buffer[0]);
+		}
+
+		[TestMethod]
+		public void OverflowMemoryStream()
+		{
+			//A
+			byte[] buffer = new byte[10];
+			byte[] testBuf = new byte[1];
+			MemorySecReadStream stream = new MemorySecReadStream(buffer);
+
+			//A
+			for (int i = 0; i < 7; i++)
+			{
+				testBuf[0] = (byte)i;
+				stream.Write(testBuf, 0, testBuf.Length);
+			}
+
+			stream.Write(new byte[] { 7, 8 }, 0, 2);
+			stream.Read(new byte[10], 0, 3);
+			stream.Write(new byte[] { 9, 108 }, 0, 2);
+
+			//A
+			Assert.AreEqual(108, buffer[0]);
+		}
+	}
 }

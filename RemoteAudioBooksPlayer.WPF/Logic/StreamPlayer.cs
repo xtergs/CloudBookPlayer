@@ -261,6 +261,8 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
                     waveOut.Dispose();
                     waveOut = null;
                 }
+				readFullyStream?.Dispose();
+	            readFullyStream = null;
                 timer1.Enabled = false;
                 // n.b. streaming thread may not yet have exited
                 Thread.Sleep(500);
@@ -323,6 +325,7 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
             }
         }
 
-        public TimeSpan BufferedTime => bufferedWaveProvider.BufferDuration;
+	    public TimeSpan BufferedTime => bufferedWaveProvider?.BufferDuration ?? new TimeSpan()
+		    ;
     }
 }

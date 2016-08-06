@@ -117,11 +117,13 @@
     </ApplicationDefinition>
     <Compile Include="DAL\Context.cs" />
     <Compile Include="ExternalLogic\FileSelectHelper.cs" />
+    <Compile Include="IStreamer.cs" />
     <Compile Include="Logic\AudioBooksProcessor.cs" />
     <Compile Include="Logic\AudioPlayer.cs" />
     <Compile Include="Model\AudioBooksInfo.cs" />
     <Compile Include="Model\AudioFileInfo.cs" />
     <Compile Include="Properties\Annotations.cs" />
+    <Compile Include="Service\DirectoryService.cs" />
     <Compile Include="Streaming\AudioBooksInfoBroadcast.cs" />
     <Compile Include="Streaming\CommandFrame.cs" />
     <Compile Include="Streaming\DiscoverModule.cs" />
@@ -130,7 +132,9 @@
     <Compile Include="Streaming\ReceivmentProgress.cs" />
     <Compile Include="Streaming\StreamingUDP.cs" />
     <Compile Include="Streaming\StreamProgress.cs" />
+    <Compile Include="Streaming\ClientFactory.cs" />
     <Compile Include="Streaming\UdpFrame.cs" />
+    <Compile Include="Streamer.cs" />
     <Compile Include="ViewModel\MainViewModel.cs" />
     <Compile Include="ViewModel\OperationsViewModel.cs" />
     <Compile Include="ViewModel\ViewModelLocator.cs" />

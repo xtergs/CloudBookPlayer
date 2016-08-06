@@ -48,6 +48,7 @@ namespace AudioBooksPlayer.WPF.Streaming
             broadcastClient = new UdpClient();
             broadcastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
             broadcastClient.EnableBroadcast = true;
+	        broadcastClient.Client.SendBufferSize = int.MaxValue;
             broadcastTimer = new Timer(BroadcastTimerCallback, null, new TimeSpan(0, 0, 0, 10), new TimeSpan(0, 0, 0, 20, 0));
         }
 
@@ -87,7 +88,9 @@ namespace AudioBooksPlayer.WPF.Streaming
             {
                 listenClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
                 listenClient.Client.Bind(addres);
-                while (isListen)
+	            listenClient.Client.ReceiveBufferSize = int.MaxValue;
+
+				while (isListen)
                 {
                     try
                     {

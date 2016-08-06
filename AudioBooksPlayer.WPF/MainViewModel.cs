@@ -114,29 +114,36 @@ namespace AudioBooksPlayer.WPF
             OnPropertyChanged(nameof(PlayingFile));
         }
 
-        private async void StreamerOnGetCommand(object sender, CommandFrame commandFrame)
-        {
-            switch (commandFrame.Type)
-            {
-                case CommandEnum.StreamFile:
-                {
-                    var book = AudioBooks.Select(x => x.Files.First(y=> y.FilePath == commandFrame.Book)).FirstOrDefault();
-                    using (var stream = File.OpenRead(book.FilePath))
-                        await streamer.StartSendStream(stream,
-                            new IPEndPoint(new IPAddress(commandFrame.ToIp), commandFrame.ToIpPort),
-                            new Progress<StreamProgress>());
-                    break;
-                }
-            }
-        }
+        //private async void StreamerOnGetCommand(object sender, CommandFrame commandFrame)
+        //{
+        //    switch (commandFrame.Type)
+        //    {
+        //        case CommandEnum.StreamFileUDP:
+        //        {
+        //            var book = AudioBooks.Select(x => x.Files.First(y=> y.FilePath == commandFrame.Book)).FirstOrDefault();
+        //            using (var stream = File.OpenRead(book.FilePath))
+        //                await streamer.StartSendStream(stream,
+        //                    new IPEndPoint(new IPAddress(commandFrame.ToIp), commandFrame.ToIpPort),
+        //                    new Progress<StreamProgress>());
+        //            break;
+        //        }
+        //    }
+        //}
 
         private void SetupCommands()
         {
             TestStreamingCommand = new RelayCommand(TestStreamingExecute, TestStreamingCanExecute);
             StartDiscovery = new RelayCommand<bool>(StartDiscoveryExecute, (f) => f || discoverModule != null);
-        }
+			//StreamBook = new RelayCommand(StreamBook);
 
-        private bool TestStreamingCanExecute()
+		}
+
+	    //private void StreamBook()
+	    //{
+		   // bookStreamer.StartStreamingServer();
+	    //}
+
+	    private bool TestStreamingCanExecute()
         {
             return true;
             //return SelectedAudioBook != null && SelectedAudioBook.Files.Any();
@@ -282,12 +289,12 @@ namespace AudioBooksPlayer.WPF
         {
             get
             {
-                return new RelayCommand(() =>
+                return new RelayCommand(async () =>
                 {
                     var folder = fileSelectHelper.SelectFolder();
                     if (folder == null)
                         return;
-                    context.AddAudioBook(audioProcessor.ProcessAudoiBookFolder(folder));
+                    context.AddAudioBook(await Task.Run(()=> audioProcessor.ProcessAudoiBookFolder(folder)));
                     NotifyAudioBooksChanged();
                 });
             }
@@ -303,7 +310,29 @@ namespace AudioBooksPlayer.WPF
                 }, () => SelectedAudioBook != null);
             } }
 
-        public void NotifyAudioBooksChanged()
+
+	    public ICommand AddFolderBooksCommand
+	    {
+		    get
+		    {
+			    return new RelayCommand(async () =>
+			    {
+					var folder = fileSelectHelper.SelectFolder();
+					if (folder == null)
+						return;
+				    RootFolderAudioBooks ffolder = await audioProcessor.ProcessFolderWithBooksAsync(folder);
+				    context.AddRootFolder(ffolder);
+				    foreach (var audioBooksInfo in ffolder.Books)
+				    {
+					    context.AddAudioBook(audioBooksInfo);
+				    }
+					NotifyAudioBooksChanged();
+				});
+		    }
+	    }
+
+
+		public void NotifyAudioBooksChanged()
         {
             OnPropertyChanged(nameof(AudioBooks));
             if (IsDiscoverying)
@@ -471,5 +500,8 @@ namespace AudioBooksPlayer.WPF
         public ICommand TestStreamingCommand { get; private set; }
 
         public DiscoverModule ModuleDiscoverModule => discoverModule;
+
+		//public ICommand StreamBook { get; set; }
     }
 }
+

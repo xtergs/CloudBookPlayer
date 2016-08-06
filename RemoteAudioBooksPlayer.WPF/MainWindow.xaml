@@ -55,11 +55,13 @@
                         <ColumnDefinition/>
                         <ColumnDefinition/>
                         <ColumnDefinition/>
-                    </Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
                     <Button Margin="5" Command="{Binding PlayStreamCommand}" Content="Play"/>
                     <Button Margin="5" Grid.Column="1" Command="{Binding PausePlayCommand}" Content="Pause"/>
-                    <Button Margin="5" Grid.Column="2" Command="{Binding CancelPlayingCommand}" Content="Stop"/>
-                    <Button Margin="5" Grid.Column="3" Click="Button_Click" Content=">> 10 sec"></Button>
+                    <Button Margin="5" Grid.Column="2" Command="{Binding ResumePlayCommand}" Content="Resume"/>
+                    <Button Margin="5" Grid.Column="3" Command="{Binding CancelPlayingCommand}" Content="Stop"/>
+                    <Button Margin="5" Grid.Column="4" Click="Button_Click" Content=">> 10 sec"></Button>
                     
                 </Grid>
                 <Label Content="{Binding PackageLoss, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}Package loss: {0}%}"></Label>

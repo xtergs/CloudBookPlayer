@@ -149,34 +149,30 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
 
         private TimeSpan BasicPosition { get; set; }
 
-        public TimeSpan CurrentPosition
-        {
-            get
-            {
-                if (SelectedBroadcastAudioBook?.Book?.Files == null)
-                    return default(TimeSpan);
+	    public TimeSpan CurrentPosition
+	    {
+		    get
+		    {
+			    if (SelectedBroadcastAudioBook?.Book?.Files == null)
+				    return default(TimeSpan);
 
-                return (new TimeSpan(0, 0, 0,
-                    (int)
-                        (player.PlayedTime/(2494464/SelectedBroadcastAudioBook.Book.Files.First().Duration.TotalSeconds)),
-                    0) - player.BufferedTime);
-            }
-        }
+			    return (new TimeSpan(0, 0, 0,
+				    (int)
+					    (player.PlayedTime/
+					     (SelectedBroadcastAudioBook.Book.CurrentFileInfo.Size/
+					      SelectedBroadcastAudioBook.Book.CurrentFileInfo.Duration.TotalSeconds)),
+				    0) - player.BufferedTime);
+		    }
+	    }
 
 
-        private async void TestStreamListenExecute()
+	    private async void TestStreamListenExecute()
         {
             BasicPosition = TimeSpan.Zero;
             player.Stop();
+	        bookStreamer.StopStream();
             var stream = await bookStreamer.GetStreamingBook(SelectedBroadcastAudioBook,
                new Progress<ReceivmentProgress>(Handler));
-            //streamerUdp.SendCommand(new IPEndPoint( RemoteBooks.First().IpAddress, 8000), new CommandFrame()
-            //{
-            //    Book = RemoteBooks.First().Books.First().Files.First().FilePath,
-            //    Type =  CommandEnum.StreamFile,
-            //});
-            //MemorySecReadStream stream = new MemorySecReadStream(new byte[1024*4*10000]);
-            //streamerUdp.StartListeneningSteam(stream, new IPEndPoint(IPAddress.Parse("192.168.0.100"), 7894), new Progress<ReceivmentProgress>(Handler));
             await Task.Delay(500);
             player.PlayStream(stream);
         }

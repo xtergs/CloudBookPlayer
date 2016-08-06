@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using AudioBooksPlayer.WPF.Streaming;
 
@@ -14,10 +15,13 @@ namespace StreamingLoadTest
         private static int maxCount = 10000;
         private static int batchCount = 50;
         private static List<BookStreamer> streamers = new List<BookStreamer>();
+	    private static Timer timer;
          
         static void Main(string[] args)
         {
-            Task.Delay(10000).Wait();
+	        batchCount = int.Parse(System.Configuration.ConfigurationManager.AppSettings.Get("countToAdd"));
+			Task.Delay(10000).Wait();
+	        timer = new Timer(Callback, null, 1000, 10000);
             DiscoverModule discover = new DiscoverModule();
             discover.DiscoveredNewSource += DiscoverOnDiscoveredNewSource;
             discover.StartListen();
@@ -28,7 +32,17 @@ namespace StreamingLoadTest
             }
         }
 
-        private static void DiscoverOnDiscoveredNewSource(object sender, AudioBooksInfoBroadcast audioBooksInfoBroadcast)
+	    private static void Callback(object state)
+	    {
+			    byte[] buf = new byte[1000*80];
+		    foreach (var bookStreamer in streamers.ToArray())
+		    {
+
+			    bookStreamer.Stream.Read(buf, 0, buf.Length);
+		    }
+	    }
+
+	    private static void DiscoverOnDiscoveredNewSource(object sender, AudioBooksInfoBroadcast audioBooksInfoBroadcast)
         {
             if (streamers.Count >= maxCount)
                 return;

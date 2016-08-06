@@ -38,9 +38,10 @@ namespace AudioBooksPlayer.WPF.ViewModel
     public class OperationsViewModel
     {
         ObservableCollection<Operation> operations = new ObservableCollection<Operation>();
-        private List<Guid> awaiting = new List<Guid>(); 
+        private ConcurrentDictionary<Guid, bool> awaiting = new ConcurrentDictionary<Guid, bool>(); 
 
         public ObservableCollection<Operation> Operations => operations;
+	    private ConcurrentDictionary<Operation, bool> opeartions; 
 
         bool isHaveOperation(Guid id)
         {
@@ -49,7 +50,7 @@ namespace AudioBooksPlayer.WPF.ViewModel
 
         bool isAwaiting(Guid id)
         {
-            return awaiting.ToArray().Any(x => x == id);
+            return awaiting.ContainsKey(id);
         }
 
         Operation GetOperation(Guid id)
@@ -61,7 +62,7 @@ namespace AudioBooksPlayer.WPF.ViewModel
         {
             if (!isHaveOperation( status.operationId))
             {
-                awaiting.Add(status.operationId);
+	            awaiting.TryAdd(status.operationId, true);
                 Application.Current.Dispatcher.InvokeAsync(() =>
                 {
                     operations.Add(new Operation()
@@ -70,7 +71,8 @@ namespace AudioBooksPlayer.WPF.ViewModel
                         Name = status.Status.ToString(),
                         Type = status.Status.ToString()
                     });
-                    awaiting.Remove(status.operationId);
+	                bool val;
+	                awaiting.TryRemove(status.operationId, out val);
                 }
                     );
             }
