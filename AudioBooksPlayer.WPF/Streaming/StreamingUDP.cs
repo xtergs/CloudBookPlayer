@@ -40,13 +40,17 @@ namespace AudioBooksPlayer.WPF.Streaming
     public class StreamingUDP
     {
 
-        public int Port { get; set; }
-	    
-        private Dictionary<Guid, int> receivmentTable = new Dictionary<Guid, int>();
+	    public int TcpPort
+	    {
+		    get { return ((IPEndPoint) listener.LocalEndpoint).Port; }
+	    }
+
+	    private Dictionary<Guid, int> receivmentTable = new Dictionary<Guid, int>();
         public Dictionary<Guid, IStreamer> awaitingUdpClients = new Dictionary<Guid, IStreamer>();
 		public Dictionary<Guid, IStreamer> broadcastingClients = new Dictionary<Guid, IStreamer>();
 		private ClientFactory factory = new ClientFactory();
-        static object o = new object();
+		TcpListener listener;
+		static object o = new object();
 
         public async Task StartListeneningSteam(IStreamer client, string connectionInfo, Stream stream, IPEndPoint endPoint,
             IProgress<ReceivmentProgress> reporter)
@@ -119,17 +123,17 @@ namespace AudioBooksPlayer.WPF.Streaming
             }
         }
 
-        public void ListenForCommands()
+        public async void ListenForCommands()
         {
-            IPEndPoint end = new IPEndPoint(IPAddress.Any, 0);
-            TcpListener listener = new TcpListener(IPAddress.Any, 8000);
-            TcpClient client;
+
+	        listener = new TcpListener(IPAddress.Any, 0);
+	        TcpClient client;
             listener.Start();
 
             while (true)
             {
-                client = listener.AcceptTcpClient();
-                ThreadPool.QueueUserWorkItem(TcpCommandListenerCallBack, client);
+	            client = await listener.AcceptTcpClientAsync().ConfigureAwait(false);
+                TcpCommandListenerCallBack(client);
             }
         }
 
@@ -158,25 +162,30 @@ namespace AudioBooksPlayer.WPF.Streaming
 		                    commandFrame.Book = data;
                             break;
 						case CommandEnum.StreamFilePipe:
-							data = commandFrame.Book;
+							data = commandFrame.Command;
 							commandFrame = EstablishUdpChanel(stream, commandFrame);
+		                    commandFrame.Command = data;
 		                    commandFrame.Type = CommandEnum.StreamFilePipe;
 							break;
                         case CommandEnum.PauseStreaming:
-                        {
-	                        try
-	                        {
-		                        var cl = awaitingUdpClients[Guid.Parse(commandFrame.Book)];
-		                        cl.Pause();
-		                        commandFrame.Type = CommandEnum.Ok;
-		                        var bytes = CommandToBytes(commandFrame);
-		                        stream.Write(bytes, 0, bytes.Length);
-	                        }
-								catch(IndexOutOfRangeException)
-								{ }
-	                        break;
-                        }
-                        case CommandEnum.ResumeStreaming:
+	                    {
+		                    try
+		                    {
+			                    var id = Guid.Parse(commandFrame.Book);
+			                    if (!awaitingUdpClients.ContainsKey(id))
+				                    return;
+			                    var cl = awaitingUdpClients[id];
+			                    cl.Pause();
+			                    commandFrame.Type = CommandEnum.Ok;
+			                    var bytes = CommandToBytes(commandFrame);
+			                    stream.Write(bytes, 0, bytes.Length);
+		                    }
+		                    catch (IndexOutOfRangeException)
+		                    {
+		                    }
+		                    break;
+	                    }
+	                    case CommandEnum.ResumeStreaming:
                         {
                             var cl = awaitingUdpClients[Guid.Parse(commandFrame.Book)];
                             cl.Resume();
@@ -330,18 +339,19 @@ namespace AudioBooksPlayer.WPF.Streaming
 	    {
 			var cl = factory.GetUdpClient();
 			broadcastingClients.Add(idCommand, cl);
-			return cl.StartSendStream(stream, command, endpoint, streamProgresss).ContinueWith(x =>
+			return cl.StartSendStream((Stream) stream, BookStreamer.CommandData.FromJs(command), endpoint, streamProgresss).ContinueWith(x =>
 			{
 				broadcastingClients.Remove(idCommand);
 				factory.Return(cl);
 			});
 		}
 
-	    public Task StartSendStream(Guid idCommand, FileStream stream, string endpoint, IPEndPoint endpo, Progress<StreamProgress> streamProgresss)
+	    public async Task StartSendStream(Guid idCommand, FileStream stream, BookStreamer.CommandData endpoint, IPEndPoint endpo,
+		    Progress<StreamProgress> streamProgresss)
 	    {
-			    return
-				    awaitingUdpClients[idCommand].StartSendStream(stream, endpoint, endpo, streamProgresss)
-					    .ContinueWith(x => awaitingUdpClients.Remove(idCommand));
+		    await awaitingUdpClients[idCommand].StartSendStream(stream, endpoint, endpo, streamProgresss);
+			if (awaitingUdpClients.ContainsKey(idCommand))
+				awaitingUdpClients.Remove(idCommand);
 	    }
 
 	    protected virtual void OnStreamStatusChanged(StreamStatus e)

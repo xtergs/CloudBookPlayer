@@ -29,7 +29,7 @@ namespace AudioBooksPlayer.WPF
 		bool Init(string connectionInfo);
 		void Pause();
 		bool Resume();
-		Task StartSendStream(Stream stream, string connectionInfo, IPEndPoint endpoint, IProgress<StreamProgress> repoerter);
+		Task StartSendStream(Stream stream, BookStreamer.CommandData connectionInfo, IPEndPoint endpoint, IProgress<StreamProgress> repoerter);
 
 		Task StartReceiveStream(string connectionInfo, IPEndPoint endpoint,
 			IProgress<ReceivmentProgress> reporter, ReceiveCallback receivmentAction);

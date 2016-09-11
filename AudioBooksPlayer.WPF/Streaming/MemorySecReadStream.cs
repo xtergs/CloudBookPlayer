@@ -34,6 +34,10 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
         {
             get
             {
+	            if (readPosition == writePosition && !writeOverflowed)
+	            {
+		            return 0;
+	            }
                 if (readPosition < writePosition)
                 {
                     return writePosition - readPosition;
@@ -56,9 +60,10 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
 	            count -= (int)maxCount;
 				offset += (int)maxCount;
                 writePosition += maxCount;
+	            if (writePosition == buffer.Length)
+		            writePosition = 0;
                 if (count > 0)
                 {
-                    writePosition = 0;
                     writeOverflowed = true;
 					maxCount = Math.Min(backReadPosition, count);
 					Array.Copy(fromBuff, offset, buff, writePosition, maxCount);

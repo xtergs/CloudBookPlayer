@@ -13,7 +13,7 @@ namespace AudioBooksPlayer.WPF
 	abstract class BaseStreamer : IStreamer
 	{
 		private volatile StreamingStatus _status;
-		public bool CanBeCached { get; } = true;
+		public bool CanBeCached { get; protected set; } = true;
 		public int transferePerMs { get; set; } = 50;
 		public byte VersionProtocol { get; set; } = 1;
 		public int HeaderLength { get; } = 100;
@@ -77,7 +77,7 @@ namespace AudioBooksPlayer.WPF
 			return false;
 		}
 
-		public abstract Task StartSendStream(Stream stream, string connectionInfo, IPEndPoint endpoint, IProgress<StreamProgress> repoerter);
+		public abstract Task StartSendStream(Stream stream, BookStreamer.CommandData connectionInfo, IPEndPoint endpoint, IProgress<StreamProgress> repoerter);
 
 		public abstract Task StartReceiveStream(string connectionInfo, IPEndPoint endpoint,
 			IProgress<ReceivmentProgress> reporter, ReceiveCallback receivmentAction);
@@ -109,35 +109,38 @@ namespace AudioBooksPlayer.WPF
 		{
 			return name;
 		}
-		public override async Task StartSendStream(Stream stream, string connectionInfo, IPEndPoint endpoint, IProgress<StreamProgress> repoerter)
+		public override async Task StartSendStream(Stream stream, BookStreamer.CommandData connectionInfo, IPEndPoint endpoint, IProgress<StreamProgress> repoerter)
 		{
-			await pipe.WaitForConnectionAsync().ConfigureAwait(false);
+			await pipe.WaitForConnectionAsync();
 			Guid operationId = Guid.NewGuid();
+			int bufferLen = 0;
+			if (connectionInfo.BytesPerTransfere > 100)
+				bufferLen = Math.Min(BufferLength, connectionInfo.BytesPerTransfere);
+			TimeSpan delayTransfere = new TimeSpan(0,0,0,0, connectionInfo.TransfereRateMs);
+			
 			OnStreamStatusChanged(new StreamStatus() { operationId = operationId, Status = StreamingStatus.Stream });
 			try
 			{
-				byte[] sendBuffrer = new byte[BufferLength + HeaderLength];
+				byte[] sendBuffrer = new byte[bufferLen + HeaderLength];
 				sendBuffrer[0] = VersionProtocol;
 				var Id = Guid.NewGuid();
 
 				int order = 0;
 				var prs = new StreamProgress() { OperationId = operationId };
 
-				string bytes;
-				//byte[] b;
 				prs.Length = stream.Length;
 				while (true)
 				{
 					while (stream.CanRead && stream.Position < stream.Length)
 					{
-						var readed = stream.Read(sendBuffrer, 100, BufferLength);
+						var readed = stream.Read(sendBuffrer, HeaderLength, bufferLen);
 						FillHeader(sendBuffrer, VersionProtocol, order, Id, readed);
 						await pipe.WriteAsync(sendBuffrer, 0, readed + HeaderLength);
 						pipe.WaitForPipeDrain();
-						await Task.Delay(transferePerMs);
+						await Task.Delay(delayTransfere);
 
 						while (Status == StreamingStatus.Pause)
-						await Task.Delay(new TimeSpan(0, 0, 0, 1));
+							await Task.Delay(new TimeSpan(0, 0, 0, 1));
 						if (Status == StreamingStatus.Cancel)
 							return;
 						prs.Position = stream.Position;
@@ -149,9 +152,10 @@ namespace AudioBooksPlayer.WPF
 				FillHeader(sendBuffrer, VersionProtocol, order, Id, 0);
 				await pipe.WriteAsync(sendBuffrer, 0, HeaderLength).ConfigureAwait(false);
 			}
-			catch
+			catch (Exception e)
 			{
 				pipe.Dispose();
+				CanBeCached = false;
 				throw;
 			}
 			finally
@@ -162,16 +166,21 @@ namespace AudioBooksPlayer.WPF
 
 		public override async Task StartReceiveStream(string connectionInfo, IPEndPoint endpoint, IProgress<ReceivmentProgress> reporter, ReceiveCallback receivmentAction)
 		{
-			NamedPipeClientStream client = new NamedPipeClientStream(".",connectionInfo);
-			await client.ConnectAsync(5000);
-			byte[] buffer = new byte[BufferLength + HeaderLength];
-			while (client.CanRead)
+			using (
+				NamedPipeClientStream client = new NamedPipeClientStream(endpoint.Address.ToString(), connectionInfo))
 			{
-				await client.ReadAsync(buffer, 0, buffer.Length);
-				var frame = FromeHeader(buffer);
-				await receivmentAction(frame, reporter);
-				if (frame.Length == 0)
-					return;
+
+				//client.ReadMode = PipeTransmissionMode.Message;
+				await client.ConnectAsync(5000);
+				byte[] buffer = new byte[BufferLength + HeaderLength];
+				while (client.CanRead)
+				{
+					await client.ReadAsync(buffer, 0, buffer.Length);
+					var frame = FromeHeader(buffer);
+					await receivmentAction(frame, reporter);
+					if (frame.Length == 0)
+						return;
+				}
 			}
 		}
 	}
@@ -193,7 +202,7 @@ namespace AudioBooksPlayer.WPF
 			return $"{((IPEndPoint) client.Client.LocalEndPoint).Address}:{((IPEndPoint) client.Client.LocalEndPoint).Port}";
 		}
 
-		public override Task StartSendStream(Stream stream, string connectionInfo, IPEndPoint endpoin, IProgress<StreamProgress> repoerter)
+		public override Task StartSendStream(Stream stream, BookStreamer.CommandData connectionInfo, IPEndPoint endpoin, IProgress<StreamProgress> repoerter)
 		{
 			//var parts = connectionInfo.Split(':');
 			//IPEndPoint endpoint = new IPEndPoint(IPAddress.Parse(parts[0]), int.Parse(parts[1]));

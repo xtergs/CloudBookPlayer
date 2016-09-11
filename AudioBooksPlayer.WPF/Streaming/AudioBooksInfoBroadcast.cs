@@ -11,6 +11,25 @@ namespace AudioBooksPlayer.WPF.Streaming
         public AudioBooksInfo[] Books { get; set; }
         public int TcpCommandPort { get; set; }
     }
+
+	public class RemoteBookInfo
+	{
+		public string Name { get; set; }
+		public string LocalPath { get; set; }
+		public TimeSpan LocalTimePosition { get; set; }
+		public TimeSpan TimePositoin { get; set; }
+	}
+
+	public class RemoteFileInfo
+	{
+		public string FileName { get; set; }
+		public int Order { get; set; }
+		public string LocalPath { get; set; }
+		public long Length { get; set; }
+		public TimeSpan Duration { get; set; }
+	}
+
+
     public class AudioBooksInfoBroadcast
     {
         internal AudioBooksInfoBroadcast(AudioBooksBroadcastStructur broadcast, IPAddress addrss)
@@ -30,13 +49,15 @@ namespace AudioBooksPlayer.WPF.Streaming
 
     public class AudioBookInfoRemote
     {
-        public AudioBookInfoRemote(AudioBooksInfo info, IPAddress address)
+        public AudioBookInfoRemote(AudioBooksInfo info, IPAddress address, int tcpPort)
         {
             Book = info;
             IpAddress = address;
+	        TcpPort = tcpPort;
         }
         public AudioBooksInfo Book { get; set; }
         public IPAddress IpAddress { get; set; }
+		public int TcpPort { get; set; }
     }
 
     public class AudioBooksInfoRemote
@@ -45,7 +66,7 @@ namespace AudioBooksPlayer.WPF.Streaming
         {
             LastDiscoveryUtcTime = copy.LastDiscoveryUtcTime;
             IpAddress = copy.IpAddress;
-            Books = copy.Books.Select(x => new AudioBookInfoRemote(x, copy.IpAddress)).ToArray();
+            Books = copy.Books.Select(x => new AudioBookInfoRemote(x, copy.IpAddress, copy.TcpCommandsPort)).ToArray();
         }
         public DateTime LastDiscoveryUtcTime { get; set; }
         public AudioBookInfoRemote[] Books { get; set; }

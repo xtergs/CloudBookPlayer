@@ -62,7 +62,7 @@
                     <Button Margin="5" Grid.Column="2" Command="{Binding ResumePlayCommand}" Content="Resume"/>
                     <Button Margin="5" Grid.Column="3" Command="{Binding CancelPlayingCommand}" Content="Stop"/>
                     <Button Margin="5" Grid.Column="4" Click="Button_Click" Content=">> 10 sec"></Button>
-                    
+                    <Button Margin="5" Grid.Column="5" Command="{Binding DownloadBookCommand}">Download book</Button>
                 </Grid>
                 <Label Content="{Binding PackageLoss, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}Package loss: {0}%}"></Label>
                 <Label Content="Left to read"/>

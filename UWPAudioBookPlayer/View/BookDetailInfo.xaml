@@ -1,0 +1,79 @@
+﻿<Page x:Class="UWPAudioBookPlayer.View.BookDetailInfo"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:converter="using:UWPAudioBookPlayer.Converter"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:local="using:UWPAudioBookPlayer.View"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:model="using:UWPAudioBookPlayer.Model"
+      xmlns:modelView="using:UWPAudioBookPlayer.ModelView"
+      d:DataContext="{d:DesignInstance modelView:AudioBookSourceDetailViewModel}"
+      mc:Ignorable="d">
+
+    <Page.Resources>
+        <converter:BoolToOpacityConverter x:Key="BoolToOpacityConverter" />
+    </Page.Resources>
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock Text="Title:" />
+            <TextBlock Text="{Binding Book.Name}" />
+            <TextBlock Text="Path: " />
+            <TextBlock Text="{Binding Book.Path}" />
+            <TextBlock Text="Folder: " />
+            <TextBlock Text="{Binding Book.Folder}" />
+        </StackPanel>
+        <ListView Grid.Row="1" ItemsSource="{Binding Files}">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Image Grid.RowSpan="3"
+                               Grid.Column="0"
+                               Width="50"
+                               VerticalAlignment="Center"
+                               Opacity="{Binding IsLocalAvalible,
+                                                 Converter={StaticResource BoolToOpacityConverter}}"
+                               Source="../Image/HDD.png" />
+                        <Image Grid.RowSpan="3"
+                               Grid.Column="1"
+                               Width="50"
+                               VerticalAlignment="Center"
+                               Opacity="{Binding IsDropBoxAvalible,
+                                                 Converter={StaticResource BoolToOpacityConverter}}"
+                               Source="../Image/DropBoxLogo.png" />
+                        <TextBlock Grid.RowSpan="2"
+                                   Grid.Column="2"
+                                   Margin="5"
+                                   VerticalAlignment="Center"
+                                   FontSize="30"
+                                   Text="{Binding File.Order}" />
+                        <TextBlock Grid.Column="3"
+                                   FontSize="20"
+                                   FontWeight="Bold"
+                                   Text="{Binding File.Name}" />
+                        <TextBlock Grid.Row="1"
+                                   Grid.Column="3"
+                                   Text="{Binding File.Duration}" />
+                        <TextBlock Grid.Row="2"
+                                   Grid.Column="3"
+                                   Text="{Binding File.Size}" />
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+    </Grid>
+</Page>

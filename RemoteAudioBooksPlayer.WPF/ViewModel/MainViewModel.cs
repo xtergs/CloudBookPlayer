@@ -40,6 +40,9 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
         public ObservableCollection<AudioBooksInfoRemote> RemoteBooks { get; set; } =
             new ObservableCollection<AudioBooksInfoRemote>();
 
+	    public ObservableCollection<AudioBookInfoRemote> LocalBooks { get; set; } =
+		    new ObservableCollection<AudioBookInfoRemote>(); 
+
         public AudioBookInfoRemote SelectedBroadcastAudioBook
         {
             get { return _selectedBroadcastAudioBook; }
@@ -72,15 +75,24 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
             PlayStreamCommand = new RelayCommand(TestStreamListenExecute, PlayStreamCanExecute);
             PausePlayCommand = new RelayCommand(PausePlayExecute, PausePlayCanExecute);
             CancelPlayingCommand = new RelayCommand(CancelPlayingExecute, CancelPlayingCanExecute);
+			DownloadBookCommand = new RelayCommand(DownloadBookExecute);
 
-            var timeSpan = new TimeSpan(0, 0, 0, 1, 0);
+			var timeSpan = new TimeSpan(0, 0, 0, 1, 0);
             streamStatusTimer = new Timer(UpdateStatusStream, null, timeSpan, timeSpan );
 
             if (startupDiscoveryListener)
                 ListenCommand.Execute(null);
         }
 
-        private bool CancelPlayingCanExecute()
+	    private  void DownloadBookExecute()
+	    {
+		    if (SelectedBroadcastAudioBook != null)
+		    {
+			    new BookStreamer(streamerUdp).DownloadBook(SelectedBroadcastAudioBook, "D:\\TestBooks");
+		    }
+	    }
+
+	    private bool CancelPlayingCanExecute()
         {
             return true;
         }
@@ -119,17 +131,8 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
             OnPropertyChanged(nameof(CurrentPosition));
             OnPropertyChanged(nameof(TotalLengthPlayingFile));
 
-            if (player.PlaybackState != StreamPlayer.StreamingPlaybackState.Paused)
-            if (bookStreamer.Stream.LeftToWrite / ((double)bookStreamer.Stream.Capacity) < 0.5 && !isPaused)
-            {
-                bookStreamer.PauseStream();
-                isPaused = true;
-            }
-            else if (isPaused && ReadPosition / ((double)bookStreamer.Stream.Capacity) < 0.3)
-            {
-                bookStreamer.ResumeStream();
-                isPaused = false;
-            }
+	        if (player.PlaybackState != StreamPlayer.StreamingPlaybackState.Paused)
+		        ;
         }
 
         public double LeftToRead => bookStreamer.Stream.Capacity ;
@@ -171,9 +174,9 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
             BasicPosition = TimeSpan.Zero;
             player.Stop();
 	        bookStreamer.StopStream();
+			//LocalBooks.FirstOrDefault(x=> x.Book.BookName == SelectedBroadcastAudioBook.Book.BookName)
             var stream = await bookStreamer.GetStreamingBook(SelectedBroadcastAudioBook,
                new Progress<ReceivmentProgress>(Handler));
-            await Task.Delay(500);
             player.PlayStream(stream);
         }
 
@@ -244,6 +247,7 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
         public ICommand PlayStreamCommand { get; private set; }
         public ICommand PausePlayCommand { get; private set; }
         public ICommand CancelPlayingCommand { get; private set; }
+		public ICommand DownloadBookCommand { get; private set; }
 
         public DiscoverModule Module
         {

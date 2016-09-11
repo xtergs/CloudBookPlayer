@@ -64,6 +64,7 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
                 playbackState = StreamingPlaybackState.Buffering;
                 bufferedWaveProvider = null;
                 ThreadPool.QueueUserWorkItem(StreamMp3, stream);
+	            Thread.Sleep(1000);
                 timer1.Enabled = true;
             }
             else if (playbackState == StreamingPlaybackState.Paused)
@@ -79,63 +80,70 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
             var buffer = new byte[16384 * 4]; // needs to be big enough to hold a decompressed frame
 
             IMp3FrameDecompressor decompressor = null;
-            try
-            {
-                readFullyStream = new ReadFullyStream(stream);
-                do
-                {
-                    if (IsBufferNearlyFull)
-                    {
-                        Debug.WriteLine("Buffer getting full, taking a break");
-                        Thread.Sleep(500);
-                        continue;
-                    }
-                    else
-                    {
-                        Mp3Frame frame;
-                        try
-                        {
-                            readFullyStream.Read(new byte[this.moving], 0, this.moving);
-                            this.moving = 0;
-                            frame = Mp3Frame.LoadFromStream(readFullyStream);
-                        }
-                        catch (EndOfStreamException e)
-                        {
-                            //fullyDownloaded = true;
-                            // reached the end of the MP3 file / stream
-                            //break;
-                            frame = null;
-                        }
-                        catch (WebException)
-                        {
-                            // probably we have aborted download from the GUI thread
-                            break;
-                        }
-                        if (frame == null)
-                            continue;
-                        if (decompressor == null)
-                        {
-                            // don't think these details matter too much - just help ACM select the right codec
-                            // however, the buffered provider doesn't know what sample rate it is working at
-                            // until we have a frame
-                            decompressor = CreateFrameDecompressor(frame);
-                            bufferedWaveProvider = new BufferedWaveProvider(decompressor.OutputFormat);
-                            //waveOut.Init(new RawSourceWaveStream(new MemoryStream(), new Mp3WaveFormat(1, 2, 2, 3)));
-                            bufferedWaveProvider.BufferDuration = TimeSpan.FromSeconds(20);
-                            // allow us to get well ahead of ourselves
-                            //this.bufferedWaveProvider.BufferedDuration = 250;
-                        }
-                        int decompressed = decompressor.DecompressFrame(frame, buffer, 0);
-                        //Debug.WriteLine(String.Format("Decompressed a frame {0}", decompressed));
-                        bufferedWaveProvider.AddSamples(buffer, 0, decompressed);
-                    }
+	        try
+	        {
+		        readFullyStream = new ReadFullyStream(stream);
+		        do
+		        {
+			        if (IsBufferNearlyFull)
+			        {
+				        Debug.WriteLine("Buffer getting full, taking a break");
+				        Thread.Sleep(500);
+				        continue;
+			        }
+			        else
+			        {
+				        Mp3Frame frame;
+				        try
+				        {
+					        if (moving != 0)
+					        {
+						        readFullyStream.Read(new byte[this.moving], 0, this.moving);
+						        this.moving = 0;
+					        }
+					        frame = Mp3Frame.LoadFromStream(readFullyStream);
+				        }
+				        catch (EndOfStreamException e)
+				        {
+					        //fullyDownloaded = true;
+					        // reached the end of the MP3 file / stream
+					        //break;
+					        frame = null;
+				        }
+				        catch (WebException)
+				        {
+					        // probably we have aborted download from the GUI thread
+					        break;
+				        }
+				        if (frame == null)
+					        continue;
+				        if (decompressor == null)
+				        {
+					        // don't think these details matter too much - just help ACM select the right codec
+					        // however, the buffered provider doesn't know what sample rate it is working at
+					        // until we have a frame
+					        decompressor = CreateFrameDecompressor(frame);
+					        bufferedWaveProvider = new BufferedWaveProvider(decompressor.OutputFormat);
+					        //waveOut.Init(new RawSourceWaveStream(new MemoryStream(), new Mp3WaveFormat(1, 2, 2, 3)));
+					        bufferedWaveProvider.BufferDuration = TimeSpan.FromSeconds(20);
+					        // allow us to get well ahead of ourselves
+					        //this.bufferedWaveProvider.BufferedDuration = 250;
+				        }
+				        int decompressed = decompressor.DecompressFrame(frame, buffer, 0);
+				        //Debug.WriteLine(String.Format("Decompressed a frame {0}", decompressed));
+				        bufferedWaveProvider.AddSamples(buffer, 0, decompressed);
+			        }
 
-                } while (playbackState != StreamingPlaybackState.Stopped);
-                Debug.WriteLine("Exiting");
-                // was doing this in a finally block, but for some reason
-                // we are hanging on response stream .Dispose so never get there
-                decompressor.Dispose();
-            }
+		        } while (playbackState != StreamingPlaybackState.Stopped);
+		        Debug.WriteLine("Exiting");
+		        // was doing this in a finally block, but for some reason
+		        // we are hanging on response stream .Dispose so never get there
+		        decompressor?.Dispose();
+	        }
+	        catch (Exception e)
+	        {
+		        throw;
+	        }
             finally
             {
                 if (decompressor != null)
@@ -193,7 +201,7 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
         {
             WaveFormat waveFormat = new Mp3WaveFormat(frame.SampleRate, frame.ChannelMode == ChannelMode.Mono ? 1 : 2,
                 frame.FrameLength, frame.BitRate);
-            var xx =  new DmoMp3FrameDecompressor(waveFormat);
+            //var xx =  new DmoMp3FrameDecompressor(waveFormat);
             var x2 =  new AcmMp3FrameDecompressor(waveFormat);
             return x2;
         }

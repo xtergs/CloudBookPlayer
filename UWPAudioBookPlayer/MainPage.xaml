@@ -1,0 +1,316 @@
+﻿<Page x:Class="UWPAudioBookPlayer.MainPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:converter="using:UWPAudioBookPlayer.Converter"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:foundation="using:Windows.Foundation"
+      xmlns:local="using:UWPAudioBookPlayer"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:modelView="using:UWPAudioBookPlayer.ModelView"
+      xmlns:templateSelector="using:UWPAudioBookPlayer.TemplateSelector"
+      d:DataContext="{d:DesignInstance modelView:MainControlViewModel}"
+      Loading="MainPage_OnLoading"
+      LostFocus="Page_LostFocus"
+      Unloaded="MainPage_OnUnloaded"
+      mc:Ignorable="d">
+
+    <Page.Resources>
+        <converter:IntToVisibilityConverter x:Key="IntToVisibilityConverter" />
+        <converter:TimeSpanToSecondsConverter x:Key="TimeSpanToSecondsConverter" />
+        <converter:SecondsToTimeSpanConverter x:Key="SecondsToTimeSpanConverter" />
+        <converter:CloudTypeToImageConverter x:Key="CloudTypeToImageConverter" />
+        <converter:BoolToNotVisiblityConverter x:Key="BoolToNotVisiblityConverter" />
+        <converter:BoolToVisibilityConverter x:Key="BoolToVisiblityConverter" />
+        <converter:NoConverter x:Key="NoConverter" />
+        <templateSelector:AudioBookSourceTemplateSelector x:Key="AudioBookSourceTemplateSelector" />
+        <converter:AudioBookSourceToImageConverter x:Key="AudioBookSourceToImageConverter" />
+    </Page.Resources>
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Padding="5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <StackPanel Orientation="Horizontal">
+
+            <AppBarToggleButton x:Name="showSourceList"
+                                Icon="List"
+                                Label="Books" />
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <AppBarButton Command="{Binding AddCloudAccountCommand}"
+                              Icon="MapDrive"
+                              Label="Dropbox">
+                    <AppBarButton.CommandParameter>
+                        <modelView:CloudType>DropBox</modelView:CloudType>
+                    </AppBarButton.CommandParameter>
+                </AppBarButton>
+                <ProgressBar Grid.Row="1"
+                             IsIndeterminate="True"
+                             Visibility="{Binding DropBoxRefreshing,
+                                                  Converter={StaticResource BoolToVisiblityConverter},
+                                                  Mode=OneWay,
+                                                  UpdateSourceTrigger=PropertyChanged}" />
+            </Grid>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <AppBarButton Command="{Binding AddCloudAccountCommand}"
+                              Icon="MapDrive"
+                              Label="OneDrive">
+                    <AppBarButton.CommandParameter>
+                        <modelView:CloudType>OneDrive</modelView:CloudType>
+                    </AppBarButton.CommandParameter>
+                </AppBarButton>
+                <ProgressBar Grid.Row="1"
+                             IsIndeterminate="True"
+                             Visibility="{Binding OneDriveRefreshing,
+                                                  Converter={StaticResource BoolToVisiblityConverter},
+                                                  Mode=OneWay,
+                                                  UpdateSourceTrigger=PropertyChanged}" />
+            </Grid>
+            <AppBarButton Click="SelectBaseFolderClick"
+                          Icon="Folder"
+                          Label="Folder" />
+            <AppBarButton Click="OpenSettingsClick"
+                          Icon="Setting"
+                          Label="Settings" />
+        </StackPanel>
+        <Grid Grid.RowSpan="10"
+              Grid.Column="1"
+              Visibility="{Binding IsChecked,
+                                   ElementName=showSourceList}">
+            <Grid.RowDefinitions>
+                <RowDefinition />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <ListView Width="300"
+                      ItemTemplateSelector="{StaticResource AudioBookSourceTemplateSelector}"
+                      ItemsSource="{Binding Folders}"
+                      SelectedItem="{Binding SelectedFolder,
+                                             Mode=TwoWay}">
+                <!--<ListView.ContextFlyout>
+                    <MenuFlyout>
+                        <MenuFlyoutItem Command="{Binding RemoveAudioBookSource}"
+                                        CommandParameter="{Binding Path=SelectedFolder}"
+                                        Text="Remove" />
+                        <MenuFlyoutItem Command="{Binding ShowBookDetailCommand}" Text="Details" />
+                    </MenuFlyout>
+                </ListView.ContextFlyout>-->
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="30" />
+                                <ColumnDefinition />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Image Grid.RowSpan="10" Source="{Binding Converter={StaticResource AudioBookSourceToImageConverter}}" />
+                            <TextBlock Grid.Column="1" Text="{Binding Name}" />
+                            <TextBlock Grid.Row="1"
+                                       Grid.Column="1"
+                                       Foreground="LightGray">
+                                <TextBlock.Inlines>
+                                    <Run>Avalible:</Run>
+                                    <Run Text="{Binding AvalibleCount}" />
+                                    <Run Text=" from " />
+                                    <Run Text="{Binding Files.Count}" />
+                                </TextBlock.Inlines>
+                            </TextBlock>
+                            <ProgressBar Grid.Row="2"
+                                         Grid.Column="1"
+                                         Maximum="{Binding Files.Count}"
+                                         Minimum="0"
+                                         Value="{Binding CurrentFile,
+                                                         UpdateSourceTrigger=PropertyChanged,
+                                                         Mode=OneWay}" />
+                            <StackPanel Grid.Row="3"
+                                        Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Visibility="{Binding IsHaveDropBox,
+                                                             Converter={StaticResource BoolToVisiblityConverter}}">
+                                <Image Width="10" Source="../Image/DropBoxLogo.png" />
+                                <TextBlock>
+                                    <TextBlock.Inlines>
+                                        <Run Text="CountOfFiles: " />
+                                        <Run Text="{Binding CountFilesDropBox}" />
+                                        <Run Text=" from " />
+                                        <Run Text="{Binding CountFilesDropBoxTotal}" />
+                                    </TextBlock.Inlines>
+                                </TextBlock>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+            <VariableSizedWrapGrid Grid.Row="1" Orientation="Horizontal">
+                <AppBarButton Click="AppBarButton_Click"
+                              Icon="Add"
+                              IsCompact="True" />
+                <AppBarButton HorizontalAlignment="Right"
+                              Command="{Binding RemoveAudioBookSource}"
+                              CommandParameter="{Binding SelectedFolder,
+                                                         UpdateSourceTrigger=PropertyChanged,
+                                                         Mode=OneWay}"
+                              Icon="Remove" />
+                <AppBarButton Command="{Binding UploadBookToDrBoxCommand}"
+                              Icon="Upload"
+                              Label="ToDropBox" />
+                <AppBarButton Command="{Binding DownloadBookFromDrBoxCommand}"
+                              Icon="Download"
+                              Label="FromDropBox" />
+                <AppBarButton Command="{Binding ShowBookDetailCommand}"
+                              Icon="ContactInfo"
+                              Label="Details" />
+            </VariableSizedWrapGrid>
+        </Grid>
+        <TextBlock Grid.Row="1"
+                   HorizontalAlignment="Center"
+                   FontSize="20"
+                   Text="{Binding CurrentState.BookName}" />
+        <TextBlock Grid.Row="2"
+                   HorizontalAlignment="Center"
+                   Text="{Binding PlayingFile.Name}" />
+        <Slider Grid.Row="3"
+                Maximum="{Binding NaturalDuration.TimeSpan.TotalSeconds,
+                                  ElementName=mainPlayer,
+                                  UpdateSourceTrigger=PropertyChanged}"
+                Minimum="0"
+                ThumbToolTipValueConverter="{StaticResource SecondsToTimeSpanConverter}"
+                Value="{Binding Position,
+                                ElementName=mainPlayer,
+                                Mode=TwoWay,
+                                Converter={StaticResource TimeSpanToSecondsConverter},
+                                UpdateSourceTrigger=PropertyChanged}" />
+        <Grid Grid.Row="4">
+            <TextBlock HorizontalAlignment="Left" Text="{Binding ElementName=mainPlayer, Path=Position.TotalSeconds, UpdateSourceTrigger=PropertyChanged, Mode=OneWay, Converter={StaticResource SecondsToTimeSpanConverter}}" />
+            <TextBlock HorizontalAlignment="Center">
+                <TextBlock.Inlines>
+                    <Run Text="{Binding SelectedFolder.CurrentFile}" />
+                    <Run Text=" from " />
+                    <Run Text="{Binding SelectedFolder.Files.Count}" />
+                </TextBlock.Inlines>
+            </TextBlock>
+            <TextBlock HorizontalAlignment="Right" Text="{Binding ElementName=mainPlayer, Path=NaturalDuration.TimeSpan.TotalSeconds, Converter={StaticResource SecondsToTimeSpanConverter}}" />
+        </Grid>
+        <VariableSizedWrapGrid Grid.Row="5"
+                               HorizontalAlignment="Center"
+                               Orientation="Horizontal">
+            <AppBarButton Command="{Binding PrevCommand}" Icon="Previous" />
+            <AppBarButton Command="{Binding MoveSecsCommand}"
+                          Icon="Previous"
+                          Label="10 sec">
+                <AppBarButton.CommandParameter>
+                    <x:Int32>-10</x:Int32>
+                </AppBarButton.CommandParameter>
+            </AppBarButton>
+            <AppBarButton Command="{Binding PlayCommand}"
+                          Icon="Play"
+                          IsCompact="True" />
+            <AppBarButton Command="{Binding PauseCommand}"
+                          Icon="Pause"
+                          IsCompact="True" />
+            <AppBarButton Command="{Binding MoveSecsCommand}"
+                          Icon="Next"
+                          Label="10 sec">
+                <AppBarButton.CommandParameter>
+                    <x:Int32>10</x:Int32>
+                </AppBarButton.CommandParameter>
+            </AppBarButton>
+            <AppBarButton Command="{Binding NextCommand}" Icon="Next" />
+        </VariableSizedWrapGrid>
+        <MediaElement x:Name="mainPlayer"
+                      Grid.Row="6"
+                      AudioCategory="BackgroundCapableMedia"
+                      AutoPlay="False"
+                      CurrentStateChanged="MainPlayer_OnCurrentStateChanged"
+                      Position="{Binding SelectedFolder.Position,
+                                         UpdateSourceTrigger=PropertyChanged,
+                                         Mode=TwoWay}"
+                      Visibility="Visible" />
+        <ListView x:Name="operationsList"
+                  Grid.Row="7"
+                  ItemsSource="{Binding UploadOperations}"
+                  Visibility="{Binding UploadOperations.Count,
+                                       Converter={StaticResource IntToVisibilityConverter}}">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Image MaxHeight="50"
+                               CacheMode="BitmapCache"
+                               Source="{Binding Type,
+                                                Converter={StaticResource CloudTypeToImageConverter}}" />
+                        <StackPanel Grid.Column="1" Orientation="Vertical">
+                            <TextBlock Text="{Binding Status}" />
+                            <TextBlock Text="{Binding BookName}" />
+                            <ProgressBar Maximum="{Binding MaximumValue}" Value="{Binding Value}" />
+                            <TextBlock>
+                                <TextBlock.Inlines>
+                                    <Run Text="{Binding Value}" />
+                                    <Run Text=" from " />
+                                    <Run Text="{Binding MaximumValue}" />
+                                </TextBlock.Inlines>
+                            </TextBlock>
+                        </StackPanel>
+                        <VariableSizedWrapGrid Grid.Column="2"
+                                               MaximumRowsOrColumns="3"
+                                               Orientation="Horizontal">
+                            <AppBarButton Command="{Binding DataContext.PauseOperationCommand,
+                                                            ElementName=operationsList}"
+                                          CommandParameter="{Binding OperationId}"
+                                          Icon="Pause"
+                                          IsCompact="True"
+                                          IsEnabled="{Binding IsPaused,
+                                                              Mode=OneWay,
+                                                              Converter={StaticResource NoConverter},
+                                                              UpdateSourceTrigger=PropertyChanged}" />
+                            <AppBarButton Command="{Binding DataContext.ResumeOperationCommand,
+                                                            ElementName=operationsList}"
+                                          CommandParameter="{Binding OperationId}"
+                                          Icon="Play"
+                                          IsCompact="True"
+                                          IsEnabled="{Binding IsPaused,
+                                                              Mode=OneWay,
+                                                              UpdateSourceTrigger=PropertyChanged}" />
+                            <AppBarButton Command="{Binding DataContext.CancelOperationCommand,
+                                                            ElementName=operationsList}"
+                                          CommandParameter="{Binding OperationId}"
+                                          Icon="Clear"
+                                          Visibility="Visible" />
+                        </VariableSizedWrapGrid>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <WebView x:Name="webView"
+                 Grid.RowSpan="10"
+                 Visibility="Collapsed" />
+
+    </Grid>
+</Page>

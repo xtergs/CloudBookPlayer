@@ -153,11 +153,27 @@ namespace AudioBooksPlayer.WPF
         {
             Task.Run(() =>
             {
-                bookStreamer.StartStreamingServer(new Progress<StreamProgress>(Handler));
+                var port = bookStreamer.StartStreamingServer(new Progress<StreamProgress>(Handler), GetFileFromBook);
+	            discoverModule.TcpPort = port;
             });
         }
 
-        private void Handler(StreamProgress streamProgress)
+	    private BookStreamer.CommandData GetFileFromBook(BookStreamer.CommandData data)
+	    {
+		    var file =  AudioBooks.FirstOrDefault(x => x.BookName == data.BookName)?.Files[data.Order];
+		    if (file == null)
+			    return null;
+		    data.BookName = file.FilePath;
+		    if (data.OffsetFile > 0)
+			    return data;
+		    if (data.TimeOffset.TotalMilliseconds > 100)
+		    {
+			    data.OffsetFile = Math.Max((int)( file.Size*(data.TimeOffset.TotalMilliseconds/file.Duration.TotalMilliseconds)), 0);
+		    }
+		    return data;
+	    }
+
+	    private void Handler(StreamProgress streamProgress)
         {
             //SendingProgress = streamProgress;
             Operations.OperationStatusChanged(streamProgress.OperationId, streamProgress.Position, streamProgress.Length);

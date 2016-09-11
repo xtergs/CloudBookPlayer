@@ -50,7 +50,7 @@ namespace StreamingLoadTest
             {
                 BookStreamer streamer = new BookStreamer(null);
                 streamer.GetStreamingBook(
-                    new AudioBookInfoRemote(audioBooksInfoBroadcast.Books.First(), audioBooksInfoBroadcast.IpAddress),
+                    new AudioBookInfoRemote(audioBooksInfoBroadcast.Books.First(), audioBooksInfoBroadcast.IpAddress, audioBooksInfoBroadcast.TcpCommandsPort),
                     new Progress<ReceivmentProgress>());
                 streamers.Add(streamer);
             }
