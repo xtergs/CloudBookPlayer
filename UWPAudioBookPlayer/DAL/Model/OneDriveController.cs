@@ -10,11 +10,13 @@ using Microsoft.OneDrive.Sdk;
 using Microsoft.OneDrive.Sdk.Authentication;
 using Newtonsoft.Json;
 using UWPAudioBookPlayer.Model;
+using UWPAudioBookPlayer.ModelView;
 
 namespace UWPAudioBookPlayer.DAL.Model
 {
     class OneDriveController : ICloudController
     {
+        public string CloudStamp { get; private set; }
         private OneDriveClient client;
 
         private string ClientId = @"00000000401AEB0D";
@@ -24,6 +26,8 @@ namespace UWPAudioBookPlayer.DAL.Model
         private readonly string oneDriveConsumerBaseUrl = "https://api.onedrive.com/v1.0";
         private readonly string[] scopes = new string[] { "onedrive.readwrite", "wl.signin", "wl.offline_access" };
 
+        public CloudType Type => CloudType.OneDrive;
+        public bool IsUseExternalBrowser => false;
         public string BaseFolder { get; set; } = @"/AudioBooks";
         public bool IsAutorized => !string.IsNullOrWhiteSpace(Token);
         public string Token { get; set; }
@@ -44,8 +48,10 @@ namespace UWPAudioBookPlayer.DAL.Model
                 var authTask = msaAuthenticationProvider.AuthenticateUserAsync();
                 client = new OneDriveClient(oneDriveConsumerBaseUrl, msaAuthenticationProvider);
                 await authTask;
-
-                Token = (((MsaAuthenticationProvider)client.AuthenticationProvider).CurrentAccountSession).RefreshToken;
+                var session = (((MsaAuthenticationProvider) client.AuthenticationProvider).CurrentAccountSession);
+                Token = session.RefreshToken;
+                CloudStamp = session.UserId;
+                OnCloseAuthPage();
             }
             catch (Exception e)
             {
@@ -88,7 +94,7 @@ namespace UWPAudioBookPlayer.DAL.Model
             var folder = folders.FirstOrDefault(x => String.Equals(x.Name, bookName, StringComparison.OrdinalIgnoreCase));
            if (folder == null)
                 return null;
-            AudioBookSourceCloud book = new AudioBookSourceCloud();
+            AudioBookSourceCloud book = new AudioBookSourceCloud(CloudStamp,CloudType.OneDrive);
             book.Name = folder.Name;
             book.Path = "OneDrive\\" + folder.Name;
             book.Files = new List<AudiBookFile>();
@@ -104,15 +110,17 @@ namespace UWPAudioBookPlayer.DAL.Model
                     using (
                 var stream =
                 (await
-                    client.Drive.Root.ItemWithPath(BaseFolder + "/" + folder.Name + "/" + mediaInfoFileName)
+                    client.Drive.Root.ItemWithPath(BaseFolder + "/" + folder.Name + "/" + filesEntry.Name ).Content
                         .Request()
-                        .GetAsync()).Content)
+                        .GetAsync()))
                     {
                         stream.Position = 0;
                         metaData= StreamToSource(stream);
                     }
                     if (metaData == null)
                         continue;
+                    metaData.CloudStamp = CloudStamp;
+                    metaData.Type = CloudType.OneDrive;
                     continue;
                 }
                 book.Files.Add(new AudiBookFile()
@@ -191,6 +199,7 @@ namespace UWPAudioBookPlayer.DAL.Model
             client = new OneDriveClient(oneDriveConsumerBaseUrl, _msaAuthenticationProvider);
             _msaAuthenticationProvider.CurrentAccountSession = session;
             await _msaAuthenticationProvider.AuthenticateUserAsync();
+            CloudStamp = session.UserId;
         }
 
         public async Task Uploadbook(string BookName, string fileName, Stream stream)
@@ -212,6 +221,16 @@ namespace UWPAudioBookPlayer.DAL.Model
                var data = await client.Drive.Root.ItemWithPath(BaseFolder + "/" + source.Folder + "/" + mediaInfoFileName).Content.Request().PutAsync<Item>(stream);
 
             }
+        }
+
+        public override string ToString()
+        {
+            return "OneDrive";
+        }
+
+        protected virtual void OnCloseAuthPage()
+        {
+            CloseAuthPage?.Invoke(this, EventArgs.Empty);
         }
     }
 }

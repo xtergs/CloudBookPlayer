@@ -70,6 +70,7 @@ namespace UWPAudioBookPlayer.ModelView
     {
         public AudioBookSource MainSource { get; set; }
         public AudioBookSource Cloud { get; set; }
+        public AudioBookSource[] Clouds { get; set; }
     }
 
     [ImplementPropertyChanged]
@@ -77,15 +78,21 @@ namespace UWPAudioBookPlayer.ModelView
     {
         private Folder baseFolder;
         private IDataRepository repository;
-        private DropBoxController drbController;
-        private ICloudController odController;
+        //private DropBoxController drbController;
+        //private ICloudController odController;
+        private List<ICloudController> cloudControllers;
         private AudioBookSourceFactory factory;
         private MediaElement player;
         private CurrentState _currentState = new CurrentState();
         private ISettingsService settings;
         private INotification notificator;
 
-        public ObservableCollection<AudioBookSourceWithClouds> Folders { get; set; }
+        public ObservableCollection<AudioBookSourceWithClouds> Folders { get; private set; }
+
+        public ObservableCollection<ICloudController> RefreshingControllers { get; } =
+            new ObservableCollection<ICloudController>();
+
+        public AudioBookSourceWithClouds[] LocalFolders => Folders.Where(x => !(x is AudioBookSourceCloud)).ToArray();
 
         public ObservableCollection<UploadProgress> UploadOperations { get; set; } =
             new ObservableCollection<UploadProgress>();
@@ -122,19 +129,26 @@ namespace UWPAudioBookPlayer.ModelView
         public RelayCommand<int> MoveSecsCommand { get; private set; }
         public RelayCommand<AudioBookSource> RemoveAudioBookSource { get; private set; }
         public RelayCommand<CloudType> AddCloudAccountCommand { get; private set; }
-        public RelayCommand UploadBookToDrBoxCommand { get; private set; }
+        //public RelayCommand UploadBookToDrBoxCommand { get; private set; }
+        public RelayCommand<ICloudController> UploadBookToCloudCommand { get; private set; }
         public RelayCommand<Guid> CancelOperationCommand { get; private set; }
         public RelayCommand<Guid> PauseOperationCommand { get; private set; }
         public RelayCommand<Guid> ResumeOperationCommand { get; private set; }
         public RelayCommand DownloadBookFromDrBoxCommand { get; private set; }
+        public RelayCommand<ICloudController> DownloadBookFromCloudCommand { get; private set; }
         public RelayCommand ShowBookDetailCommand { get; private set; }
 
 
         public event EventHandler<AudioBookSourcesCombined> ShowBookDetails;
 
-        public DropBoxController DrbController
+        //public DropBoxController DrbController
+        //{
+        //    get { return drbController; }
+        //}
+
+        public List<ICloudController> CloudControllers
         {
-            get { return drbController; }
+            get { return cloudControllers; }
         }
 
 
@@ -149,8 +163,9 @@ namespace UWPAudioBookPlayer.ModelView
             factory = new AudioBookSourceFactory();
             Folders = new ObservableCollection<AudioBookSourceWithClouds>();
             repository = new JSonRepository();
-            drbController = new DropBoxController();
-            odController = new OneDriveController();
+            //drbController = new DropBoxController();
+            //odController = new OneDriveController();
+            cloudControllers = new List<ICloudController>();
             notificator = new UniversalNotification();
 
             PlayCommand = new RelayCommand(Play);
@@ -161,168 +176,185 @@ namespace UWPAudioBookPlayer.ModelView
             MoveSecsCommand = new RelayCommand<int>(MoveSecs, (c) => SelectedFolder != null);
             RemoveAudioBookSource = new RelayCommand<AudioBookSource>(RemoveSource);
             AddCloudAccountCommand = new RelayCommand<CloudType>(AddDropBoxAccount);
-            UploadBookToDrBoxCommand = new RelayCommand(UploadBookToDrBox, () => drbController.IsAutorized && !string.IsNullOrWhiteSpace( SelectedFolder?.AccessToken));
-            DownloadBookFromDrBoxCommand = new RelayCommand(DownloadBookFromDrBok, () => drbController.IsAutorized);
+            //UploadBookToDrBoxCommand = new RelayCommand(UploadBookToDrBox, () => drbController.IsAutorized && !string.IsNullOrWhiteSpace( SelectedFolder?.AccessToken));
+            UploadBookToCloudCommand = new RelayCommand<ICloudController>(UploadBookToCloud, controller => controller != null && controller.IsAutorized && !string.IsNullOrWhiteSpace(SelectedFolder?.AccessToken));
+            //DownloadBookFromDrBoxCommand = new RelayCommand(DownloadBookFromDrBok, () => drbController.IsAutorized);
+            DownloadBookFromCloudCommand = new RelayCommand<ICloudController>(DownloadBookFromCloud,
+                controller => controller != null && controller.IsAutorized);
             ShowBookDetailCommand = new RelayCommand(ShowBookDetailExecute);
 
             CancelOperationCommand = new RelayCommand<Guid>(CancelOperation);
             PauseOperationCommand = new RelayCommand<Guid>(PauseOperation);
             ResumeOperationCommand = new RelayCommand<Guid>(ResumeOperation);
 
-            drbController.CloseAuthPage += async (sender, args) => { await RefreshDropBoxData(); };
+            
             player.CurrentStateChanged += PlayerOnCurrentStateChanged;
         }
+
+        
 
         private async void ShowBookDetailExecute()
         {
             var ev = new AudioBookSourcesCombined() {MainSource = SelectedFolder};
-            if (drbController.IsAutorized)
-                ev.Cloud = await drbController.GetAudioBookInfo(SelectedFolder);
+            if (CloudControllers.Any(x => x.IsAutorized))
+            {
+                List<AudioBookSource> sources = new List<AudioBookSource>();
+                foreach (var cloud in CloudControllers.Where(x => x.IsAutorized))
+                    sources.Add(await cloud.GetAudioBookInfo(SelectedFolder));
+                ev.Clouds = sources.ToArray();
+            }
             OnShowBookDetails(ev);
         }
 
-        private async void DownloadBookFromDrBok()
+        private async void DownloadBookFromCloud(ICloudController cloudControllser)
         {
-            if (drbController.IsAutorized)
+            if (!cloudControllser.IsAutorized)
             {
-                AudioBookSourceWithClouds tempSelectedFolder = SelectedFolder;
-                AudioBookSourceWithClouds originalSelectedFolder = null;
-                if (SelectedFolder is AudioBookSourceCloud)
+                notificator.ShowMessage("", "Before procide, pelase authorize in DropBox");
+                return;
+            }
+            AudioBookSourceWithClouds tempSelectedFolder = SelectedFolder;
+            AudioBookSourceWithClouds originalSelectedFolder = null;
+            if (SelectedFolder is AudioBookSourceCloud)
+            {
+                if (string.IsNullOrWhiteSpace(baseFolder.AccessToken))
                 {
-                    if (string.IsNullOrWhiteSpace(baseFolder.AccessToken))
-                    {
-                        notificator.ShowMessage("", "Before procide, please select base folder");
-                        return;
-                    }
-                    tempSelectedFolder = SelectedFolder;
+                    notificator.ShowMessage("", "Before procide, please select base folder");
+                    return;
+                }
+                tempSelectedFolder = SelectedFolder;
+            }
+            else
+            {
+                originalSelectedFolder = tempSelectedFolder;
+                tempSelectedFolder = await cloudControllser.GetAudioBookInfo(tempSelectedFolder.Folder);
+            }
+            if (tempSelectedFolder == null)
+                return;
+            UploadProgress progress = new UploadProgress()
+            {
+                BookName = tempSelectedFolder.Name,
+                MaximumValue = tempSelectedFolder.Files.Count(),
+                OperationId = Guid.NewGuid(),
+                Status = "Downloading",
+                Type = cloudControllser.Type
+            };
+            UploadOperations.Add(progress);
+            try
+            {
+                StorageFolder bookFolder = null;
+                if (originalSelectedFolder == null)
+                {
+                    var dir =
+                        await
+                            StorageApplicationPermissions.FutureAccessList.GetFolderAsync(baseFolder.AccessToken);
+                    bookFolder =
+                        await
+                            dir.CreateFolderAsync(tempSelectedFolder.Folder, CreationCollisionOption.OpenIfExists);
                 }
                 else
                 {
-                    originalSelectedFolder = tempSelectedFolder;
-                    tempSelectedFolder = await drbController.GetAudioBookInfo(tempSelectedFolder.Folder);
-                }
-                if (tempSelectedFolder == null)
-                    return;
-                UploadProgress progress = new UploadProgress()
-                {
-                    BookName = tempSelectedFolder.Name,
-                    MaximumValue = tempSelectedFolder.Files.Count(),
-                    OperationId = Guid.NewGuid(),
-                    Status = "Downloading",
-                    Type = CloudType.DropBox
-                };
-                UploadOperations.Add(progress);
-                try
-                {
-                    StorageFolder bookFolder = null;
-                    if (originalSelectedFolder == null)
+                    bookFolder =
+                        await
+                            StorageApplicationPermissions.FutureAccessList.GetFolderAsync(
+                                originalSelectedFolder.AccessToken);
+                    if (bookFolder == null)
                     {
-                        var dir =
-                            await
-                                StorageApplicationPermissions.FutureAccessList.GetFolderAsync(baseFolder.AccessToken);
-                        bookFolder =
-                            await
-                                dir.CreateFolderAsync(tempSelectedFolder.Folder, CreationCollisionOption.OpenIfExists);
+                        Debug.WriteLine("Not found folder by access token, but should");
+                        return;
+                    }
+                }
+
+                if (originalSelectedFolder == null)
+                {
+                    originalSelectedFolder = new AudioBookSourceWithClouds()
+                    {
+                        IsHaveDropBox = true,
+                        Name = tempSelectedFolder.Name,
+                        AccessToken = StorageApplicationPermissions.FutureAccessList.Add(bookFolder),
+                        Path = bookFolder.Path,
+                        CountFilesDropBoxTotal = tempSelectedFolder.AvalibleCount,
+                        CountFilesDropBox = tempSelectedFolder.Files.Count(),
+                    };
+                    originalSelectedFolder.AdditionSources.Add(tempSelectedFolder);
+                    var index = Folders.IndexOf(tempSelectedFolder);
+                    if (index >= 0)
+                    {
+                        Folders.Insert(index, originalSelectedFolder);
+                        Folders.Remove(tempSelectedFolder);
                     }
                     else
-                    {
-                        bookFolder =
-                            await
-                                StorageApplicationPermissions.FutureAccessList.GetFolderAsync(
-                                    originalSelectedFolder.AccessToken);
-                        if (bookFolder == null)
-                        {
-                            Debug.WriteLine("Not found folder by access token, but should");
-                            return;
-                        }
-                    }
-
-                    if (originalSelectedFolder == null)
-                    {
-                        originalSelectedFolder = new AudioBookSourceWithClouds()
-                        {
-                            IsHaveDropBox = true,
-                            Name = tempSelectedFolder.Name,
-                            AccessToken = StorageApplicationPermissions.FutureAccessList.Add(bookFolder),
-                            Path = bookFolder.Path,
-                            CountFilesDropBoxTotal = tempSelectedFolder.AvalibleCount,
-                            CountFilesDropBox = tempSelectedFolder.Files.Count(),
-                        };
-                        var index = Folders.IndexOf(tempSelectedFolder);
-                        if (index >= 0)
-                        {
-                            Folders.Insert(index, originalSelectedFolder);
-                            Folders.Remove(tempSelectedFolder);
-                        }
-                        else
-                            Folders.Add(originalSelectedFolder);
-                    }
-
-                    var alreadyInFolder =
-                        (await bookFolder.GetFilesAsync()).ToList();
-                    int readed = 0;
-                    byte[] buffer = new byte[1024*4*4];
-                    var avalibleFiles = tempSelectedFolder.AvalibleFiles;
-                    for (int i = 0; i < tempSelectedFolder.AvalibleCount; i++)
-                    {
-                        progress.Value = i;
-                        while (progress.IsPaused && !progress.IsCancelled)
-                            await Task.Delay(500);
-                        if (progress.IsCancelled)
-                            return;
-                        StorageFile temp = null;
-                        if ((temp = alreadyInFolder.FirstOrDefault(x => x.Name == avalibleFiles[i].Name)) !=
-                            null)
-                        {
-                            var property = await temp.GetBasicPropertiesAsync();
-                            if (property.Size == avalibleFiles[i].Size)
-                                continue;
-                        }
-                        var index = i;
-                        await Task.Run(async () =>
-                        {
-                            var stream =
-                                await
-                                    drbController.DownloadBookFile(tempSelectedFolder.Folder,
-                                        avalibleFiles[index].Name);
-                            var file =
-                                await
-                                    bookFolder.CreateFileAsync(avalibleFiles[index].Name,
-                                        CreationCollisionOption.ReplaceExisting);
-
-                            using (var random = await file.OpenTransactedWriteAsync())
-                            {
-                                uint written = 0;
-                                while ((readed = stream.Read(buffer, 0, buffer.Length)) >= 0 &&
-                                       written < avalibleFiles[index].Size)
-                                {
-                                    random.Stream.AsStreamForWrite().Write(buffer, 0, readed);
-                                    written += (uint) readed;
-                                }
-                                await random.Stream.FlushAsync();
-                                await random.CommitAsync();
-                            }
-                            originalSelectedFolder.Files.Add(new AudiBookFile()
-                            {
-                                Duration = avalibleFiles[index].Duration,
-                                IsAvalible = true,
-                                Name = avalibleFiles[index].Name,
-                                Order = avalibleFiles[index].Order,
-                                Size = (await file.GetBasicPropertiesAsync()).Size
-                            });
-                        });
-                    }
-                    originalSelectedFolder.CreationDateTimeUtc = tempSelectedFolder.CreationDateTimeUtc;
-                    originalSelectedFolder.ModifiDateTimeUtc = tempSelectedFolder.ModifiDateTimeUtc;
+                        Folders.Add(originalSelectedFolder);
                 }
-                finally
+
+                var alreadyInFolder =
+                    (await bookFolder.GetFilesAsync()).ToList();
+                int readed = 0;
+                byte[] buffer = new byte[1024*4*4];
+                var avalibleFiles = tempSelectedFolder.AvalibleFiles;
+                for (int i = 0; i < tempSelectedFolder.AvalibleCount; i++)
                 {
-                    UploadOperations.Remove(progress);
+                    progress.Value = i;
+                    while (progress.IsPaused && !progress.IsCancelled)
+                        await Task.Delay(500);
+                    if (progress.IsCancelled)
+                        return;
+                    StorageFile temp = null;
+                    if ((temp = alreadyInFolder.FirstOrDefault(x => x.Name == avalibleFiles[i].Name)) !=
+                        null)
+                    {
+                        var property = await temp.GetBasicPropertiesAsync();
+                        if (property.Size == avalibleFiles[i].Size)
+                            continue;
+                    }
+                    var index = i;
+                    await Task.Run(async () =>
+                    {
+                        var stream =
+                            await
+                                cloudControllser.DownloadBookFile(tempSelectedFolder.Folder,
+                                    avalibleFiles[index].Name);
+                        var file =
+                            await
+                                bookFolder.CreateFileAsync(avalibleFiles[index].Name,
+                                    CreationCollisionOption.ReplaceExisting);
+
+                        using (var random = await file.OpenTransactedWriteAsync())
+                        {
+                            uint written = 0;
+                            while ((readed = stream.Read(buffer, 0, buffer.Length)) >= 0 &&
+                                   written < avalibleFiles[index].Size)
+                            {
+                                random.Stream.AsStreamForWrite().Write(buffer, 0, readed);
+                                written += (uint) readed;
+                            }
+                            await random.Stream.FlushAsync();
+                            await random.CommitAsync();
+                        }
+                        originalSelectedFolder.Files.Add(new AudiBookFile()
+                        {
+                            Duration = avalibleFiles[index].Duration,
+                            IsAvalible = true,
+                            Name = avalibleFiles[index].Name,
+                            Order = avalibleFiles[index].Order,
+                            Size = (await file.GetBasicPropertiesAsync()).Size
+                        });
+                    });
                 }
+                originalSelectedFolder.CreationDateTimeUtc = tempSelectedFolder.CreationDateTimeUtc;
+                originalSelectedFolder.ModifiDateTimeUtc = tempSelectedFolder.ModifiDateTimeUtc;
             }
-            else
-                notificator.ShowMessage("", "Before procide, pelase authorize in DropBox");
+            finally
+            {
+                UploadOperations.Remove(progress);
+            }
         }
+
+
+        //private async void DownloadBookFromDrBok()
+        //{
+        //    DrownloadBookFromCloud(DrbController);
+        //}
 
         private void ResumeOperation(Guid obj)
         {
@@ -348,7 +380,7 @@ namespace UWPAudioBookPlayer.ModelView
             operation.IsCancelled = true;
         }
 
-        private async void UploadBookToDrBox()
+        private async void UploadBookToCloud(ICloudController obj)
         {
             var selectedFolderTemp = SelectedFolder;
             if (selectedFolderTemp == null)
@@ -367,12 +399,12 @@ namespace UWPAudioBookPlayer.ModelView
             UploadOperations.Add(UploadOperation);
             try
             {
-                var drBookInfo = await drbController.GetAudioBookInfo(selectedFolderTemp);
-                await drbController.UploadBookMetadata(selectedFolderTemp, drBookInfo.Revision);
+                var drBookInfo = await obj.GetAudioBookInfo(selectedFolderTemp);
                 if (drBookInfo == null)
                 {
-                    drBookInfo = new AudioBookSourceCloud();
+                    //drBookInfo = new AudioBookSourceCloud();
                 }
+                await obj.UploadBookMetadata(selectedFolderTemp);
                 var dir =
                     await StorageApplicationPermissions.FutureAccessList.GetFolderAsync(selectedFolderTemp.AccessToken);
                 for (int i = 0; i < selectedFolderTemp.Files.Count(); i++)
@@ -392,7 +424,7 @@ namespace UWPAudioBookPlayer.ModelView
                         bool check = true;
                         while (check)
                         {
-                            var freeSpace = await drbController.GetFreeSpaceBytes();
+                            var freeSpace = await obj.GetFreeSpaceBytes();
                             if (size > freeSpace)
                             {
                                 var result = await notificator.ShowMessage("Not enough free space",
@@ -408,7 +440,7 @@ namespace UWPAudioBookPlayer.ModelView
                     }
                     using (var stream = await fl.OpenAsync(FileAccessMode.Read))
                         await
-                            drbController.Uploadbook(selectedFolderTemp.Folder, selectedFolderTemp.Files[i].Name,
+                            obj.Uploadbook(selectedFolderTemp.Folder, selectedFolderTemp.Files[i].Name,
                                 stream.AsStreamForRead());
 
                     selectedFolderTemp.CountFilesDropBox = i + 1;
@@ -420,6 +452,11 @@ namespace UWPAudioBookPlayer.ModelView
                 UploadOperations.Remove(UploadOperation);
             }
         }
+
+        //private async void UploadBookToDrBox()
+        //{
+        //    UploadBookToCloud(drbController);
+        //}
 
         private void PlayerOnCurrentStateChanged(object sender, RoutedEventArgs routedEventArgs)
         {
@@ -440,17 +477,29 @@ namespace UWPAudioBookPlayer.ModelView
             var loaded = await repository.Load();
             Folders = new ObservableCollection<AudioBookSourceWithClouds>(loaded.AudioBooks);
             CurrentState = loaded.CurrentState;
-            if (loaded.CloudServices.Any(x => x.Name == "DropBox"))
+            //CloudControllers.Clear();
+            //foreach (var cloudService in loaded.CloudServices)
+            //    cloudControllers.Add(factory.GetCloudController(cloudService));
+            //if (loaded.CloudServices.Any(x => x.Name == "DropBox"))
+            //{
+            //    drbController.Token = loaded.CloudServices[0].Token;
+                
+            //}
+            //if (loaded.CloudServices.Any(x => x.Name == "OneDrive"))
+            //    odController.Token = loaded.CloudServices.First(x => x.Name == "OneDrive").Token;
+            cloudControllers.Clear();
+            foreach (var service in loaded.CloudServices)
             {
-                drbController.Token = loaded.CloudServices[0].Token;
+                var cloud = (factory.GetCloudController(service));
+                cloud.Inicialize();
+                cloudControllers.Add(cloud);
             }
-            if (loaded.CloudServices.Any(x => x.Name == "OneDrive"))
-                odController.Token = loaded.CloudServices.First(x => x.Name == "OneDrive").Token;
-            drbController.Inicialize();
-            odController.Inicialize();
+            //drbController.Inicialize();
+            //odController.Inicialize();
             baseFolder = loaded.BaseFolder;
             CheckBaseFolder();
-            RefreshDropBoxData();
+            foreach(var cloud in cloudControllers)
+                await RefreshCloudData(cloud);
         }
 
         List<AudiBookFile> MergeFilesLists(List<AudiBookFile> newList, List<AudiBookFile> oldList)
@@ -463,13 +512,15 @@ namespace UWPAudioBookPlayer.ModelView
         }
 
         private List<AudioBookSourceCloud> drFolders = new List<AudioBookSourceCloud>(0);
-        async Task RefreshDropBoxData()
+
+        async Task RefreshCloudData(ICloudController controller)
         {
-            DropBoxRefreshing = true;
+            RefreshingControllers.Add(controller);
             try
             {
-                drFolders = await drbController.GetAudioBooksInfo();
-                var oldFolders = Folders.OfType<AudioBookSourceCloud>().ToList();
+                drFolders = await controller.GetAudioBooksInfo();
+                var oldFolders =
+                    Folders.OfType<AudioBookSourceCloud>().Where(x => x.CloudStamp == controller.CloudStamp).ToList();
                 foreach (var old in oldFolders)
                     Folders.Remove(old);
                 foreach (var f in drFolders)
@@ -477,6 +528,28 @@ namespace UWPAudioBookPlayer.ModelView
                     var inFolders = Folders.FirstOrDefault(x => x.Folder == f.Folder) as AudioBookSourceWithClouds;
                     if (inFolders == null)
                         continue;
+
+                    var old = inFolders.AdditionSources.OfType<AudioBookSourceCloud>()
+                        .Where(s => s.CloudStamp == controller.CloudStamp)
+                        .ToList();
+                    foreach (var s in old)
+                        inFolders.AdditionSources.Remove(s);
+
+                    if (inFolders.CreationDateTimeUtc > f.CreationDateTimeUtc)
+                    {
+                        var tempLocal = inFolders;
+                        inFolders = f;
+                        inFolders.Path = tempLocal.Path;
+                        inFolders.AccessToken = tempLocal.AccessToken;
+                        inFolders.Files = MergeFilesLists(f.Files, tempLocal.Files);
+
+                    }
+                    else if (inFolders.CreationDateTimeUtc < f.CreationDateTimeUtc)
+                    {
+                        var tempLocal = f;
+                        await controller.UploadBookMetadata(inFolders);
+                    }
+                    else 
                     if (inFolders.ModifiDateTimeUtc < f.ModifiDateTimeUtc)
                     {
                         var tempLocal = inFolders;
@@ -489,11 +562,9 @@ namespace UWPAudioBookPlayer.ModelView
                     {
                         var tempLocal = f;
                         //tempLocal.Files = MergeFilesLists(inFolders.Files, f.Files);
-                        await drbController.UploadBookMetadata(inFolders);
+                        await controller.UploadBookMetadata(inFolders);
                     }
-                    inFolders.CountFilesDropBox = f.Files.Count();
-                    inFolders.CountFilesDropBoxTotal = f.AvalibleCount;
-                    inFolders.IsHaveDropBox = true;
+                    inFolders.AdditionSources.Add(f);
                 }
                 Folders.Except(drFolders, new AudioBookWithCloudEqualityComparer()).Select(x =>
                 {
@@ -506,14 +577,28 @@ namespace UWPAudioBookPlayer.ModelView
                 {
                     Folders.Add(audioBookSourceWithCloudse);
                 }
-                UploadBookToDrBoxCommand.RaiseCanExecuteChanged();
-                DownloadBookFromDrBoxCommand.RaiseCanExecuteChanged();
+                //UploadBookToDrBoxCommand.RaiseCanExecuteChanged();
+                //DownloadBookFromDrBoxCommand.RaiseCanExecuteChanged();
             }
             finally
             {
-                DropBoxRefreshing = false;
+                RefreshingControllers.Remove(controller);
             }
         }
+        //async Task RefreshDropBoxData()
+        //{
+        //    if (DropBoxRefreshing)
+        //        return;
+        //    DropBoxRefreshing = true;
+        //    try
+        //    {
+        //        await RefreshCloudData(drbController);
+        //    }
+        //    finally
+        //    {
+        //        DropBoxRefreshing = false;
+        //    }
+        //}
 
         async Task CheckBaseFolder()
         {
@@ -525,14 +610,14 @@ namespace UWPAudioBookPlayer.ModelView
             var localBookFolders = await dir.GetFoldersAsync();
             foreach (var folder in localBookFolders)
             {
-                if (!Folders.Any(f => f.Folder == folder.Name))
+                if (!LocalFolders.Any(f => f.Folder == folder.Name))
                 {
                     string accessToken = StorageApplicationPermissions.FutureAccessList.Add(folder);
                     AddPlaySource(folder.Name, accessToken);
                     continue;
                 }
                 var fold = await StorageApplicationPermissions.FutureAccessList.GetFolderAsync(baseFolder.AccessToken);
-                var alreadyBook = Folders.First(f => f.Folder == folder.Name);
+                var alreadyBook = LocalFolders.First(f => f.Folder == folder.Name);
                 if (folder.Path == Path.Combine(fold.Path, alreadyBook.Path))
                 {
                     var source =
@@ -543,7 +628,9 @@ namespace UWPAudioBookPlayer.ModelView
                     if (source?.Files == null || !source.Files.Any())
                     {
                         Folders.Remove(alreadyBook);
-                        StorageApplicationPermissions.FutureAccessList.Remove(alreadyBook.AccessToken);
+                        if (!string.IsNullOrWhiteSpace(alreadyBook.AccessToken))
+                            StorageApplicationPermissions.FutureAccessList.Remove(alreadyBook.AccessToken);
+                        continue;
                     }
                     bool hasDeletion = false;
                     bool changed = false;
@@ -596,40 +683,33 @@ namespace UWPAudioBookPlayer.ModelView
 
         public async Task SaveData()
         {
-            if (drbController.IsAutorized)
-            {
+            foreach(var cloudService in CloudControllers.Where(x=> x.IsAutorized))
                 Folders.AsParallel().Select(async x =>
-                        await drbController.UploadBookMetadata(x));
-            }
-            CloudService drBoxService = new CloudService();
-            CloudService OneDriveService = new CloudService();
-            if (drbController.IsAutorized)
-            {
-                drBoxService.Name = "DropBox";
-                drBoxService.Token = drbController.Token;
-            }
-            if (odController.IsAutorized)
-            {
-                OneDriveService.Name = "OneDrive";
-                OneDriveService.Token = odController.Token;
-            }
+                        await cloudService.UploadBookMetadata(x));
+            
+
             var books = new SaveModel
             {
-                AudioBooks = Folders.Where(x => x.GetType() == typeof(AudioBookSourceWithClouds)).ToArray(),
+                AudioBooks =
+                    Folders.Where(
+                        x =>
+                            !string.IsNullOrWhiteSpace(x.AccessToken) &&
+                            x.GetType() == typeof(AudioBookSourceWithClouds)).ToArray(),
                 CurrentState = CurrentState,
                 BaseFolder = baseFolder
             };
-            if (!string.IsNullOrWhiteSpace(drBoxService.Name))
-            {
-                books.CloudServices = new[] {drBoxService, OneDriveService };
-            }
+
+            books.CloudServices =
+                cloudControllers.Where(x => x.IsAutorized)
+                    .Select(x => new CloudService() {Name = x.ToString(), Token = x.Token})
+                    .ToArray();
 
             await repository.Save(books);
         }
 
         public async void AddPlaySource(string folder, string token)
         {
-            if (Folders.Any(f => f.Path == folder))
+            if (LocalFolders.Any(f => f.Path == folder))
                 return;
             UploadProgress operation = new UploadProgress()
             {
@@ -654,7 +734,8 @@ namespace UWPAudioBookPlayer.ModelView
             {
                 UploadOperations.Remove(operation);
             }
-            RefreshDropBoxData();
+            foreach (var cloud in CloudControllers)
+                await RefreshCloudData(cloud);
         }
 
         public async void AddObervingSource(string folder, string token)
@@ -672,7 +753,8 @@ namespace UWPAudioBookPlayer.ModelView
                     var result = await notificator.ShowMessage("", "Are really want to delete?", ActionButtons.Cancel | ActionButtons.Ok);
                     if (result == ActionButtons.Cancel)
                         return;
-                    await drbController.DeleteAudioBook(source);
+                    foreach(var cloud in CloudControllers)
+                        await cloud.DeleteAudioBook(source);
                 }
                 return;
             }
@@ -696,9 +778,10 @@ namespace UWPAudioBookPlayer.ModelView
 
             if (
                 await
-                    notificator.ShowMessage("", "Do you want to delete this book from cloud?",
+                    notificator.ShowMessage("", "Do you want to delete this book from clouds?",
                         ActionButtons.Cancel | ActionButtons.Ok) == ActionButtons.Ok)
-                await drbController.DeleteAudioBook(contains);
+                foreach(var cloud in CloudControllers)
+                    await cloud.DeleteAudioBook(contains);
         }
 
         public async void Play()
@@ -751,10 +834,10 @@ namespace UWPAudioBookPlayer.ModelView
             book = book ?? SelectedFolder;
             if (book is AudioBookSourceCloud)
             {
-                var link = await drbController.GetLink(book.Folder, file);
-                if (string.IsNullOrWhiteSpace(link))
-                    return;
-                player.Source = new Uri(link);
+                //var link = await drbController.GetLink(book.Folder, file);
+                //if (string.IsNullOrWhiteSpace(link))
+                //    return;
+                //player.Source = new Uri(link);
             }
             else
             {
@@ -795,8 +878,10 @@ namespace UWPAudioBookPlayer.ModelView
             {
                 State = MediaPlaybackFlow.Pause;
                 player.Pause();
-                drbController.UploadBookMetadata(SelectedFolder);
-                odController.UploadBookMetadata(SelectedFolder);
+                foreach (var cloud in CloudControllers)
+                    cloud.UploadBookMetadata(PlayingSource);
+                //drbController.UploadBookMetadata(SelectedFolder);
+                //odController.UploadBookMetadata(SelectedFolder);
             }
         }
 
@@ -807,7 +892,9 @@ namespace UWPAudioBookPlayer.ModelView
             SelectedFolder = null;
             CurrentState.BookName = null;
             ControlStateChanged();
-            drbController.UploadBookMetadata(SelectedFolder);
+            if (PlayingSource != null)
+                foreach (var cloud in CloudControllers)
+                    cloud.UploadBookMetadata(PlayingSource);
         }
 
         private async Task PlayFile(AudiBookFile nextFile)
@@ -878,12 +965,49 @@ namespace UWPAudioBookPlayer.ModelView
             ControlStateChanged();
         }
 
-        public void AddDropBoxAccount(CloudType type)
+        public async void AddDropBoxAccount(CloudType type)
         {
-            if (type == CloudType.DropBox)
-                drbController.Auth();
-            if (type==CloudType.OneDrive)
-                odController.Auth();
+            if (CloudControllers.Any(x => x.Type == type))
+            {
+                if (
+                    await
+                        notificator.ShowMessage("Already have this type",
+                            "You already added this type of cloud service. Are want add another?",
+                            ActionButtons.Cancel | ActionButtons.Ok) == ActionButtons.Ok)
+                {
+                    var cloudService = factory.GetCloudController(type);
+                    cloudService.CloseAuthPage += async (sender, args) =>
+                    {
+                        cloudService.NavigateToAuthPage -= CloudServiceOnNavigateToAuthPage;
+                        cloudService.CloseAuthPage -= CloudServiceOnCloseAuthPage;
+                        if (!cloudService.IsAutorized)
+                            return;
+                        CloudControllers.Add(cloudService);
+                        await RefreshCloudData(cloudService);
+                    };
+                    if (cloudService.IsUseExternalBrowser)
+                    {
+                        cloudService.NavigateToAuthPage += CloudServiceOnNavigateToAuthPage;
+                        cloudService.CloseAuthPage += CloudServiceOnCloseAuthPage;
+                    }
+                    cloudService.Auth();
+
+                }
+            }
+            //if (type == CloudType.DropBox)
+            //    drbController.Auth();
+            //if (type==CloudType.OneDrive)
+            //    odController.Auth();
+        }
+
+        private void CloudServiceOnCloseAuthPage(object sender, EventArgs eventArgs)
+        {
+            OnCloseAuthPage();
+        }
+
+        private void CloudServiceOnNavigateToAuthPage(object sender, Tuple<Uri, Action<Uri>> tuple)
+        {
+            OnNavigateToAuthPage(tuple);
         }
 
         public void AddOneDriveAccount()
@@ -896,12 +1020,27 @@ namespace UWPAudioBookPlayer.ModelView
             baseFolder = new Folder() {Path = folder, AccessToken = accessToken};
 
             await CheckBaseFolder();
-            await RefreshDropBoxData();
+            foreach (var cloud in cloudControllers)
+                await RefreshCloudData(cloud);
         }
 
         protected virtual void OnShowBookDetails(AudioBookSourcesCombined e)
         {
             ShowBookDetails?.Invoke(this, e);
+        }
+
+        public event EventHandler<Tuple<Uri, Action<Uri>>> NavigateToAuthPage;
+
+        protected virtual void OnNavigateToAuthPage(Tuple<Uri, Action<Uri>> e)
+        {
+            NavigateToAuthPage?.Invoke(this, e);
+        }
+
+        public event EventHandler CloseAuthPage;
+
+        protected virtual void OnCloseAuthPage()
+        {
+            CloseAuthPage?.Invoke(this, EventArgs.Empty);
         }
     }
 }

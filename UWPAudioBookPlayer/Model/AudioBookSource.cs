@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -7,10 +9,13 @@ using System.Threading.Tasks;
 using Windows.Storage;
 using Windows.Storage.AccessCache;
 using Windows.Storage.Streams;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using PropertyChanged;
 using SQLite.Net.Attributes;
+using UWPAudioBookPlayer.DAL.Model;
 using UWPAudioBookPlayer.Model;
+using UWPAudioBookPlayer.ModelView;
 
 namespace UWPAudioBookPlayer.Model
 {
@@ -23,6 +28,9 @@ namespace UWPAudioBookPlayer.Model
         public int CountFilesDropBox { get; set; }
         [Newtonsoft.Json.JsonIgnore]
         public int CountFilesDropBoxTotal { get; set; }
+
+        [JsonIgnore]
+        public ObservableCollection<AudioBookSource> AdditionSources { get; set; } = new ObservableCollection<AudioBookSource>();
 
         public override async Task<Tuple<string, IRandomAccessStream>> GetFileStream(string fileName)
         {
@@ -57,8 +65,8 @@ namespace UWPAudioBookPlayer.Model
         public TimeSpan TotalDuration { get; set; }
         public List<AudiBookFile> Files { get; set;}
 
-        public DateTime CreationDateTimeUtc { get; set; }
-        public DateTime ModifiDateTimeUtc { get; set; }
+        public DateTime CreationDateTimeUtc { get; set; } = DateTime.UtcNow;
+        public DateTime ModifiDateTimeUtc { get; set; } = DateTime.UtcNow;
 
         public bool IsLocked { get; set; }
 
@@ -68,16 +76,17 @@ namespace UWPAudioBookPlayer.Model
         {
             ModifiDateTimeUtc = DateTime.UtcNow;
         }
-
         public virtual Task<Tuple<string, IRandomAccessStream>> GetFileStream(string fileName)
         {
             return null;
         }
-
+        [JsonIgnore]
         public string Folder => System.IO.Path.GetFileName(Path);
+        [JsonIgnore]
         public int AvalibleCount => Files.Count(f => f.IsAvalible);
-        public AudiBookFile[] AvalibleFiles => Files.Where(f => f.IsAvalible).ToArray();
-
+        [JsonIgnore]
+        public AudiBookFile[] AvalibleFiles => Files?.Where(f => f.IsAvalible).ToArray() ?? new AudiBookFile[0];
+        [JsonIgnore]
         public AudiBookFile GetCurrentFile
         {
             get
@@ -116,6 +125,8 @@ namespace UWPAudioBookPlayer.Model
         {
             return Task.Run(async () =>
             {
+                if (string.IsNullOrWhiteSpace(token))
+                    return null;
                 var op = new Tuple<int, int>(0, 0);
                 try
                 {
@@ -179,10 +190,47 @@ namespace UWPAudioBookPlayer.Model
         public async Task RemoveSource(AudioBookSource source)
         {
 
+            if (string.IsNullOrWhiteSpace(source.AccessToken))
+                return;
+            try
+            {
+                var dir = await StorageApplicationPermissions.FutureAccessList.GetFolderAsync(source.AccessToken);
+                await dir.DeleteAsync(StorageDeleteOption.Default);
+                StorageApplicationPermissions.FutureAccessList.Remove(source.AccessToken);
+            }
+            catch (FileNotFoundException e)
+            {
+                Debug.WriteLine(e.Message);
+            }
+        }
 
-            var dir = await StorageApplicationPermissions.FutureAccessList.GetFolderAsync(source.AccessToken);
-            await dir.DeleteAsync(StorageDeleteOption.Default);
-            StorageApplicationPermissions.FutureAccessList.Remove(source.AccessToken);
+        public ICloudController GetCloudController(CloudService service)
+        {
+            if (service.Name == "DropBox")
+                return new DropBoxController()
+                {
+                    Token = service.Token,
+                };
+            if (service.Name == "OneDrive")
+                return new OneDriveController()
+                {
+                    Token = service.Token
+                };
+            return null;
+        }
+
+        public ICloudController GetCloudController(CloudType service)
+        {
+            switch (service)
+            {
+                    case CloudType.DropBox:
+                    return new DropBoxController();
+                    case CloudType.OneDrive:
+                    return new OneDriveController();
+                default:
+                    break;
+            }
+            return null;
         }
     }
 }

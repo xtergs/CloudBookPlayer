@@ -17,6 +17,8 @@ namespace UWPAudioBookPlayer.Converter
             var val = (CloudType)value;
             if (val == CloudType.DropBox)
                 return "../Image/DropBoxLogo.png";
+            if (val == CloudType.OneDrive)
+                return "../Image/OneDriveLogo.png";
             if (val == CloudType.Local)
                 return "../Image/HDD.png";
             return value;

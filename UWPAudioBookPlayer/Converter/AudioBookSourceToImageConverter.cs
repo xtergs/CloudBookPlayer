@@ -1,6 +1,7 @@
 ﻿using System;
 using Windows.UI.Xaml.Data;
 using UWPAudioBookPlayer.DAL.Model;
+using UWPAudioBookPlayer.ModelView;
 
 namespace UWPAudioBookPlayer.Converter
 {
@@ -8,8 +9,11 @@ namespace UWPAudioBookPlayer.Converter
     {
         public object Convert(object value, Type targetType, object parameter, string language)
         {
-            if (value is AudioBookSourceCloud)
+            var cloud = value as AudioBookSourceCloud;
+            if (cloud?.Type == CloudType.DropBox)
                 return "..\\Image\\DropBoxLogo.png";
+            if (cloud?.Type == CloudType.OneDrive)
+                return "..\\Image\\OneDriveLogo.png";
             return "..\\Image\\HDD.png";
         }
 

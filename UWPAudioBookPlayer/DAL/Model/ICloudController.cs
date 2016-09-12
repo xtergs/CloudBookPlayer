@@ -3,11 +3,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using UWPAudioBookPlayer.Model;
+using UWPAudioBookPlayer.ModelView;
 
 namespace UWPAudioBookPlayer.DAL.Model
 {
     public interface ICloudController
     {
+        string CloudStamp { get; }
+        CloudType Type { get; }
+        bool IsUseExternalBrowser { get; }
         string BaseFolder { get; set; }
         bool IsAutorized { get; }
         string Token { get; set; }

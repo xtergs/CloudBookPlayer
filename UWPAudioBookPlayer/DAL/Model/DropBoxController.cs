@@ -10,21 +10,33 @@ using Dropbox.Api;
 using Dropbox.Api.Files;
 using UWPAudioBookPlayer.Model;
 using Newtonsoft.Json;
+using UWPAudioBookPlayer.ModelView;
 
 namespace UWPAudioBookPlayer.DAL.Model
 {
-
     public class AudioBookSourceCloud : AudioBookSourceWithClouds
     {
+        public AudioBookSourceCloud(string cloudStamp, CloudType type)
+        {
+            this.CloudStamp = cloudStamp;
+            this.Type = type;
+        }
         [JsonIgnore]
         public string Revision { get; set; }
+        [JsonIgnore]
+        public string CloudStamp { get; set; }
+        [JsonIgnore]
+        public CloudType Type { get; set; }
     }
     public class DropBoxController : ICloudController
     {
+        public string CloudStamp { get; private set; }
         public string AppCode { get; set; } = "kuld6fsmktlczbf";
         public string AppSercret { get; set; } = "ks3jyuotinwz2zz";
         public string Token { get; set; } = null;
         public string AppResponseUrl { get; set; } = @"https://www.dropbox.com/1/oauth2/redirect_receiver";
+        public CloudType Type => CloudType.DropBox;
+        public bool IsUseExternalBrowser => true;
         public string BaseFolder { get; set; } = @"/AudioBooks";
 
         public bool IsAutorized => !string.IsNullOrWhiteSpace(Token) && client != null;
@@ -34,11 +46,12 @@ namespace UWPAudioBookPlayer.DAL.Model
 
         private DropboxClient client;
 
-        public void Inicialize()
+        public async void Inicialize()
         {
             if (!string.IsNullOrWhiteSpace(Token))
             {
                 client = new DropboxClient(Token);
+                CloudStamp = (await client.Users.GetCurrentAccountAsync()).AccountId;
             }
         }
 
@@ -76,6 +89,9 @@ namespace UWPAudioBookPlayer.DAL.Model
 
         public Task UploadBookMetadata(AudioBookSource source, string revision = null)
         {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+            //source.AccessToken = null;
             var fileName = "MediaInfo.json";
             var str = JsonConvert.SerializeObject(source);
             var byted = Encoding.UTF8.GetBytes(str);
@@ -118,7 +134,7 @@ namespace UWPAudioBookPlayer.DAL.Model
             var folder = folders.Entries.FirstOrDefault(f => String.Equals(f.Name, bookName, StringComparison.OrdinalIgnoreCase));
             if (folder == null)
                 return null;
-            AudioBookSourceCloud book = new AudioBookSourceCloud();
+            AudioBookSourceCloud book = new AudioBookSourceCloud(CloudStamp, Type);
             book.Name = folder.Name;
             book.Path = "DropBox\\" + folder.Name;
             book.Files = new List<AudiBookFile>();
@@ -139,6 +155,8 @@ namespace UWPAudioBookPlayer.DAL.Model
                     {
                         metaData = JsonConvert.DeserializeObject<AudioBookSourceCloud>(config);
                         metaData.Revision = data.Response.Rev;
+                        metaData.Type = CloudType.DropBox;
+                        metaData.CloudStamp = CloudStamp;
                     }
                     catch (JsonSerializationException e)
                     {
@@ -220,6 +238,11 @@ namespace UWPAudioBookPlayer.DAL.Model
             if (space.Allocation.IsIndividual)
                 return space.Allocation.AsIndividual.Value.Allocated - space.Used;
             return 0;
+        }
+
+        public override string ToString()
+        {
+            return "DropBox";
         }
     }
 }

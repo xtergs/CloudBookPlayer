@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Linq;
 using Windows.Foundation;
 using Windows.Storage.AccessCache;
 using Windows.Storage.Pickers;
+using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
@@ -29,8 +31,9 @@ namespace UWPAudioBookPlayer
             this.InitializeComponent();
             viewModel = MainControlViewModelFactory.GetMainControlViewModel(mainPlayer, new SettingsModelView(new UniversalApplicationSettingsHelper()));
             DataContext = viewModel;
-            viewModel.DrbController.NavigateToAuthPage += DrbControllerOnNavigateToAuthPage;
+            viewModel.NavigateToAuthPage += DrbControllerOnNavigateToAuthPage;
             viewModel.ShowBookDetails += ViewModelOnShowBookDetails;
+            viewModel.CloseAuthPage += DrbControllerOnCloseAuthPage;
         }
 
         private void ViewModelOnShowBookDetails(object sender, AudioBookSourcesCombined audioBookSourcesCombined)
@@ -44,16 +47,14 @@ namespace UWPAudioBookPlayer
             webView.Source = tuple.Item1;
             webView.Visibility = Visibility.Visible;
             var del = new TypedEventHandler<WebView,WebViewNavigationCompletedEventArgs>(delegate (WebView view, WebViewNavigationCompletedEventArgs args) { tuple.Item2(args.Uri); });
-            viewModel.DrbController.CloseAuthPage += DrbControllerOnCloseAuthPage;
-            viewModel.DrbController.CloseAuthPage += (o, args) => webView.NavigationCompleted -= del; 
+            webView.NavigationCompleted -= del;
             webView.NavigationCompleted += del;
 
         }
 
         private void DrbControllerOnCloseAuthPage(object sender, EventArgs eventArgs)
         {
-            webView.Visibility = Visibility.Collapsed;
-            viewModel.DrbController.CloseAuthPage -= DrbControllerOnCloseAuthPage;
+            webView.Visibility = Visibility.Collapsed; 
         }
 
         private async void AppBarButton_Click(object sender, RoutedEventArgs e)
@@ -118,6 +119,39 @@ namespace UWPAudioBookPlayer
         {
             OneDriveController controller = new OneDriveController();
             controller.Auth();
+        }
+
+            MenuFlyout menu = new MenuFlyout();
+        private async void ShowContextMenuDownload(object sender, RoutedEventArgs e)
+        {
+            var controllers = viewModel.CloudControllers.Where(c => c.IsAutorized).ToArray();
+            if (!controllers.Any())
+                return;
+            if (controllers.Length == 1)
+            {
+                viewModel.UploadBookToCloudCommand.Execute(controllers[0]);
+                return;
+            }
+            menu.Items.Clear();
+           foreach (var cloud in controllers)
+                menu.Items.Add(new MenuFlyoutItem() {Text = cloud.ToString(), Command = viewModel.UploadBookToCloudCommand, CommandParameter = cloud});
+            menu.ShowAt(((FrameworkElement)sender));
+        }
+
+        private void ShowContextMenuUpload(object sender, RoutedEventArgs e)
+        {
+            var controllers = viewModel.CloudControllers.Where(c => c.IsAutorized).ToArray();
+            if (!controllers.Any())
+                return;
+            if (controllers.Length == 1)
+            {
+                viewModel.DownloadBookFromCloudCommand.Execute(controllers[0]);
+                return;
+            }
+            menu.Items.Clear();
+            foreach (var cloud in controllers)
+                menu.Items.Add(new MenuFlyoutItem() { Text = cloud.ToString(), Command = viewModel.DownloadBookFromCloudCommand, CommandParameter = cloud });
+            menu.ShowAt(((FrameworkElement)sender));
         }
     }
 }

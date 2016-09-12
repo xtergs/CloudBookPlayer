@@ -59,12 +59,7 @@
                         <modelView:CloudType>DropBox</modelView:CloudType>
                     </AppBarButton.CommandParameter>
                 </AppBarButton>
-                <ProgressBar Grid.Row="1"
-                             IsIndeterminate="True"
-                             Visibility="{Binding DropBoxRefreshing,
-                                                  Converter={StaticResource BoolToVisiblityConverter},
-                                                  Mode=OneWay,
-                                                  UpdateSourceTrigger=PropertyChanged}" />
+
             </Grid>
             <Grid>
                 <Grid.RowDefinitions>
@@ -78,12 +73,6 @@
                         <modelView:CloudType>OneDrive</modelView:CloudType>
                     </AppBarButton.CommandParameter>
                 </AppBarButton>
-                <ProgressBar Grid.Row="1"
-                             IsIndeterminate="True"
-                             Visibility="{Binding OneDriveRefreshing,
-                                                  Converter={StaticResource BoolToVisiblityConverter},
-                                                  Mode=OneWay,
-                                                  UpdateSourceTrigger=PropertyChanged}" />
             </Grid>
             <AppBarButton Click="SelectBaseFolderClick"
                           Icon="Folder"
@@ -113,6 +102,12 @@
                         <MenuFlyoutItem Command="{Binding ShowBookDetailCommand}" Text="Details" />
                     </MenuFlyout>
                 </ListView.ContextFlyout>-->
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalAlignment" Value="Stretch" />
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    </Style>
+                </ListView.ItemContainerStyle>
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <Grid>
@@ -145,21 +140,39 @@
                                          Value="{Binding CurrentFile,
                                                          UpdateSourceTrigger=PropertyChanged,
                                                          Mode=OneWay}" />
-                            <StackPanel Grid.Row="3"
-                                        Grid.Column="1"
-                                        Orientation="Horizontal"
-                                        Visibility="{Binding IsHaveDropBox,
-                                                             Converter={StaticResource BoolToVisiblityConverter}}">
-                                <Image Width="10" Source="../Image/DropBoxLogo.png" />
-                                <TextBlock>
-                                    <TextBlock.Inlines>
-                                        <Run Text="CountOfFiles: " />
-                                        <Run Text="{Binding CountFilesDropBox}" />
-                                        <Run Text=" from " />
-                                        <Run Text="{Binding CountFilesDropBoxTotal}" />
-                                    </TextBlock.Inlines>
-                                </TextBlock>
-                            </StackPanel>
+                            <ListView Grid.Row="3"
+                                      Grid.Column="1"
+                                      IsItemClickEnabled="False"
+                                      ItemsSource="{Binding AdditionSources}"
+                                      SelectionMode="None"
+                                      Visibility="{Binding AdditionSources.Count,
+                                                           Converter={StaticResource IntToVisibilityConverter}}">
+                                <ListView.ItemContainerStyle>
+                                    <Style TargetType="ListViewItem">
+                                        <Setter Property="Margin" Value="0" />
+                                        <Setter Property="Padding" Value="0" />
+                                        <Setter Property="MinHeight" Value="0" />
+                                    </Style>
+                                </ListView.ItemContainerStyle>
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Width="20"
+                                                   Margin="0,0,5,0"
+                                                   Source="{Binding Type,
+                                                                    Converter={StaticResource CloudTypeToImageConverter}}" />
+                                            <TextBlock>
+                                                <TextBlock.Inlines>
+                                                    <Run Text="CountOfFiles: " />
+                                                    <Run Text="{Binding AvalibleCount}" />
+                                                    <Run Text=" from " />
+                                                    <Run Text="{Binding Files.Count}" />
+                                                </TextBlock.Inlines>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
                         </Grid>
                     </DataTemplate>
                 </ListView.ItemTemplate>
@@ -174,10 +187,10 @@
                                                          UpdateSourceTrigger=PropertyChanged,
                                                          Mode=OneWay}"
                               Icon="Remove" />
-                <AppBarButton Command="{Binding UploadBookToDrBoxCommand}"
+                <AppBarButton Click="ShowContextMenuDownload"
                               Icon="Upload"
                               Label="ToDropBox" />
-                <AppBarButton Command="{Binding DownloadBookFromDrBoxCommand}"
+                <AppBarButton Click="ShowContextMenuUpload"
                               Icon="Download"
                               Label="FromDropBox" />
                 <AppBarButton Command="{Binding ShowBookDetailCommand}"
@@ -251,6 +264,7 @@
                       Visibility="Visible" />
         <ListView x:Name="operationsList"
                   Grid.Row="7"
+                  VerticalAlignment="Bottom"
                   ItemsSource="{Binding UploadOperations}"
                   Visibility="{Binding UploadOperations.Count,
                                        Converter={StaticResource IntToVisibilityConverter}}">
@@ -305,6 +319,23 @@
                                           Visibility="Visible" />
                         </VariableSizedWrapGrid>
                     </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <ListView Grid.Row="8" ItemsSource="{Binding RefreshingControllers}">
+            <ListView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ListView.ItemsPanel>
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel>
+                        <AppBarButton Icon="MapDrive"
+                                      Label="{Binding Type}"
+                                      ToolTipService.ToolTip="{Binding Type}" />
+                        <ProgressBar IsIndeterminate="True" />
+                    </StackPanel>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
