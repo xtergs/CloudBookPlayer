@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Dropbox.Api.Files;
 using Microsoft.Graph;
@@ -150,6 +151,8 @@ namespace UWPAudioBookPlayer.DAL.Model
 
             }
             result.Add(book);
+            book.CloudStamp = CloudStamp;
+            book.Type = Type;
             return book;
         }
 
@@ -177,9 +180,16 @@ namespace UWPAudioBookPlayer.DAL.Model
             return uint.MaxValue;
         }
 
+        Regex regex  = new Regex(@"(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-?%&!]*)");
+
         public async Task<string> GetLink(string bookName, string fileName)
         {
-            return (client.Drive.Root.ItemWithPath(BaseFolder + "/" + bookName + "/" + fileName).CreateLink("view").Request().RequestBody.ToString());
+            var link = (client.Drive.Root.ItemWithPath(BaseFolder + "/" + bookName + "/" + fileName).CreateLink("embed"));
+            var response = await link.Request().PostAsync();
+            var match = regex.Match(response.Link.WebHtml);
+            if (match.Success)
+                return match.Value.Replace("embed?", "download?");
+            return "";
         }
 
         public Task<string> GetLink(AudioBookSourceCloud book, int fileNumber)

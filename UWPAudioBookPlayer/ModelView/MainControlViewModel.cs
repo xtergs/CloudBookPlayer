@@ -76,6 +76,8 @@ namespace UWPAudioBookPlayer.ModelView
     [ImplementPropertyChanged]
     public class MainControlViewModel
     {
+        public delegate MainControlViewModel MainControlViewModelFactory(MediaElement mediaPlayer);
+
         private Folder baseFolder;
         private IDataRepository repository;
         //private DropBoxController drbController;
@@ -149,6 +151,11 @@ namespace UWPAudioBookPlayer.ModelView
         public List<ICloudController> CloudControllers
         {
             get { return cloudControllers; }
+        }
+
+        public ISettingsService Settings
+        {
+            get { return settings; }
         }
 
 
@@ -518,13 +525,15 @@ namespace UWPAudioBookPlayer.ModelView
             RefreshingControllers.Add(controller);
             try
             {
-                drFolders = await controller.GetAudioBooksInfo();
+                drFolders = (await controller.GetAudioBooksInfo()).Where(x => x.AvalibleCount > 0).ToList();
                 var oldFolders =
                     Folders.OfType<AudioBookSourceCloud>().Where(x => x.CloudStamp == controller.CloudStamp).ToList();
                 foreach (var old in oldFolders)
                     Folders.Remove(old);
                 foreach (var f in drFolders)
                 {
+                    if (f.AvalibleCount <= 0)
+                        continue;
                     var inFolders = Folders.FirstOrDefault(x => x.Folder == f.Folder) as AudioBookSourceWithClouds;
                     if (inFolders == null)
                         continue;
@@ -834,10 +843,13 @@ namespace UWPAudioBookPlayer.ModelView
             book = book ?? SelectedFolder;
             if (book is AudioBookSourceCloud)
             {
-                //var link = await drbController.GetLink(book.Folder, file);
-                //if (string.IsNullOrWhiteSpace(link))
-                //    return;
-                //player.Source = new Uri(link);
+                var cloud = (AudioBookSourceCloud) book;
+                if (!book.AvalibleFiles.Any(x => x.Name == file))
+                    return;
+                var link = await cloudControllers.First(x=> x.CloudStamp == cloud.CloudStamp ).GetLink(book.Folder, file);
+                if (string.IsNullOrWhiteSpace(link))
+                    return;
+                player.Source = new Uri(link);
             }
             else
             {
@@ -908,9 +920,8 @@ namespace UWPAudioBookPlayer.ModelView
             player.Stop();
             if (!nextFile.IsAvalible)
             {
-                if (SelectedFolder.IsHaveDropBox)
-                {
-                    var cloudsFolder = drFolders.FirstOrDefault(x => x.Name == SelectedFolder.Name);
+                var cloudsFolder = SelectedFolder.AdditionSources.FirstOrDefault(
+                    s => s.AvalibleFiles.Any(x => x.Name == nextFile.Name && x.Order == nextFile.Order));
                     var fiel = cloudsFolder?.AvalibleFiles.FirstOrDefault(f => f.Name == nextFile.Name);
                     if (fiel != null)
                     {
@@ -920,7 +931,6 @@ namespace UWPAudioBookPlayer.ModelView
                         player.Play();
 
 
-                    }
                 }
 
             }
@@ -973,27 +983,29 @@ namespace UWPAudioBookPlayer.ModelView
                     await
                         notificator.ShowMessage("Already have this type",
                             "You already added this type of cloud service. Are want add another?",
-                            ActionButtons.Cancel | ActionButtons.Ok) == ActionButtons.Ok)
-                {
-                    var cloudService = factory.GetCloudController(type);
-                    cloudService.CloseAuthPage += async (sender, args) =>
-                    {
-                        cloudService.NavigateToAuthPage -= CloudServiceOnNavigateToAuthPage;
-                        cloudService.CloseAuthPage -= CloudServiceOnCloseAuthPage;
-                        if (!cloudService.IsAutorized)
-                            return;
-                        CloudControllers.Add(cloudService);
-                        await RefreshCloudData(cloudService);
-                    };
-                    if (cloudService.IsUseExternalBrowser)
-                    {
-                        cloudService.NavigateToAuthPage += CloudServiceOnNavigateToAuthPage;
-                        cloudService.CloseAuthPage += CloudServiceOnCloseAuthPage;
-                    }
-                    cloudService.Auth();
-
-                }
+                            ActionButtons.Cancel | ActionButtons.Ok) != ActionButtons.Ok)
+                    return;
             }
+
+            var cloudService = factory.GetCloudController(type);
+            cloudService.CloseAuthPage += async (sender, args) =>
+            {
+                cloudService.NavigateToAuthPage -= CloudServiceOnNavigateToAuthPage;
+                cloudService.CloseAuthPage -= CloudServiceOnCloseAuthPage;
+                if (!cloudService.IsAutorized)
+                    return;
+                CloudControllers.Add(cloudService);
+                await SaveData();
+                await RefreshCloudData(cloudService);
+            };
+            if (cloudService.IsUseExternalBrowser)
+            {
+                cloudService.NavigateToAuthPage += CloudServiceOnNavigateToAuthPage;
+                cloudService.CloseAuthPage += CloudServiceOnCloseAuthPage;
+            }
+            cloudService.Auth();
+
+
             //if (type == CloudType.DropBox)
             //    drbController.Auth();
             //if (type==CloudType.OneDrive)

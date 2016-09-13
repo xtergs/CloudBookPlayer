@@ -15,9 +15,18 @@ using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
+using Autofac;
+using Autofac.Builder;
+using UWPAudioBookPlayer.ModelView;
+using UWPAudioBookPlayer.Service;
 
 namespace UWPAudioBookPlayer
 {
+    public static class Global
+    {
+        public static IContainer container;
+    }
+    
     /// <summary>
     /// Provides application-specific behavior to supplement the default Application class.
     /// </summary>
@@ -64,6 +73,14 @@ namespace UWPAudioBookPlayer
                 // Place the frame in the current Window
                 Window.Current.Content = rootFrame;
             }
+
+            Autofac.ContainerBuilder builder = new ContainerBuilder();
+            builder.RegisterType<MainControlViewModel>().SingleInstance();
+            builder.RegisterType<SettingsModelView>().As<ISettingsService>().SingleInstance();
+            builder.RegisterType<UniversalApplicationSettingsHelper>().As<IApplicationSettingsHelper>();
+
+            var container = builder.Build();
+            Global.container = container;
 
             if (e.PrelaunchActivated == false)
             {

@@ -2,6 +2,8 @@
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
 using UWPAudioBookPlayer.ModelView;
+using Autofac;
+using UWPAudioBookPlayer.Service;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=234238
 
@@ -12,11 +14,12 @@ namespace UWPAudioBookPlayer.View
     /// </summary>
     public sealed partial class SettingsView : Page
     {
-        private SettingsModelView _modelView;
+        private ISettingsService _modelView;
         public SettingsView()
         {
             this.InitializeComponent();
-
+            _modelView = Global.container.Resolve<ISettingsService>();
+            DataContext = _modelView;
             Windows.UI.Core.SystemNavigationManager.GetForCurrentView().AppViewBackButtonVisibility = AppViewBackButtonVisibility.Visible;
 
             Windows.UI.Core.SystemNavigationManager.GetForCurrentView().BackRequested += (s, a) =>
@@ -32,11 +35,6 @@ namespace UWPAudioBookPlayer.View
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
-            if (e.Content is SettingsModelView)
-            {
-                _modelView = e.Content as SettingsModelView;
-                DataContext = _modelView;
-            }
             base.OnNavigatedTo(e);
         }
     }

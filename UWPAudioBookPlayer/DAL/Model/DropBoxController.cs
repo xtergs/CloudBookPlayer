@@ -70,10 +70,11 @@ namespace UWPAudioBookPlayer.DAL.Model
             }
             if (uri.OriginalString.Contains(AppResponseUrl))
             {
-                OnCloseAuthPage();
                 var resp = await DropboxOAuth2Helper.ProcessCodeFlowAsync(uri, AppCode,AppSercret, AppResponseUrl);
                 Token = resp.AccessToken;
                 client = new DropboxClient(Token);
+                CloudStamp = (await client.Users.GetCurrentAccountAsync()).AccountId;
+                OnCloseAuthPage();
             }
         }
 

@@ -24,8 +24,134 @@
         <converter:NoConverter x:Key="NoConverter" />
         <templateSelector:AudioBookSourceTemplateSelector x:Key="AudioBookSourceTemplateSelector" />
         <converter:AudioBookSourceToImageConverter x:Key="AudioBookSourceToImageConverter" />
+
+        <Style x:Key="CircleSlider" TargetType="Slider">
+            <Setter Property="Background" Value="{ThemeResource SystemControlForegroundBaseMediumLowBrush}" />
+            <Setter Property="BorderThickness" Value="{ThemeResource SliderBorderThemeThickness}" />
+            <Setter Property="Foreground" Value="{ThemeResource SystemControlHighlightAccentBrush}" />
+            <Setter Property="FontFamily" Value="{ThemeResource ContentControlThemeFontFamily}" />
+            <Setter Property="FontSize" Value="{ThemeResource ControlContentThemeFontSize}" />
+
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid Margin="{TemplateBinding Padding}">
+                            <Grid.Resources>
+                                <Style x:Key="SliderThumbStyle" TargetType="Thumb">
+                                    <Setter Property="BorderThickness" Value="2" />
+                                    <Setter Property="BorderBrush" Value="{ThemeResource SystemControlForegroundAccentBrush}" />
+                                    <Setter Property="Foreground" Value="{ThemeResource SystemControlForegroundAccentBrush}" />
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Ellipse Fill="{TemplateBinding Foreground}"
+                                                         Stroke="{TemplateBinding BorderBrush}"
+                                                         StrokeThickness="2" />
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </Grid.Resources>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid x:Name="SliderContainer"
+                                  Grid.Row="1"
+                                  Background="Transparent">
+                                <Grid x:Name="HorizontalTemplate">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="17" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="17" />
+                                    </Grid.RowDefinitions>
+                                    <Rectangle x:Name="HorizontalTrackRect"
+                                               Grid.Row="1"
+                                               Grid.ColumnSpan="3"
+                                               Height="10"
+                                               Fill="{TemplateBinding Background}"
+                                               RadiusX="5"
+                                               RadiusY="5" />
+                                    <Rectangle x:Name="HorizontalDecreaseRect"
+                                               Grid.Row="1"
+                                               Height="10"
+                                               Fill="{TemplateBinding Foreground}"
+                                               RadiusX="5"
+                                               RadiusY="5" />
+                                    <Rectangle x:Name="HorizontalBorder"
+                                               Grid.Row="1"
+                                               Grid.ColumnSpan="3"
+                                               Height="10"
+                                               RadiusX="5"
+                                               RadiusY="5"
+                                               Stroke="{TemplateBinding BorderBrush}"
+                                               StrokeThickness="{TemplateBinding BorderThickness}" />
+                                    <Thumb x:Name="HorizontalThumb"
+                                           Grid.Row="1"
+                                           Grid.Column="1"
+                                           Width="25"
+                                           Height="25"
+                                           AutomationProperties.AccessibilityView="Raw"
+                                           Background="{ThemeResource SliderThumbBackgroundThemeBrush}"
+                                           DataContext="{TemplateBinding Value}"
+                                           Style="{StaticResource SliderThumbStyle}" />
+                                </Grid>
+                                <Grid x:Name="VerticalTemplate" Visibility="Collapsed">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="17" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="17" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Rectangle x:Name="VerticalTrackRect"
+                                               Grid.RowSpan="3"
+                                               Grid.Column="1"
+                                               Width="10"
+                                               Fill="{TemplateBinding Background}"
+                                               RadiusX="5"
+                                               RadiusY="5" />
+                                    <Rectangle x:Name="VerticalDecreaseRect"
+                                               Grid.Row="2"
+                                               Grid.Column="1"
+                                               Fill="{TemplateBinding Background}" />
+                                    <Rectangle x:Name="VerticalBorder"
+                                               Grid.RowSpan="3"
+                                               Grid.Column="1"
+                                               Width="10"
+                                               RadiusX="5"
+                                               RadiusY="5"
+                                               Stroke="{TemplateBinding BorderBrush}"
+                                               StrokeThickness="{TemplateBinding BorderThickness}" />
+                                    <Thumb x:Name="VerticalThumb"
+                                           Grid.Row="1"
+                                           Grid.Column="1"
+                                           Width="25"
+                                           Height="25"
+                                           AutomationProperties.AccessibilityView="Raw"
+                                           Background="{ThemeResource SliderThumbBackgroundThemeBrush}"
+                                           DataContext="{TemplateBinding Value}"
+                                           Style="{StaticResource SliderThumbStyle}" />
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Page.Resources>
-    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Padding="5">
+    <Grid HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch"
+          Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+          Padding="5">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -34,15 +160,18 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition />
             <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <StackPanel Orientation="Horizontal">
+        <StackPanel BorderBrush="Silver"
+                    BorderThickness="0,0,0,3"
+                    Orientation="Horizontal">
 
             <AppBarToggleButton x:Name="showSourceList"
                                 Icon="List"
@@ -73,6 +202,7 @@
                         <modelView:CloudType>OneDrive</modelView:CloudType>
                     </AppBarButton.CommandParameter>
                 </AppBarButton>
+
             </Grid>
             <AppBarButton Click="SelectBaseFolderClick"
                           Icon="Folder"
@@ -81,20 +211,16 @@
                           Icon="Setting"
                           Label="Settings" />
         </StackPanel>
-        <Grid Grid.RowSpan="10"
-              Grid.Column="1"
-              Visibility="{Binding IsChecked,
-                                   ElementName=showSourceList}">
-            <Grid.RowDefinitions>
-                <RowDefinition />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            <ListView Width="300"
-                      ItemTemplateSelector="{StaticResource AudioBookSourceTemplateSelector}"
-                      ItemsSource="{Binding Folders}"
-                      SelectedItem="{Binding SelectedFolder,
-                                             Mode=TwoWay}">
-                <!--<ListView.ContextFlyout>
+
+        <ListView Grid.Row="7"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch"
+                  Background="Silver"
+                  ItemTemplateSelector="{StaticResource AudioBookSourceTemplateSelector}"
+                  ItemsSource="{Binding Folders}"
+                  SelectedItem="{Binding SelectedFolder,
+                                         Mode=TwoWay}">
+            <!--<ListView.ContextFlyout>
                     <MenuFlyout>
                         <MenuFlyoutItem Command="{Binding RemoveAudioBookSource}"
                                         CommandParameter="{Binding Path=SelectedFolder}"
@@ -102,102 +228,82 @@
                         <MenuFlyoutItem Command="{Binding ShowBookDetailCommand}" Text="Details" />
                     </MenuFlyout>
                 </ListView.ContextFlyout>-->
-                <ListView.ItemContainerStyle>
-                    <Style TargetType="ListViewItem">
-                        <Setter Property="HorizontalAlignment" Value="Stretch" />
-                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                    </Style>
-                </ListView.ItemContainerStyle>
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="30" />
-                                <ColumnDefinition />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Image Grid.RowSpan="10" Source="{Binding Converter={StaticResource AudioBookSourceToImageConverter}}" />
-                            <TextBlock Grid.Column="1" Text="{Binding Name}" />
-                            <TextBlock Grid.Row="1"
-                                       Grid.Column="1"
-                                       Foreground="LightGray">
-                                <TextBlock.Inlines>
-                                    <Run>Avalible:</Run>
-                                    <Run Text="{Binding AvalibleCount}" />
-                                    <Run Text=" from " />
-                                    <Run Text="{Binding Files.Count}" />
-                                </TextBlock.Inlines>
-                            </TextBlock>
-                            <ProgressBar Grid.Row="2"
-                                         Grid.Column="1"
-                                         Maximum="{Binding Files.Count}"
-                                         Minimum="0"
-                                         Value="{Binding CurrentFile,
-                                                         UpdateSourceTrigger=PropertyChanged,
-                                                         Mode=OneWay}" />
-                            <ListView Grid.Row="3"
-                                      Grid.Column="1"
-                                      IsItemClickEnabled="False"
-                                      ItemsSource="{Binding AdditionSources}"
-                                      SelectionMode="None"
-                                      Visibility="{Binding AdditionSources.Count,
-                                                           Converter={StaticResource IntToVisibilityConverter}}">
-                                <ListView.ItemContainerStyle>
-                                    <Style TargetType="ListViewItem">
-                                        <Setter Property="Margin" Value="0" />
-                                        <Setter Property="Padding" Value="0" />
-                                        <Setter Property="MinHeight" Value="0" />
-                                    </Style>
-                                </ListView.ItemContainerStyle>
-                                <ListView.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal">
-                                            <Image Width="20"
-                                                   Margin="0,0,5,0"
-                                                   Source="{Binding Type,
-                                                                    Converter={StaticResource CloudTypeToImageConverter}}" />
-                                            <TextBlock>
-                                                <TextBlock.Inlines>
-                                                    <Run Text="CountOfFiles: " />
-                                                    <Run Text="{Binding AvalibleCount}" />
-                                                    <Run Text=" from " />
-                                                    <Run Text="{Binding Files.Count}" />
-                                                </TextBlock.Inlines>
-                                            </TextBlock>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ListView.ItemTemplate>
-                            </ListView>
-                        </Grid>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
-            <VariableSizedWrapGrid Grid.Row="1" Orientation="Horizontal">
-                <AppBarButton Click="AppBarButton_Click"
-                              Icon="Add"
-                              IsCompact="True" />
-                <AppBarButton HorizontalAlignment="Right"
-                              Command="{Binding RemoveAudioBookSource}"
-                              CommandParameter="{Binding SelectedFolder,
-                                                         UpdateSourceTrigger=PropertyChanged,
-                                                         Mode=OneWay}"
-                              Icon="Remove" />
-                <AppBarButton Click="ShowContextMenuDownload"
-                              Icon="Upload"
-                              Label="ToDropBox" />
-                <AppBarButton Click="ShowContextMenuUpload"
-                              Icon="Download"
-                              Label="FromDropBox" />
-                <AppBarButton Command="{Binding ShowBookDetailCommand}"
-                              Icon="ContactInfo"
-                              Label="Details" />
-            </VariableSizedWrapGrid>
-        </Grid>
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="HorizontalAlignment" Value="Stretch" />
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                </Style>
+            </ListView.ItemContainerStyle>
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="30" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Image Grid.RowSpan="10" Source="{Binding Converter={StaticResource AudioBookSourceToImageConverter}}" />
+                        <TextBlock Grid.Column="1" Text="{Binding Name}" />
+                        <TextBlock Grid.Row="1"
+                                   Grid.Column="1"
+                                   Foreground="LightGray">
+                            <TextBlock.Inlines>
+                                <Run>Avalible:</Run>
+                                <Run Text="{Binding AvalibleCount}" />
+                                <Run Text=" from " />
+                                <Run Text="{Binding Files.Count}" />
+                            </TextBlock.Inlines>
+                        </TextBlock>
+                        <ProgressBar Grid.Row="2"
+                                     Grid.Column="1"
+                                     Maximum="{Binding Files.Count}"
+                                     Minimum="0"
+                                     Value="{Binding CurrentFile,
+                                                     UpdateSourceTrigger=PropertyChanged,
+                                                     Mode=OneWay}" />
+                        <ListView Grid.Row="3"
+                                  Grid.Column="1"
+                                  IsItemClickEnabled="False"
+                                  ItemsSource="{Binding AdditionSources}"
+                                  SelectionMode="None"
+                                  Visibility="{Binding AdditionSources.Count,
+                                                       Converter={StaticResource IntToVisibilityConverter}}">
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Setter Property="Margin" Value="0" />
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="MinHeight" Value="0" />
+                                </Style>
+                            </ListView.ItemContainerStyle>
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Width="20"
+                                               Margin="0,0,5,0"
+                                               Source="{Binding Type,
+                                                                Converter={StaticResource CloudTypeToImageConverter}}" />
+                                        <TextBlock>
+                                            <TextBlock.Inlines>
+                                                <Run Text="CountOfFiles: " />
+                                                <Run Text="{Binding AvalibleCount}" />
+                                                <Run Text=" from " />
+                                                <Run Text="{Binding Files.Count}" />
+                                            </TextBlock.Inlines>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
         <TextBlock Grid.Row="1"
                    HorizontalAlignment="Center"
                    FontSize="20"
@@ -252,6 +358,19 @@
                 </AppBarButton.CommandParameter>
             </AppBarButton>
             <AppBarButton Command="{Binding NextCommand}" Icon="Next" />
+            <Slider VerticalAlignment="Center"
+                    Header="Volum"
+                    IsThumbToolTipEnabled="True"
+                    Maximum="1"
+                    Minimum="0"
+                    StepFrequency="0.1"
+                    Style="{StaticResource CircleSlider}"
+                    VariableSizedWrapGrid.ColumnSpan="2"
+                    VariableSizedWrapGrid.RowSpan="1"
+                    Value="{Binding ElementName=mainPlayer,
+                                    Path=Volume,
+                                    UpdateSourceTrigger=PropertyChanged,
+                                    Mode=TwoWay}" />
         </VariableSizedWrapGrid>
         <MediaElement x:Name="mainPlayer"
                       Grid.Row="6"
@@ -263,11 +382,14 @@
                                          Mode=TwoWay}"
                       Visibility="Visible" />
         <ListView x:Name="operationsList"
-                  Grid.Row="7"
+                  Grid.Row="0"
+                  Grid.RowSpan="10"
+                  Grid.Column="1"
                   VerticalAlignment="Bottom"
                   ItemsSource="{Binding UploadOperations}"
-                  Visibility="{Binding UploadOperations.Count,
-                                       Converter={StaticResource IntToVisibilityConverter}}">
+                  Visibility="{Binding IsChecked,
+                                       ElementName=showSourceList,
+                                       Converter={StaticResource BoolToVisiblityConverter}}">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <Grid>
@@ -322,7 +444,33 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-        <ListView Grid.Row="8" ItemsSource="{Binding RefreshingControllers}">
+        <VariableSizedWrapGrid Grid.Row="8"
+                               VerticalAlignment="Bottom"
+                               Orientation="Horizontal">
+            <AppBarButton Click="AppBarButton_Click"
+                          Icon="Add"
+                          IsCompact="False"
+                          Label="Add" />
+            <AppBarButton HorizontalAlignment="Right"
+                          Command="{Binding RemoveAudioBookSource}"
+                          CommandParameter="{Binding SelectedFolder,
+                                                     UpdateSourceTrigger=PropertyChanged,
+                                                     Mode=OneWay}"
+                          Icon="Remove"
+                          Label="Remove" />
+            <AppBarButton Click="ShowContextMenuDownload"
+                          Icon="Upload"
+                          Label="ToDropBox" />
+            <AppBarButton Click="ShowContextMenuUpload"
+                          Icon="Download"
+                          Label="FromDropBox" />
+            <AppBarButton Command="{Binding ShowBookDetailCommand}"
+                          Icon="ContactInfo"
+                          Label="Details" />
+        </VariableSizedWrapGrid>
+        <ListView Grid.Row="9"
+                  Grid.Column="1"
+                  ItemsSource="{Binding RefreshingControllers}">
             <ListView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <StackPanel Orientation="Horizontal" />

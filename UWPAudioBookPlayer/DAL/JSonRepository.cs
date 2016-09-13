@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Windows.Storage;
@@ -54,8 +55,13 @@ namespace UWPAudioBookPlayer.DAL
             {
                 var clouds = books.CloudServices;
                 books.CloudServices = null;
-                await Task.WhenAll(Save(ApplicationData.Current.RoamingFolder, RoamingFileName,clouds), 
-                    Save(ApplicationData.Current.LocalFolder, FileName ,books));
+                List<Task> tasks = new List<Task>(2)
+                {
+                    Save(ApplicationData.Current.LocalFolder, FileName ,books)
+                };
+                if (clouds.Length > 0)
+                    tasks.Add(Save(ApplicationData.Current.RoamingFolder, RoamingFileName, clouds));
+                await Task.WhenAll(tasks);
             }
             finally
             {

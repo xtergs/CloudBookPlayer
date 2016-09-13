@@ -11,11 +11,17 @@ using UWPAudioBookPlayer.DAL.Model;
 using UWPAudioBookPlayer.ModelView;
 using UWPAudioBookPlayer.Service;
 using UWPAudioBookPlayer.View;
+using Autofac;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
 namespace UWPAudioBookPlayer
 {
+    public class NavigateCntent
+    {
+        public MainControlViewModel mainViewModel { get; set; }
+        public ISettingsService settingsViewModel { get; set; }
+    }
     /// <summary>
     /// An empty page that can be used on its own or navigated to within a Frame.
     /// </summary>
@@ -29,11 +35,14 @@ namespace UWPAudioBookPlayer
             //    throw new ArgumentNullException(nameof(settingsModelView));
             //this._settingsModelView = settingsModelView;
             this.InitializeComponent();
-            viewModel = MainControlViewModelFactory.GetMainControlViewModel(mainPlayer, new SettingsModelView(new UniversalApplicationSettingsHelper()));
+            var factory = Global.container.Resolve<MainControlViewModel.MainControlViewModelFactory>();
+            viewModel = factory.Invoke(mainPlayer);
             DataContext = viewModel;
             viewModel.NavigateToAuthPage += DrbControllerOnNavigateToAuthPage;
             viewModel.ShowBookDetails += ViewModelOnShowBookDetails;
             viewModel.CloseAuthPage += DrbControllerOnCloseAuthPage;
+            //viewModel.LoadData();
+
         }
 
         private void ViewModelOnShowBookDetails(object sender, AudioBookSourcesCombined audioBookSourcesCombined)
@@ -112,7 +121,9 @@ namespace UWPAudioBookPlayer
 
         private void OpenSettingsClick(object sender, RoutedEventArgs e)
         {
-            Frame.Navigate(typeof(SettingsView), _settingsModelView);
+
+            Frame.Navigate(typeof(SettingsView), null);
+
         }
 
         private void ButtonBase_OnClick(object sender, RoutedEventArgs e)
@@ -152,6 +163,11 @@ namespace UWPAudioBookPlayer
             foreach (var cloud in controllers)
                 menu.Items.Add(new MenuFlyoutItem() { Text = cloud.ToString(), Command = viewModel.DownloadBookFromCloudCommand, CommandParameter = cloud });
             menu.ShowAt(((FrameworkElement)sender));
+        }
+
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
         }
     }
 }
