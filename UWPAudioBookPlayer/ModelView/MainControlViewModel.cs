@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Windows.Storage;
@@ -100,7 +101,13 @@ namespace UWPAudioBookPlayer.ModelView
             new ObservableCollection<UploadProgress>();
 
         public AudioBookSourceWithClouds SelectedFolder { get; set; }
-        public AudioBookSourceWithClouds PlayingSource { get; set; }
+
+        public AudioBookSourceWithClouds PlayingSource
+        {
+            get { return _playingSource; }
+            set { _playingSource = value; }
+        }
+
         public AudiBookFile PlayingFile { get; private set; }
 
         public MediaPlaybackFlow State { get; set; } = MediaPlaybackFlow.Stop;
@@ -114,13 +121,17 @@ namespace UWPAudioBookPlayer.ModelView
                     _currentState = new CurrentState();
                 else
                     _currentState = value;
-                SelectedFolder = Folders.FirstOrDefault(f => f.Name == _currentState.BookName);
-                if (SelectedFolder != null && SelectedFolder.CurrentFile >= 0)
+                PlayingSource = Folders.FirstOrDefault(f => f.Name == _currentState.BookName);
+                if (PlayingSource != null && PlayingSource.CurrentFile >= 0)
                 {
-                    SetSource(SelectedFolder);
+                    SetSource(PlayingSource);
                 }
             }
         }
+
+        private Timer sleepTimer;
+        private Timer updateSleepValuesTimer;
+        public int LeftSleepTimer { get; set; }
 
         public bool DropBoxRefreshing { get; private set; }
 
@@ -139,6 +150,10 @@ namespace UWPAudioBookPlayer.ModelView
         public RelayCommand DownloadBookFromDrBoxCommand { get; private set; }
         public RelayCommand<ICloudController> DownloadBookFromCloudCommand { get; private set; }
         public RelayCommand ShowBookDetailCommand { get; private set; }
+        public RelayCommand ChangeTimerStateCommand { get; private set; }
+        public RelayCommand<BookMark> AddBookMarkCommand { get; private set; }
+        public RelayCommand<AudioBookSourceWithClouds> ResumePlayBookCommand { get; set; }
+        public RelayCommand<PlayBackHistoryElement> PlayHistoryElementCommand { get; private set; }
 
 
         public event EventHandler<AudioBookSourcesCombined> ShowBookDetails;
@@ -157,6 +172,21 @@ namespace UWPAudioBookPlayer.ModelView
         {
             get { return settings; }
         }
+
+        public List<double> AvaliblePlayBackSpeed { get; } = new List<double>()
+        {
+            0.5,
+            0.6,
+            0.7,
+            0.8,
+            0.9,
+            1.0,
+            1.1,
+            1.2,
+            1.3,
+            1.4,
+            1.5
+        };
 
 
         public MainControlViewModel(MediaElement mediaPlayer, ISettingsService settings)
@@ -178,9 +208,9 @@ namespace UWPAudioBookPlayer.ModelView
             PlayCommand = new RelayCommand(Play);
             PauseCommand = new RelayCommand(Pause);
             NextCommand = new RelayCommand(NextFile,
-                () => SelectedFolder != null && SelectedFolder.CurrentFile + 1 < SelectedFolder.Files.Count());
-            PrevCommand = new RelayCommand(PrevFile, () => SelectedFolder != null && SelectedFolder.CurrentFile - 1 >= 0);
-            MoveSecsCommand = new RelayCommand<int>(MoveSecs, (c) => SelectedFolder != null);
+                () => PlayingSource != null && PlayingSource.CurrentFile + 1 < PlayingSource.Files.Count());
+            PrevCommand = new RelayCommand(PrevFile, () => PlayingSource != null && PlayingSource.CurrentFile - 1 >= 0);
+            MoveSecsCommand = new RelayCommand<int>(MoveSecs, (c) => PlayingSource != null);
             RemoveAudioBookSource = new RelayCommand<AudioBookSource>(RemoveSource);
             AddCloudAccountCommand = new RelayCommand<CloudType>(AddDropBoxAccount);
             //UploadBookToDrBoxCommand = new RelayCommand(UploadBookToDrBox, () => drbController.IsAutorized && !string.IsNullOrWhiteSpace( SelectedFolder?.AccessToken));
@@ -194,11 +224,85 @@ namespace UWPAudioBookPlayer.ModelView
             PauseOperationCommand = new RelayCommand<Guid>(PauseOperation);
             ResumeOperationCommand = new RelayCommand<Guid>(ResumeOperation);
 
-            
+            ChangeTimerStateCommand = new RelayCommand(ChangeTimerState);
+            ResumePlayBookCommand = new RelayCommand<AudioBookSourceWithClouds>(ResumePlayBook);
+            PlayHistoryElementCommand = new RelayCommand<PlayBackHistoryElement>(PlayHistoryElement, x => x != null);
+            AddBookMarkCommand = new RelayCommand<BookMark>(AddBookMark);
+
             player.CurrentStateChanged += PlayerOnCurrentStateChanged;
         }
 
-        
+        private void AddBookMark(BookMark obj)
+        {
+            PlayingSource.BookMarks.Add(obj);
+        }
+
+        private void PlayHistoryElement(PlayBackHistoryElement obj)
+        {
+            PlayingSource.CurrentFile =
+                PlayingSource.Files.IndexOf(PlayingSource.Files.First(x => x.Name == obj.FileName));
+            PlayingSource.Position = obj.Position;
+            Play();
+        }
+
+        private void ResumePlayBook(AudioBookSourceWithClouds audioBookSourceDetailWithCloud)
+        {
+            Pause();
+            PlayingSource = audioBookSourceDetailWithCloud;
+            Play();
+        }
+
+        private void ChangeTimerState()
+        {
+            if (CurrentState.SleepTimerIsSet)
+            {
+                CurrentState.SleepTimerIsSet = false;
+            }
+            else
+            {
+                CurrentState.SleepTimerIsSet = true;
+                SetTimer();
+            }
+
+        }
+
+        private void SetTimer()
+        {
+            if (sleepTimer == null)
+            {
+                sleepTimer = new Timer(Callback, null, (int)CurrentState.SleepTimerDuration.TotalMilliseconds, -1);
+                LeftSleepTimer = (int)CurrentState.SleepTimerDuration.TotalSeconds;
+                updateSleepValuesTimer = new Timer(DecreaseSleepValue, null, 1000, 1000);
+            }
+            else
+            {
+                sleepTimer.Change(CurrentState.SleepTimerDuration, TimeSpan.MaxValue);
+                updateSleepValuesTimer.Change(int.MaxValue, int.MaxValue);
+                LeftSleepTimer = int.MaxValue;
+            }
+        }
+
+        private void DecreaseSleepValue(object state)
+        {
+            if (LeftSleepTimer > 0)
+                LeftSleepTimer--;
+        }
+
+        private async void Callback(object state)
+        {
+            var res =
+                await
+                    notificator.ShowMessageWithTimer("Timer is out", "Timer is out, will stop after 5 seconds",
+                        ActionButtons.Cancel | ActionButtons.Continue, 5*1000);
+            if (res == ActionButtons.Continue)
+            {
+                SetTimer();
+                return;
+            }
+            else
+                Pause();
+        }
+
 
         private async void ShowBookDetailExecute()
         {
@@ -469,9 +573,16 @@ namespace UWPAudioBookPlayer.ModelView
         {
             switch (player.CurrentState)
             {
+                case MediaElementState.Playing:
+                    if (State == MediaPlaybackFlow.Play)
+                        player.PlaybackRate = PlayingSource.PlaybackRate;
+                        PlayingSource.AddHistory(PlayBackHistoryElement.HistoryType.Play);
+                    break;
+
+
                 case MediaElementState.Paused:
                     if (State == MediaPlaybackFlow.Play)
-                        if (player.Position == player.NaturalDuration.TimeSpan)
+                        if (Math.Abs(player.Position.TotalSeconds - player.NaturalDuration.TimeSpan.TotalSeconds) < 1)
                             NextFile();
                         else
                             player.Play();
@@ -795,38 +906,52 @@ namespace UWPAudioBookPlayer.ModelView
 
         public async void Play()
         {
-            if (SelectedFolder != null)
+            if (PlayingSource != null)
             {
                 //CurrentState.BookName = SelectedFolder.Name;
-                if (CurrentState.BookName == SelectedFolder.Name)
+                if (CurrentState.BookName == PlayingSource.Name)
                 {
-                    if (PlayingFile == SelectedFolder.Files[SelectedFolder.CurrentFile])
+                    if (PlayingFile == PlayingSource.GetCurrentFile)
                     {
-                        State = MediaPlaybackFlow.Play;
-                        player.Position = SelectedFolder.Position;
-                        player.Play();
+                        if (State != MediaPlaybackFlow.Play)
+                        {
+                            State = MediaPlaybackFlow.Play;
+                            //player.Position = SelectedFolder.Position;
+                            player.Play();
+                            //player.PlaybackRate = PlayingSource.PlaybackRate;
+                            //player.DefaultPlaybackRate = PlayingSource.PlaybackRate;
+                            
+                        }
                     }
                     else
                     {
                         //SelectedFolder.CurrentFile = 0;
                         //SelectedFolder.Position = TimeSpan.Zero;
                         //PlayingFile = SelectedFolder.Files[SelectedFolder.CurrentFile];
-                        PlayingSource = SelectedFolder;
+                        //PlayingSource = SelectedFolder;
+                        player.Stop();
                         await SetSource(PlayingSource);
                         Play(PlayingFile.Name);
+                        
                     }
                 }
-                else if (SelectedFolder.Files.Any())
+                else if (PlayingSource.Files.Any())
                 {
-                    CurrentState.BookName = SelectedFolder.Name;
+                    CurrentState.BookName = PlayingSource.Name;
                     //SelectedFolder.CurrentFile = 0;
                     //SelectedFolder.Position = TimeSpan.Zero;
-                    PlayingSource = SelectedFolder;
+                    //PlayingSource = SelectedFolder;
+                    player.Stop();
                     await SetSource(PlayingSource);
                     //PlayingFile = SelectedFolder.Files.First();
                     Play(PlayingFile.Name);
+                    PlayingSource.AddHistory(PlayBackHistoryElement.HistoryType.Play);
                 }
                 ControlStateChanged();
+            }
+            else
+            {
+                player.Stop();
             }
         }
 
@@ -840,7 +965,7 @@ namespace UWPAudioBookPlayer.ModelView
 
         private async Task SetSource(string file, AudioBookSource book = null)
         {
-            book = book ?? SelectedFolder;
+            book = book ?? PlayingSource;
             if (book is AudioBookSourceCloud)
             {
                 var cloud = (AudioBookSourceCloud) book;
@@ -859,19 +984,28 @@ namespace UWPAudioBookPlayer.ModelView
         }
 
         TimeSpan temp = TimeSpan.MinValue;
+        //private double playRateTemp = 1;
+        private AudioBookSourceWithClouds _playingSource;
+
 
         private async Task SetSource(AudioBookSource book)
         {
-            PlayingFile = SelectedFolder.Files[SelectedFolder.CurrentFile];
-            temp = SelectedFolder.Position;
+            PlayingFile = book.GetCurrentFile;
+            temp = book.Position;
+            //playRateTemp = book.PlaybackRate;
             var afterOpened = new RoutedEventHandler(delegate(object sender, RoutedEventArgs args)
             {
                 if (temp == TimeSpan.MinValue)
                     return;
-                SelectedFolder.Position = temp;
-                player.Position = SelectedFolder.Position;
+                book.Position = temp;
                 temp = TimeSpan.MinValue;
+                //book.PlaybackRate = playRateTemp;
+                player.Position = book.Position;
+                //player.PlaybackRate = book.PlaybackRate;
+                //player.DefaultPlaybackRate = book.PlaybackRate;
+
             });
+            player.MediaOpened -= afterOpened;
             player.MediaOpened += afterOpened;
             await SetSource(PlayingFile.Name);
             //player.MediaOpened -= afterOpened;
@@ -890,6 +1024,7 @@ namespace UWPAudioBookPlayer.ModelView
             {
                 State = MediaPlaybackFlow.Pause;
                 player.Pause();
+                PlayingSource.AddHistory(PlayBackHistoryElement.HistoryType.Pause);
                 foreach (var cloud in CloudControllers)
                     cloud.UploadBookMetadata(PlayingSource);
                 //drbController.UploadBookMetadata(SelectedFolder);
@@ -901,7 +1036,7 @@ namespace UWPAudioBookPlayer.ModelView
         {
             player.Stop();
             State = MediaPlaybackFlow.Stop;
-            SelectedFolder = null;
+            PlayingSource = null;
             CurrentState.BookName = null;
             ControlStateChanged();
             if (PlayingSource != null)
@@ -920,14 +1055,14 @@ namespace UWPAudioBookPlayer.ModelView
             player.Stop();
             if (!nextFile.IsAvalible)
             {
-                var cloudsFolder = SelectedFolder.AdditionSources.FirstOrDefault(
+                var cloudsFolder = PlayingSource.AdditionSources.FirstOrDefault(
                     s => s.AvalibleFiles.Any(x => x.Name == nextFile.Name && x.Order == nextFile.Order));
                     var fiel = cloudsFolder?.AvalibleFiles.FirstOrDefault(f => f.Name == nextFile.Name);
                     if (fiel != null)
                     {
                         PlayingFile = fiel;
                         await SetSource(PlayingFile.Name, cloudsFolder);
-                        SelectedFolder.Position = TimeSpan.Zero;
+                    PlayingSource.Position = TimeSpan.Zero;
                         player.Play();
 
 
@@ -940,17 +1075,17 @@ namespace UWPAudioBookPlayer.ModelView
                 PlayingFile = nextFile;
 
                 await SetSource(PlayingFile.Name);
-                SelectedFolder.Position = TimeSpan.Zero;
+                PlayingSource.Position = TimeSpan.Zero;
                 player.Play();
             }
         }
 
         private async void NextFile()
         {
-            if (SelectedFolder.CurrentFile + 1 < SelectedFolder.Files.Count)
+            if (PlayingSource.CurrentFile + 1 < PlayingSource.Files.Count)
             {
-                SelectedFolder.CurrentFile++;
-                var nextFile = SelectedFolder.GetCurrentFile;
+                PlayingSource.CurrentFile++;
+                var nextFile = PlayingSource.GetCurrentFile;
                 await PlayFile(nextFile);
             }
             ControlStateChanged();
@@ -958,10 +1093,10 @@ namespace UWPAudioBookPlayer.ModelView
 
         private async void PrevFile()
         {
-            if (SelectedFolder.CurrentFile - 1 >= 0)
+            if (PlayingSource.CurrentFile - 1 >= 0)
             {
-                SelectedFolder.CurrentFile--;
-                var nextFile = SelectedFolder.GetCurrentFile;
+                PlayingSource.CurrentFile--;
+                var nextFile = PlayingSource.GetCurrentFile;
                 await PlayFile(nextFile);
             }
             ControlStateChanged();
@@ -971,7 +1106,7 @@ namespace UWPAudioBookPlayer.ModelView
         {
             if (CurrentState == null)
                 return;
-            SelectedFolder.Position = SelectedFolder.Position.Add(TimeSpan.FromSeconds(secs));
+            PlayingSource.Position = PlayingSource.Position.Add(TimeSpan.FromSeconds(secs));
             ControlStateChanged();
         }
 

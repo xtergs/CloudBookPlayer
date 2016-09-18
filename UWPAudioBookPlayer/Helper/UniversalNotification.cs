@@ -31,5 +31,32 @@ namespace UWPAudioBookPlayer.Helper
             var res = await messageDialog.ShowAsync();
             return (ActionButtons)Enum.Parse(typeof(ActionButtons), res.Label);
         }
+
+        public async Task<ActionButtons> ShowMessageWithTimer(string title, string message, ActionButtons buttons, int duration)
+        {
+            var messageDialog = new MessageDialog(message, title);
+            var commands = GetCommand(buttons);
+            foreach (var command in commands)
+                messageDialog.Commands.Add(command);
+            List<Task< ActionButtons >> tasks = new List<Task<ActionButtons>>();
+                var res = messageDialog.ShowAsync();
+
+            tasks.Add(Task.Run(async () =>
+            {
+                var resu = await res;
+                var xx = (ActionButtons)Enum.Parse(typeof(ActionButtons), resu.Label);
+                return (xx);
+            }));
+            tasks.Add( Task.Run(async () =>
+            {
+                await Task.Delay(duration);
+                return ActionButtons.None;
+            }));
+            var result =  (await Task.WhenAny(tasks)).Result;
+            res.Close();
+            return result;
+
+
+        }
     }
 }

@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using Windows.Storage;
@@ -32,6 +34,8 @@ namespace UWPAudioBookPlayer.Model
         [JsonIgnore]
         public ObservableCollection<AudioBookSource> AdditionSources { get; set; } = new ObservableCollection<AudioBookSource>();
 
+        
+
         public override async Task<Tuple<string, IRandomAccessStream>> GetFileStream(string fileName)
         {
             var dir = await StorageApplicationPermissions.FutureAccessList.GetFolderAsync(this.AccessToken);
@@ -39,9 +43,11 @@ namespace UWPAudioBookPlayer.Model
             var stream = await fl.OpenAsync(FileAccessMode.Read);
             return new Tuple<string, IRandomAccessStream>(fl.ContentType, stream);
         }
+
+        
     }
     [ImplementPropertyChanged]
-    public class AudioBookSource
+    public class AudioBookSource : INotifyPropertyChanged
     {
         [PrimaryKey, AutoIncrement]
         public int Id { get; set; }
@@ -58,6 +64,8 @@ namespace UWPAudioBookPlayer.Model
             }
         }
 
+        public double PlaybackRate { get; set; } = 1;
+
         public string AccessToken { get; set; }
         public string Path { get; set; }
         public string Name { get; set; }
@@ -70,8 +78,25 @@ namespace UWPAudioBookPlayer.Model
 
         public bool IsLocked { get; set; }
 
+        public List<BookMark> BookMarks { get; set; }
+        public List<PlayBackHistoryElement> History { get; set; } = new List<PlayBackHistoryElement>(10);
 
+        [JsonIgnore]
+        public List<PlayBackHistoryElement> OrderedHistory => History?.OrderByDescending(x => x.TimeStampUtc).ToList();
 
+        public void AddHistory(PlayBackHistoryElement.HistoryType historyType)
+        {
+            var playBackHistoryElement = new PlayBackHistoryElement()
+            {
+                FileName = GetCurrentFile.Name,
+                Position = Position,
+                TimeStampUtc = DateTime.UtcNow,
+                Type = historyType
+            };
+
+            History.Add(playBackHistoryElement);
+            OnPropertyChanged(nameof(OrderedHistory));
+        }
         public void UpdateModifyDateTime()
         {
             ModifiDateTimeUtc = DateTime.UtcNow;
@@ -99,6 +124,40 @@ namespace UWPAudioBookPlayer.Model
             }
         }
 
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+
+    public class PlayBackHistoryElement
+    {
+        public enum HistoryType
+        {
+            Play, Pause, Stop
+        }
+        public DateTime TimeStampUtc { get; set; } = DateTime.UtcNow;
+
+        [JsonIgnore]
+        public DateTime TimeStampLocal => TimeStampUtc.ToLocalTime();
+        public HistoryType Type { get; set; }
+        public string FileName { get; set; }
+        public TimeSpan Position { get; set; }
+    }
+
+    
+    public class BookMark
+    {
+        public TimeSpan Position { get; set; }
+        public string Description { get; set; }
+        public string Title { get; set; }
+        public string FileName { get; set; }
+        public DateTime TimeStampUtc { get; set; } = DateTime.UtcNow;
+
+        [JsonIgnore]
+        public DateTime TimeStampLocal => TimeStampUtc.ToLocalTime();
     }
 
     [ImplementPropertyChanged]

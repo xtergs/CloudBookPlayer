@@ -11,7 +11,7 @@
     <AssemblyName>UWPAudioBookPlayer</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
     <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
-    <TargetPlatformVersion>10.0.10586.0</TargetPlatformVersion>
+    <TargetPlatformVersion>10.0.14393.0</TargetPlatformVersion>
     <TargetPlatformMinVersion>10.0.10240.0</TargetPlatformMinVersion>
     <MinimumVisualStudioVersion>14</MinimumVisualStudioVersion>
     <FileAlignment>512</FileAlignment>
@@ -109,6 +109,7 @@
     <Compile Include="Converter\CloudTypeToImageConverter.cs" />
     <Compile Include="Converter\IntToVisibilityConverter.cs" />
     <Compile Include="Converter\NoConverter.cs" />
+    <Compile Include="Converter\SecondsToStringConverter.cs" />
     <Compile Include="Converter\TimeSpanToSecondsConverter.cs" />
     <Compile Include="DAL\DropboxRepository.cs" />
     <Compile Include="DAL\IDataRepository.cs" />
@@ -134,6 +135,9 @@
     <Compile Include="Service\ISettingsService.cs" />
     <Compile Include="Service\UniversalSettingsService.cs" />
     <Compile Include="TemplateSelector\AudioBookSourceTemplateSelector.cs" />
+    <Compile Include="View\AddBookMark.xaml.cs">
+      <DependentUpon>AddBookMark.xaml</DependentUpon>
+    </Compile>
     <Compile Include="View\BookDetailInfo.xaml.cs">
       <DependentUpon>BookDetailInfo.xaml</DependentUpon>
     </Compile>
@@ -173,6 +177,10 @@
     <Page Include="MainPage.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
+    </Page>
+    <Page Include="View\AddBookMark.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="View\BookDetailInfo.xaml">
       <SubType>Designer</SubType>

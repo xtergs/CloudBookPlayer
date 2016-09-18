@@ -10,11 +10,12 @@ namespace UWPAudioBookPlayer.Helper
     enum ActionButtons
     {
         Ok, Cancel,
-        Retry
+        Retry, None, Continue
     }
     interface INotification
     {
         Task ShowMessage(string title, string message);
         Task<ActionButtons> ShowMessage(string title, string message, ActionButtons buttons);
+        Task<ActionButtons> ShowMessageWithTimer(string title, string message, ActionButtons buttons, int duration);
     }
 }

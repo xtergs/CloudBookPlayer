@@ -169,5 +169,10 @@ namespace UWPAudioBookPlayer
         {
             base.OnNavigatedTo(e);
         }
+
+        private void ListPickerFlyout_OnItemsPicked(ListPickerFlyout sender, ItemsPickedEventArgs args)
+        {
+            viewModel.PlayHistoryElementCommand.Execute(args.AddedItems[0]);
+        }
     }
 }
