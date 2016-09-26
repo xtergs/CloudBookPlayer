@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Dropbox.Api.Files;
 using Microsoft.Graph;
 using Microsoft.OneDrive.Sdk;
 using Microsoft.OneDrive.Sdk.Authentication;
@@ -17,6 +16,11 @@ namespace UWPAudioBookPlayer.DAL.Model
 {
     class OneDriveController : ICloudController
     {
+        static class OneDriveErrors
+        {
+            public const string ItemNotFound = "itemNotFound";
+        }
+        public bool IsCloud => true;
         public string CloudStamp { get; private set; }
         private OneDriveClient client;
 
@@ -60,14 +64,31 @@ namespace UWPAudioBookPlayer.DAL.Model
             }
         }
 
-        public Task DeleteAudioBook(AudioBookSource source)
+        public async Task DeleteAudioBook(AudioBookSource source)
         {
-            return client.Drive.Root.ItemWithPath(BaseFolder + "/" + source.Folder).Request().DeleteAsync();
+            try
+            {
+                await client.Drive.Root.ItemWithPath(BaseFolder + "/" + source.Folder).Request().DeleteAsync();
+            }
+            catch (ServiceException e)
+            {
+                if (e.Error.Code == OneDriveErrors.ItemNotFound)
+                    return;
+                throw;
+            }
         }
 
         public async Task<Stream> DownloadBookFile(string BookName, string fileName)
         {
+            try { 
             return (await client.Drive.Root.ItemWithPath(BaseFolder + "/" + BookName + "/" + fileName).Request().GetAsync()).Content;
+            }
+            catch (ServiceException e)
+            {
+                if (e.Error.Code == OneDriveErrors.ItemNotFound)
+                    return null;
+                throw;
+            }
         }
 
         private AudioBookSourceCloud StreamToSource(Stream stream)
@@ -184,20 +205,39 @@ namespace UWPAudioBookPlayer.DAL.Model
 
         public async Task<string> GetLink(string bookName, string fileName)
         {
-            var link = (client.Drive.Root.ItemWithPath(BaseFolder + "/" + bookName + "/" + fileName).CreateLink("embed"));
-            var response = await link.Request().PostAsync();
-            var match = regex.Match(response.Link.WebHtml);
-            if (match.Success)
-                return match.Value.Replace("embed?", "download?");
-            return "";
+            try
+            {
+                var link =
+                    (client.Drive.Root.ItemWithPath(BaseFolder + "/" + bookName + "/" + fileName).CreateLink("embed"));
+                var response = await link.Request().PostAsync();
+                var match = regex.Match(response.Link.WebHtml);
+                if (match.Success)
+                    return match.Value.Replace("embed?", "download?");
+                return "";
+            }
+            catch (ServiceException e)
+            {
+                if (e.Error.Code == OneDriveErrors.ItemNotFound)
+                    return null;
+                throw;
+            }
         }
 
         public Task<string> GetLink(AudioBookSourceCloud book, int fileNumber)
         {
-            return GetLink(book.Folder, book.Files[fileNumber].Name);
+            try
+            {
+                return GetLink(book.Folder, book.Files[fileNumber].Name);
+            }
+            catch (ServiceException e)
+            {
+                if (e.Error.Code == OneDriveErrors.ItemNotFound)
+                    return null;
+                throw;
+            }
         }
 
-        public async void Inicialize()
+        public async Task Inicialize()
         {
             if (string.IsNullOrWhiteSpace(Token))
                 return;
@@ -209,7 +249,7 @@ namespace UWPAudioBookPlayer.DAL.Model
             client = new OneDriveClient(oneDriveConsumerBaseUrl, _msaAuthenticationProvider);
             _msaAuthenticationProvider.CurrentAccountSession = session;
             await _msaAuthenticationProvider.AuthenticateUserAsync();
-            CloudStamp = session.UserId;
+            CloudStamp = _msaAuthenticationProvider.CurrentAccountSession.UserId;
         }
 
         public async Task Uploadbook(string BookName, string fileName, Stream stream)

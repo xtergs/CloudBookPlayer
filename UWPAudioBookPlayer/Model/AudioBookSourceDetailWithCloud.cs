@@ -12,6 +12,8 @@ namespace UWPAudioBookPlayer.Model
 
         public bool IsLocalAvalible { get; set; }
         public bool IsDropBoxAvalible { get; set; }
+        public bool IsOneDriveAvalible { get; set; }
+        public bool IsOnlineAvalible { get; set; }
     }
     public class AudioBookSourceDetailWithCloud
     {

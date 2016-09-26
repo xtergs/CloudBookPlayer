@@ -1,11 +1,13 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Linq;
 using Windows.Foundation;
 using Windows.Storage.AccessCache;
 using Windows.Storage.Pickers;
-using Windows.UI.Popups;
+using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Navigation;
 using UWPAudioBookPlayer.DAL.Model;
 using UWPAudioBookPlayer.ModelView;
@@ -35,20 +37,27 @@ namespace UWPAudioBookPlayer
             //    throw new ArgumentNullException(nameof(settingsModelView));
             //this._settingsModelView = settingsModelView;
             this.InitializeComponent();
-            var factory = Global.container.Resolve<MainControlViewModel.MainControlViewModelFactory>();
-            viewModel = factory.Invoke(mainPlayer);
+            viewModel = Global.container.Resolve<MainControlViewModel>();
+            Global.MainModelView = viewModel;
             DataContext = viewModel;
             viewModel.NavigateToAuthPage += DrbControllerOnNavigateToAuthPage;
             viewModel.ShowBookDetails += ViewModelOnShowBookDetails;
             viewModel.CloseAuthPage += DrbControllerOnCloseAuthPage;
             //viewModel.LoadData();
+            //element = viewModel.Player;
 
+            viewModel.PropertyChanged += ViewModelOnPropertyChanged;
+
+        }
+
+        private async void ViewModelOnPropertyChanged(object sender, PropertyChangedEventArgs propertyChangedEventArgs)
+        {
         }
 
         private void ViewModelOnShowBookDetails(object sender, AudioBookSourcesCombined audioBookSourcesCombined)
         {
             Frame.Navigate(typeof(BookDetailInfo),
-                new AudioBookSourceDetailViewModel(audioBookSourcesCombined.MainSource, audioBookSourcesCombined.Cloud));
+                new AudioBookSourceDetailViewModel(audioBookSourcesCombined.MainSource, audioBookSourcesCombined.Clouds));
         }
 
         private void DrbControllerOnNavigateToAuthPage(object sender, Tuple<Uri, Action<Uri>> tuple)
@@ -87,12 +96,12 @@ namespace UWPAudioBookPlayer
 
         private async void MainPage_OnLoading(FrameworkElement sender, object args)
         {
-            await viewModel.LoadData();
+            //await viewModel.LoadData();
         }
 
         private async void MainPage_OnUnloaded(object sender, RoutedEventArgs e)
         {
-            await viewModel.SaveData();
+            //await viewModel.SaveData();
         }
 
         private async void Page_LostFocus(object sender, RoutedEventArgs e)
@@ -167,12 +176,40 @@ namespace UWPAudioBookPlayer
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
+            Windows.UI.Core.SystemNavigationManager.GetForCurrentView().AppViewBackButtonVisibility = AppViewBackButtonVisibility.Collapsed;
             base.OnNavigatedTo(e);
         }
 
         private void ListPickerFlyout_OnItemsPicked(ListPickerFlyout sender, ItemsPickedEventArgs args)
         {
             viewModel.PlayHistoryElementCommand.Execute(args.AddedItems[0]);
+        }
+
+        private void LibriVoxButtonclicked(object sender, RoutedEventArgs e)
+        {
+            Frame.Navigate(typeof(LibrivoxBooksOnlineView));
+        }
+
+        private void ShowBookmarksMenu(object sender, RightTappedRoutedEventArgs e)
+        {
+            if (viewModel.PlayingSource == null)
+                return;
+            var bookmarks = viewModel.BookMarksForSelectedPlayingBook;
+            if (bookmarks == null || !bookmarks.Any())
+                return;
+            menu.Items.Clear();
+            if (bookmarks != null)
+            {
+                foreach (var bookMark in bookmarks)
+                {
+                    menu.Items.Add(new MenuFlyoutItem
+                    {
+                        DataContext = bookMark,
+                        Template = (ControlTemplate) this.Resources["BookMarkTemplateKey"]
+                    });
+                }
+                menu.ShowAt((FrameworkElement) sender);
+            }
         }
     }
 }

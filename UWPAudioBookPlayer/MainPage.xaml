@@ -3,11 +3,9 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:converter="using:UWPAudioBookPlayer.Converter"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-      xmlns:foundation="using:Windows.Foundation"
-      xmlns:local="using:UWPAudioBookPlayer"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:model="using:UWPAudioBookPlayer.Model"
       xmlns:modelView="using:UWPAudioBookPlayer.ModelView"
-      xmlns:system="using:System"
       xmlns:templateSelector="using:UWPAudioBookPlayer.TemplateSelector"
       xmlns:view="using:UWPAudioBookPlayer.View"
       x:Name="Page"
@@ -27,6 +25,22 @@
         <converter:NoConverter x:Key="NoConverter" />
         <templateSelector:AudioBookSourceTemplateSelector x:Key="AudioBookSourceTemplateSelector" />
         <converter:AudioBookSourceToImageConverter x:Key="AudioBookSourceToImageConverter" />
+
+        <ControlTemplate x:Key="BookMarkTemplateKey" TargetType="MenuFlyoutItem">
+            <ContentPresenter>
+                <ContentPresenter.ContentTemplate>
+                    <DataTemplate>
+                        <StackPanel d:DataContext="{d:DesignInstance model:BookMark}">
+                            <TextBlock Text="{Binding Title}" />
+                            <TextBlock Text="{Binding Description}" />
+                            <TextBlock Text="{Binding Position}" />
+                            <TextBlock Text="{Binding FileName}" />
+                            <TextBlock Text="{Binding TimeStampLocal}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ContentPresenter.ContentTemplate>
+            </ContentPresenter>
+        </ControlTemplate>
 
         <Style x:Key="CircleSlider" TargetType="Slider">
             <Setter Property="Background" Value="{ThemeResource SystemControlHighlightAccentBrush}" />
@@ -402,6 +416,10 @@
 
             <AppBarToggleButton x:Name="showSourceList"
                                 Icon="List"
+                                Label="Operations" />
+            <AppBarToggleButton x:Name="showBooks"
+                                Icon="List"
+                                IsChecked="True"
                                 Label="Books" />
             <Grid>
                 <Grid.RowDefinitions>
@@ -429,7 +447,6 @@
                         <modelView:CloudType>OneDrive</modelView:CloudType>
                     </AppBarButton.CommandParameter>
                 </AppBarButton>
-
             </Grid>
             <AppBarButton Click="SelectBaseFolderClick"
                           Icon="Folder"
@@ -437,8 +454,26 @@
             <AppBarButton Click="OpenSettingsClick"
                           Icon="Setting"
                           Label="Settings" />
+            <AppBarButton Click="LibriVoxButtonclicked"
+                          Icon="Globe"
+                          Label="LibriVox" />
         </StackPanel>
-
+        <Image x:Name="image"
+               Grid.Row="7"
+               MinWidth="200"
+               MinHeight="200"
+               HorizontalAlignment="Stretch"
+               VerticalAlignment="Stretch"
+               Source="{Binding Image,
+                                Mode=OneWay,
+                                UpdateSourceTrigger=PropertyChanged,
+                                Converter={StaticResource IRandomAccessStreamToImageSourceConverter}}"
+               Stretch="Uniform"
+               Visibility="{Binding ElementName=showBooks,
+                                    Path=IsChecked,
+                                    Mode=OneWay,
+                                    UpdateSourceTrigger=PropertyChanged,
+                                    Converter={StaticResource BoolToNotVisiblityConverter}}" />
         <ListView Grid.Row="7"
                   HorizontalAlignment="Stretch"
                   VerticalAlignment="Stretch"
@@ -446,7 +481,10 @@
                   ItemTemplateSelector="{StaticResource AudioBookSourceTemplateSelector}"
                   ItemsSource="{Binding Folders}"
                   SelectedItem="{Binding SelectedFolder,
-                                         Mode=TwoWay}">
+                                         Mode=TwoWay}"
+                  Visibility="{Binding ElementName=showBooks,
+                                       Path=IsChecked,
+                                       Converter={StaticResource BoolToVisibilityConverter}}">
             <!--<ListView.ContextFlyout>
                     <MenuFlyout>
                         <MenuFlyoutItem Command="{Binding RemoveAudioBookSource}"
@@ -550,19 +588,17 @@
                    HorizontalAlignment="Center"
                    Text="{Binding PlayingFile.Name}" />
         <Slider Grid.Row="3"
-                Maximum="{Binding NaturalDuration.TimeSpan.TotalSeconds,
-                                  ElementName=mainPlayer,
+                Maximum="{Binding FileDuration.TotalSeconds,
                                   UpdateSourceTrigger=PropertyChanged}"
                 Minimum="0"
                 Style="{StaticResource SliderStyle1}"
                 ThumbToolTipValueConverter="{StaticResource SecondsToTimeSpanConverter}"
-                Value="{Binding Position,
-                                ElementName=mainPlayer,
+                Value="{Binding CurrentPosition,
                                 Mode=TwoWay,
                                 Converter={StaticResource TimeSpanToSecondsConverter},
                                 UpdateSourceTrigger=PropertyChanged}" />
         <Grid Grid.Row="4">
-            <TextBlock HorizontalAlignment="Left" Text="{Binding ElementName=mainPlayer, Path=Position.TotalSeconds, UpdateSourceTrigger=PropertyChanged, Mode=OneWay, Converter={StaticResource SecondsToTimeSpanConverter}}" />
+            <TextBlock HorizontalAlignment="Left" Text="{Binding CurrentPosition.TotalSeconds, UpdateSourceTrigger=PropertyChanged, Mode=OneWay, Converter={StaticResource SecondsToTimeSpanConverter}}" />
             <TextBlock HorizontalAlignment="Center">
                 <TextBlock.Inlines>
                     <Run Text="{Binding PlayingSource.CurrentFile}" />
@@ -570,7 +606,7 @@
                     <Run Text="{Binding PlayingSource.Files.Count}" />
                 </TextBlock.Inlines>
             </TextBlock>
-            <TextBlock HorizontalAlignment="Right" Text="{Binding ElementName=mainPlayer, Path=NaturalDuration.TimeSpan.TotalSeconds, Converter={StaticResource SecondsToTimeSpanConverter}}" />
+            <TextBlock HorizontalAlignment="Right" Text="{Binding FileDuration.TotalSeconds, Converter={StaticResource SecondsToTimeSpanConverter}, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
         </Grid>
         <VariableSizedWrapGrid Grid.Row="5"
                                HorizontalAlignment="Center"
@@ -598,7 +634,7 @@
             </AppBarButton>
             <AppBarButton Command="{Binding NextCommand}" Icon="Next" />
             <AppBarButton Icon="Audio"
-                          Label="{Binding PlayingSource.PlaybackRate,
+                          Label="{Binding PlayBackRate,
                                           Mode=OneWay,
                                           UpdateSourceTrigger=PropertyChanged}"
                           ToolTipService.ToolTip="Speed">
@@ -608,19 +644,24 @@
                                       ItemsSource="{Binding AvaliblePlayBackSpeed,
                                                             Mode=OneTime}"
                                       Placement="Top"
-                                      SelectedItem="{Binding PlayingSource.PlaybackRate,
+                                      SelectedItem="{Binding Player.PlaybackSession.PlaybackRate,
                                                              Mode=TwoWay}"
                                       SelectionMode="Single" />
                 </AppBarButton.Flyout>
             </AppBarButton>
             <AppBarButton Icon="Flag"
                           Label="Bookmark"
+                          RightTapped="ShowBookmarksMenu"
                           ToolTipService.ToolTip="Bookmark for current position">
                 <AppBarButton.Flyout>
                     <Flyout Placement="Top">
                         <view:AddBookMark Position="{Binding PlayingSource.Position}"
-                                          SaveCommand="{Binding AddBookMarkCommand}"
-                                          Source="{Binding PlayingSource}" />
+                                          SaveCommand="{Binding AddBookMarkCommand,
+                                                                Mode=OneWay,
+                                                                UpdateSourceTrigger=PropertyChanged}"
+                                          Source="{Binding PlayingSource,
+                                                           Mode=OneWay,
+                                                           UpdateSourceTrigger=PropertyChanged}" />
                     </Flyout>
                 </AppBarButton.Flyout>
 
@@ -680,25 +721,10 @@
                     Style="{StaticResource CircleSlider}"
                     VariableSizedWrapGrid.ColumnSpan="2"
                     VariableSizedWrapGrid.RowSpan="1"
-                    Value="{Binding ElementName=mainPlayer,
-                                    Path=Volume,
+                    Value="{Binding Path=Player.Volume,
                                     UpdateSourceTrigger=PropertyChanged,
                                     Mode=TwoWay}" />
         </VariableSizedWrapGrid>
-        <MediaElement x:Name="mainPlayer"
-                      Grid.Row="6"
-                      AreTransportControlsEnabled="True"
-                      AudioCategory="BackgroundCapableMedia"
-                      AutoPlay="False"
-                      CurrentStateChanged="MainPlayer_OnCurrentStateChanged"
-                      DefaultPlaybackRate="1"
-                      PlaybackRate="{Binding PlayingSource.PlaybackRate,
-                                             Mode=OneWay,
-                                             UpdateSourceTrigger=PropertyChanged}"
-                      Position="{Binding PlayingSource.Position,
-                                         UpdateSourceTrigger=PropertyChanged,
-                                         Mode=TwoWay}"
-                      Visibility="Visible" />
         <ListView x:Name="operationsList"
                   Grid.Row="0"
                   Grid.RowSpan="10"
@@ -787,7 +813,7 @@
                           Label="Details" />
         </VariableSizedWrapGrid>
         <ListView Grid.Row="9"
-                  Grid.Column="1"
+                  Grid.Column="0"
                   ItemsSource="{Binding RefreshingControllers}">
             <ListView.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -808,6 +834,5 @@
         <WebView x:Name="webView"
                  Grid.RowSpan="10"
                  Visibility="Collapsed" />
-
     </Grid>
 </Page>

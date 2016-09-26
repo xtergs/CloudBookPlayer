@@ -9,6 +9,7 @@ namespace UWPAudioBookPlayer.DAL.Model
 {
     public interface ICloudController
     {
+        bool IsCloud { get; }
         string CloudStamp { get; }
         CloudType Type { get; }
         bool IsUseExternalBrowser { get; }
@@ -28,7 +29,7 @@ namespace UWPAudioBookPlayer.DAL.Model
         Task<ulong> GetFreeSpaceBytes();
         Task<string> GetLink(string bookName, string fileName);
         Task<string> GetLink(AudioBookSourceCloud book, int fileNumber);
-        void Inicialize();
+        Task Inicialize();
         Task Uploadbook(string BookName, string fileName, Stream stream);
         Task UploadBookMetadata(AudioBookSource source, string revision = null);
     }

@@ -4,8 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Windows.Storage.Streams;
 using Dropbox.Api;
 using Dropbox.Api.Files;
 using UWPAudioBookPlayer.Model;
@@ -27,9 +29,21 @@ namespace UWPAudioBookPlayer.DAL.Model
         public string CloudStamp { get; set; }
         [JsonIgnore]
         public CloudType Type { get; set; }
+
+        public override async Task<Tuple<string, IRandomAccessStream>> GetFileStream(string fileName)
+        {
+            byte[] bytes;
+            if (string.IsNullOrWhiteSpace(fileName))
+                return new Tuple<string, IRandomAccessStream>("", null);
+            using (HttpClient client = new HttpClient())
+                bytes = await client.GetByteArrayAsync(fileName);
+            var stream = new MemoryStream(bytes);
+            return new Tuple<string, IRandomAccessStream>("link", stream.AsRandomAccessStream());
+        }
     }
     public class DropBoxController : ICloudController
     {
+        public bool IsCloud => true;
         public string CloudStamp { get; private set; }
         public string AppCode { get; set; } = "kuld6fsmktlczbf";
         public string AppSercret { get; set; } = "ks3jyuotinwz2zz";
@@ -46,7 +60,7 @@ namespace UWPAudioBookPlayer.DAL.Model
 
         private DropboxClient client;
 
-        public async void Inicialize()
+        public async Task Inicialize()
         {
             if (!string.IsNullOrWhiteSpace(Token))
             {

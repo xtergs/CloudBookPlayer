@@ -21,6 +21,8 @@ namespace UWPAudioBookPlayer.Converter
                 return "../Image/OneDriveLogo.png";
             if (val == CloudType.Local)
                 return "../Image/HDD.png";
+            if (val == CloudType.Online)
+                return "../Image/online.png";
             return value;
         }
 

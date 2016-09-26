@@ -55,8 +55,16 @@ namespace UWPAudioBookPlayer.View
         }
 
         public static readonly DependencyProperty SaveCommandProperty = DependencyProperty.Register(nameof(SaveCommand), typeof(RelayCommand<BookMark>),
-            typeof(AddBookMark), new PropertyMetadata(null));
+            typeof(AddBookMark), new PropertyMetadata(null, PropertyChangedCallback));
 
+        private static void PropertyChangedCallback(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs dependencyPropertyChangedEventArgs)
+        {
+            if (dependencyPropertyChangedEventArgs.NewValue == null &&
+                dependencyPropertyChangedEventArgs.OldValue != null)
+                dependencyObject.SetValue(dependencyPropertyChangedEventArgs.Property,
+                    dependencyPropertyChangedEventArgs.OldValue);
+
+        }
 
 
         public TimeSpan Position
@@ -74,7 +82,15 @@ namespace UWPAudioBookPlayer.View
         }
 
         public static readonly DependencyProperty SourceProperty = DependencyProperty.Register(nameof(Source),
-            typeof(AudioBookSource), typeof(AddBookMark), new PropertyMetadata(null));
+            typeof(AudioBookSource), typeof(AddBookMark), new PropertyMetadata(null, SourceCallBack));
+
+        private static void SourceCallBack(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs dependencyPropertyChangedEventArgs)
+        {
+            if (dependencyPropertyChangedEventArgs.NewValue == null &&
+                dependencyPropertyChangedEventArgs.OldValue != null)
+                dependencyObject.SetValue(dependencyPropertyChangedEventArgs.Property,
+                    dependencyPropertyChangedEventArgs.OldValue);
+        }
 
         private void SaveClicked(object sender, RoutedEventArgs e)
         {

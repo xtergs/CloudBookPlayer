@@ -7,6 +7,7 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:model="using:UWPAudioBookPlayer.Model"
       xmlns:modelView="using:UWPAudioBookPlayer.ModelView"
+      x:Name="page"
       d:DataContext="{d:DesignInstance modelView:AudioBookSourceDetailViewModel}"
       mc:Ignorable="d">
 
@@ -34,6 +35,8 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
@@ -54,22 +57,51 @@
                                VerticalAlignment="Center"
                                Opacity="{Binding IsDropBoxAvalible,
                                                  Converter={StaticResource BoolToOpacityConverter}}"
-                               Source="../Image/DropBoxLogo.png" />
+                               Source="../Image/DropBoxLogo.png"
+                               Visibility="{Binding ElementName=page,
+                                                    Path=DataContext.IsShowDropBoxFiles,
+                                                    Mode=OneWay,
+                                                    UpdateSourceTrigger=PropertyChanged,
+                                                    Converter={StaticResource BoolToVisibilityConverter}}" />
+                        <Image Grid.RowSpan="3"
+                               Grid.Column="2"
+                               Width="50"
+                               VerticalAlignment="Center"
+                               Opacity="{Binding IsOneDriveAvalible,
+                                                 Converter={StaticResource BoolToOpacityConverter}}"
+                               Source="../Image/OneDriveLogo.png"
+                               Visibility="{Binding ElementName=page,
+                                                    Path=DataContext.IsShowOneDriveFiles,
+                                                    Mode=OneWay,
+                                                    UpdateSourceTrigger=PropertyChanged,
+                                                    Converter={StaticResource BoolToVisibilityConverter}}" />
+                        <Image Grid.RowSpan="3"
+                               Grid.Column="3"
+                               Width="50"
+                               VerticalAlignment="Center"
+                               Opacity="{Binding IsOnlineAvalible,
+                                                 Converter={StaticResource BoolToOpacityConverter}}"
+                               Source="../Image/online.png"
+                               Visibility="{Binding ElementName=page,
+                                                    Path=DataContext.IsShowOnlineFiles,
+                                                    Mode=OneWay,
+                                                    UpdateSourceTrigger=PropertyChanged,
+                                                    Converter={StaticResource BoolToVisibilityConverter}}" />
                         <TextBlock Grid.RowSpan="2"
-                                   Grid.Column="2"
+                                   Grid.Column="4"
                                    Margin="5"
                                    VerticalAlignment="Center"
                                    FontSize="30"
                                    Text="{Binding File.Order}" />
-                        <TextBlock Grid.Column="3"
+                        <TextBlock Grid.Column="5"
                                    FontSize="20"
                                    FontWeight="Bold"
                                    Text="{Binding File.Name}" />
                         <TextBlock Grid.Row="1"
-                                   Grid.Column="3"
+                                   Grid.Column="5"
                                    Text="{Binding File.Duration}" />
                         <TextBlock Grid.Row="2"
-                                   Grid.Column="3"
+                                   Grid.Column="5"
                                    Text="{Binding File.Size}" />
                     </Grid>
                 </DataTemplate>

@@ -15,6 +15,7 @@ namespace UWPAudioBookPlayer.DAL.Model
     {
         public CurrentState CurrentState { get; set; }
         public AudioBookSourceWithClouds[] AudioBooks { get; set; } = new AudioBookSourceWithClouds[0];
+        public OnlineAudioBookSource[] OnlineBooks { get; set; } = new OnlineAudioBookSource[0];
         public CloudService[] CloudServices { get; set; } = new CloudService[0];
         public Folder BaseFolder { get; set; }
     }

@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using UWPAudioBookPlayer.DAL.Model;
+using UWPAudioBookPlayer.Model;
 
 namespace UWPAudioBookPlayer.DAL
 {
@@ -9,5 +10,8 @@ namespace UWPAudioBookPlayer.DAL
 
         Task<SaveModel> Load();
         Task Save(SaveModel books);
+
+        BookMark[] BookMarks(AudioBookSourceWithClouds book);
+        bool AddBookMark(AudioBookSourceWithClouds book, BookMark bookMark);
     }
 }

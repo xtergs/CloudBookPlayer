@@ -14,6 +14,8 @@ namespace UWPAudioBookPlayer.Converter
                 return "..\\Image\\DropBoxLogo.png";
             if (cloud?.Type == CloudType.OneDrive)
                 return "..\\Image\\OneDriveLogo.png";
+            if (cloud?.Type == CloudType.Online)
+                return "..\\Image\\online.png";
             return "..\\Image\\HDD.png";
         }
 

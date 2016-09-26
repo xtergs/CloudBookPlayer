@@ -20,7 +20,7 @@
     <AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>
     <AppxPackageDir>D:\builds\UWPAudioBookPlayer\</AppxPackageDir>
     <AppxBundle>Always</AppxBundle>
-    <AppxBundlePlatforms>x64</AppxBundlePlatforms>
+    <AppxBundlePlatforms>x86|x64</AppxBundlePlatforms>
     <HockeyAppResourceId>b54af8e72dc84a2090803f7f5433ad24</HockeyAppResourceId>
     <PackageCertificateThumbprint>929840245EAAB12875C16DC55F8E659DBC31BA1B</PackageCertificateThumbprint>
   </PropertyGroup>
@@ -108,6 +108,7 @@
     <Compile Include="Converter\BoolToVisibilityConverter.cs" />
     <Compile Include="Converter\CloudTypeToImageConverter.cs" />
     <Compile Include="Converter\IntToVisibilityConverter.cs" />
+    <Compile Include="Converter\IRandomAccessStreamToImageSourceConverter.cs" />
     <Compile Include="Converter\NoConverter.cs" />
     <Compile Include="Converter\SecondsToStringConverter.cs" />
     <Compile Include="Converter\TimeSpanToSecondsConverter.cs" />
@@ -118,6 +119,7 @@
     <Compile Include="DAL\Model\DropBoxController.cs" />
     <Compile Include="DAL\Model\ICloudController.cs" />
     <Compile Include="DAL\Model\OneDriveController.cs" />
+    <Compile Include="DAL\Model\OnlineController.cs" />
     <Compile Include="DAL\Model\SaveModel.cs" />
     <Compile Include="DAL\OneDriveRepository.cs" />
     <Compile Include="DAL\SqliteRepository.cs" />
@@ -127,11 +129,14 @@
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="ModelView\AudioBookSourceDetailViewModel.cs" />
+    <Compile Include="ModelView\LibrivoxOnlineBooksViewModel.cs" />
     <Compile Include="ModelView\MainControlViewModel.cs" />
     <Compile Include="ModelView\SettingsModelView.cs" />
     <Compile Include="Model\AudioBookSource.cs" />
     <Compile Include="Model\AudioBookSourceDetailWithCloud.cs" />
+    <Compile Include="Properties\Annotations3.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Scrapers\LIbriVoxScraper.cs" />
     <Compile Include="Service\ISettingsService.cs" />
     <Compile Include="Service\UniversalSettingsService.cs" />
     <Compile Include="TemplateSelector\AudioBookSourceTemplateSelector.cs" />
@@ -140,6 +145,9 @@
     </Compile>
     <Compile Include="View\BookDetailInfo.xaml.cs">
       <DependentUpon>BookDetailInfo.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\LibrivoxBooksOnlineView.xaml.cs">
+      <DependentUpon>LibrivoxBooksOnlineView.xaml</DependentUpon>
     </Compile>
     <Compile Include="View\SettingsView.xaml.cs">
       <DependentUpon>SettingsView.xaml</DependentUpon>
@@ -160,6 +168,7 @@
     <Content Include="Image\HDD.png" />
     <None Include="Package.StoreAssociation.xml" />
     <Content Include="Image\OneDriveLogo.png" />
+    <Content Include="Image\online.png" />
     <Content Include="Properties\Default.rd.xml" />
     <Content Include="Assets\LockScreenLogo.scale-200.png" />
     <Content Include="Assets\SplashScreen.scale-200.png" />
@@ -186,6 +195,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="View\LibrivoxBooksOnlineView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="View\SettingsView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -195,8 +208,11 @@
     <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <ItemGroup>
-    <SDKReference Include="SQLite.UWP.2015, Version=3.14.1">
-      <Name>SQLite for Universal Windows Platform</Name>
+    <Folder Include="Scrapers\LIbriVox\" />
+  </ItemGroup>
+  <ItemGroup>
+    <SDKReference Include="SQLite.UWP.2015, Version=3.14.2">
+      <Name>SQLite for Universal Windows Platform %28SQLite.UWP.2015, Version=3.14.2%29</Name>
     </SDKReference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">

@@ -1,23 +1,13 @@
 ﻿using Microsoft.HockeyApp;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Controls.Primitives;
-using Windows.UI.Xaml.Data;
-using Windows.UI.Xaml.Input;
-using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using Autofac;
-using Autofac.Builder;
 using UWPAudioBookPlayer.ModelView;
+using UWPAudioBookPlayer.Scrapers;
 using UWPAudioBookPlayer.Service;
 
 namespace UWPAudioBookPlayer
@@ -25,6 +15,8 @@ namespace UWPAudioBookPlayer
     public static class Global
     {
         public static IContainer container;
+
+        public static MainControlViewModel MainModelView;
     }
     
     /// <summary>
@@ -41,6 +33,18 @@ namespace UWPAudioBookPlayer
             Microsoft.HockeyApp.HockeyClient.Current.Configure("b54af8e72dc84a2090803f7f5433ad24");
             this.InitializeComponent();
             this.Suspending += OnSuspending;
+            this.EnteredBackground += OnEnteredBackground;
+            Resuming += OnResuming;
+        }
+
+        private void OnResuming(object sender, object o)
+        {
+            Global.container.Resolve<MainControlViewModel>().LoadData();
+        }
+
+        private async void OnEnteredBackground(object sender, EnteredBackgroundEventArgs enteredBackgroundEventArgs)
+        {
+            await Global.container.Resolve<MainControlViewModel>().SaveData();
         }
 
         /// <summary>
@@ -48,8 +52,28 @@ namespace UWPAudioBookPlayer
         /// will be used such as when the application is launched to open a specific file.
         /// </summary>
         /// <param name = "e">Details about the launch request and process.</param>
-        protected override void OnLaunched(LaunchActivatedEventArgs e)
+        protected override async void OnLaunched(LaunchActivatedEventArgs e)
         {
+//            LIbriVoxScraper scraper = new LIbriVoxScraper();
+//            //var asyncOperationWithProgress = await new HttpClient().GetInputStreamAsync(new Uri(@"https://librivox.org/30000-bequest-and-other-stories-by-mark-twain/"));
+
+//            Uri uri = new Uri(@"https://librivox.org/search/get_results?primary_key=0&search_category=title&sub_category=&search_page=1&search_order=alpha&project_type=either");
+//            var filter = new HttpBaseProtocolFilter();
+//#if DEBUG
+//            filter.IgnorableServerCertificateErrors.Add(ChainValidationResult.Expired);
+//            filter.IgnorableServerCertificateErrors.Add(ChainValidationResult.Untrusted);
+//            filter.IgnorableServerCertificateErrors.Add(ChainValidationResult.InvalidName);
+//#endif
+               
+
+//            var st = await client.GetInputStreamAsync(uri);
+//            scraper.ParseListBookByTitle(st.AsStreamForRead());
+//            //WebRequest webRequest = WebRequest.Create(uri);
+//            //WebResponse webResponse = await webRequest.GetResponseAsync();
+//            //var len = webResponse.ContentLength;
+
+//            //scraper.ParseListBookByTitle(webResponse.GetResponseStream());
+            
 #if DEBUG
             if (System.Diagnostics.Debugger.IsAttached)
             {
@@ -62,6 +86,7 @@ namespace UWPAudioBookPlayer
             // just ensure that the window is active
             if (rootFrame == null)
             {
+                RegisterComponents();
                 // Create a Frame to act as the navigation context and navigate to the first page
                 rootFrame = new Frame();
                 rootFrame.NavigationFailed += OnNavigationFailed;
@@ -74,13 +99,7 @@ namespace UWPAudioBookPlayer
                 Window.Current.Content = rootFrame;
             }
 
-            Autofac.ContainerBuilder builder = new ContainerBuilder();
-            builder.RegisterType<MainControlViewModel>().SingleInstance();
-            builder.RegisterType<SettingsModelView>().As<ISettingsService>().SingleInstance();
-            builder.RegisterType<UniversalApplicationSettingsHelper>().As<IApplicationSettingsHelper>();
-
-            var container = builder.Build();
-            Global.container = container;
+            Global.container.Resolve<MainControlViewModel>().LoadData();
 
             if (e.PrelaunchActivated == false)
             {
@@ -89,7 +108,7 @@ namespace UWPAudioBookPlayer
                     // When the navigation stack isn't restored navigate to the first page,
                     // configuring the new page by passing required information as a navigation
                     // parameter
-                    rootFrame.Navigate(typeof (MainPage), e.Arguments);
+                    rootFrame.Navigate(typeof(MainPage), e.Arguments);
                 }
 
                 // Ensure the current window is active
@@ -114,11 +133,26 @@ namespace UWPAudioBookPlayer
         /// </summary>
         /// <param name = "sender">The source of the suspend request.</param>
         /// <param name = "e">Details about the suspend request.</param>
-        private void OnSuspending(object sender, SuspendingEventArgs e)
+        private async void OnSuspending(object sender, SuspendingEventArgs e)
         {
             var deferral = e.SuspendingOperation.GetDeferral();
+            await Global.container.Resolve<MainControlViewModel>().SaveData();
             //TODO: Save application state and stop any background activity
             deferral.Complete();
         }
+
+        private void RegisterComponents()
+        {
+            Autofac.ContainerBuilder builder = new ContainerBuilder();
+            builder.RegisterType<MainControlViewModel>().SingleInstance();
+            builder.RegisterType<SettingsModelView>().As<ISettingsService>().SingleInstance();
+            builder.RegisterType<UniversalApplicationSettingsHelper>().As<IApplicationSettingsHelper>();
+            builder.RegisterType<LibrivoxOnlineBooksViewModel>();
+            builder.RegisterType<LIbriVoxScraper>();
+
+            var container = builder.Build();
+            Global.container = container;
+        }
+
     }
 }

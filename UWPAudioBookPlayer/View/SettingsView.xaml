@@ -5,10 +5,86 @@
       xmlns:local="using:UWPAudioBookPlayer.View"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:modelView="using:UWPAudioBookPlayer.ModelView"
+      x:Name="page"
       d:DataContext="{d:DesignInstance modelView:SettingsModelView}"
       mc:Ignorable="d">
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-        <ToggleSwitch Header="Automaticali delete files from DropBox" IsOn="{Binding AutomaticaliDeleteFilesFromDrBox, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <ToggleSwitch Header="Automaticali delete files from DropBox"
+                      IsOn="{Binding AutomaticaliDeleteFilesFromDrBox,
+                                     UpdateSourceTrigger=PropertyChanged,
+                                     Mode=TwoWay}"
+                      Visibility="Collapsed" />
+        <ListView Grid.Row="1"
+                  VerticalAlignment="Stretch"
+                  ItemsSource="{Binding Controllers}">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="50" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Image Source="{Binding Type, Converter={StaticResource CloudTypetoImiageConverter}}" />
+                        <AppBarButton Grid.Column="2"
+                                      Command="{Binding ElementName=page,
+                                                        Path=DataContext.RemoveCloudController}"
+                                      CommandParameter="{Binding}"
+                                      Icon="Remove"
+                                      Label="Remove" />
+                        <StackPanel Grid.Column="1">
+                            <TextBlock>
+                                <TextBlock.Inlines>
+                                    <Run Text="Type: " />
+                                    <Run Text="{Binding}" />
+                                </TextBlock.Inlines>
+                            </TextBlock>
+                            <TextBlock ToolTipService.ToolTip="{Binding Token}">
+                                <TextBlock.Inlines>
+                                    <Run Text="Token: " />
+                                    <Run Text="will not show" />
+                                </TextBlock.Inlines>
+                            </TextBlock>
+                            <TextBlock>
+                                <TextBlock.Inlines>
+                                    <Run Text="CloudStamp: " />
+                                    <Run Text="{Binding CloudStamp}" />
+                                </TextBlock.Inlines>
+                            </TextBlock>
+                            <TextBlock>
+                                <TextBlock.Inlines>
+                                    <Run Text="BaseFolder: " />
+                                    <Run Text="{Binding BaseFolder}" />
+                                </TextBlock.Inlines>
+                            </TextBlock>
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <AppBarButton Grid.Row="2"
+                      Icon="Add"
+                      Label="Add more">
+            <AppBarButton.Flyout>
+                <MenuFlyout>
+                    <MenuFlyoutItem Command="{Binding MainViewModel.AddCloudAccountCommand}" Text="DropBox">
+                        <MenuFlyoutItem.CommandParameter>
+                            <modelView:CloudType>DropBox</modelView:CloudType>
+                        </MenuFlyoutItem.CommandParameter>
+                    </MenuFlyoutItem>
+                    <MenuFlyoutItem Command="{Binding MainViewModel.AddCloudAccountCommand}" Text="OneDrive">
+                        <MenuFlyoutItem.CommandParameter>
+                            <modelView:CloudType>OneDrive</modelView:CloudType>
+                        </MenuFlyoutItem.CommandParameter>
+                    </MenuFlyoutItem>
+                </MenuFlyout>
+            </AppBarButton.Flyout>
+        </AppBarButton>
     </Grid>
 </Page>
