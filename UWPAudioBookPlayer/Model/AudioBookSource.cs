@@ -22,7 +22,26 @@ using UWPAudioBookPlayer.ModelView;
 
 namespace UWPAudioBookPlayer.Model
 {
+    static class AudioBookSourceWithCloudsHelper
+    {
+        public static AudioBookSourceWithClouds ToGeneralSource(this AudioBookSourceWithClouds source)
+        {
+            var general = new AudioBookSourceWithClouds()
+            {
+                Position = source.Position,
+                AdditionSources = source.AdditionSources,
+                TotalDuration = source.TotalDuration,
+                PlaybackRate = source.PlaybackRate,
+                Name = source.Name,
+                IsLocked = source.IsLocked,
+                CurrentFile = source.CurrentFile,
+                CreationDateTimeUtc = source.CreationDateTimeUtc,
+                ModifiDateTimeUtc = source.ModifiDateTimeUtc,
 
+            };
+            return general;
+        }
+    }
     public class ObservableAudioBooksCollection<T> : ObservableCollection<T> where T : AudioBookSource
     {
         protected override void InsertItem(int index, T item)
@@ -244,10 +263,13 @@ namespace UWPAudioBookPlayer.Model
         public TimeSpan Position { get; set; }
     }
 
-    
+    [ImplementPropertyChanged]
     public class BookMark
     {
+        public int Order { get; set; }
         public TimeSpan Position { get; set; }
+        public bool IsRange { get; set; }
+        public TimeSpan EndPosition { get; set; }
         public string Description { get; set; }
         public string Title { get; set; }
         public string FileName { get; set; }

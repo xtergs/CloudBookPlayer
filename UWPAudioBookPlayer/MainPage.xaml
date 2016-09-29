@@ -136,10 +136,6 @@
                                                Fill="{TemplateBinding Background}"
                                                RadiusX="5"
                                                RadiusY="5" />
-                                    <Rectangle x:Name="VerticalDecreaseRect"
-                                               Grid.Row="2"
-                                               Grid.Column="1"
-                                               Fill="{TemplateBinding Background}" />
                                     <Rectangle x:Name="VerticalBorder"
                                                Grid.RowSpan="3"
                                                Grid.Column="1"
@@ -157,6 +153,10 @@
                                            Background="{ThemeResource SliderThumbBackgroundThemeBrush}"
                                            DataContext="{TemplateBinding Value}"
                                            Style="{StaticResource SliderThumbStyle}" />
+                                    <Rectangle x:Name="VerticalDecreaseRect"
+                                               Grid.Row="2"
+                                               Grid.Column="1"
+                                               Fill="{TemplateBinding Background}" />
                                 </Grid>
                             </Grid>
                         </Grid>
@@ -220,6 +220,23 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="18" />
                                     </Grid.RowDefinitions>
+                                    <TickBar x:Name="TopTickBar"
+                                             Grid.ColumnSpan="3"
+                                             Height="{ThemeResource SliderOutsideTickBarThemeHeight}"
+                                             Margin="0,0,0,4"
+                                             VerticalAlignment="Bottom"
+                                             Fill="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                                             Visibility="Collapsed" />
+                                    <Thumb x:Name="HorizontalThumb"
+                                           Grid.Row="0"
+                                           Grid.RowSpan="3"
+                                           Grid.Column="1"
+                                           Width="8"
+                                           Height="24"
+                                           AutomationProperties.AccessibilityView="Raw"
+                                           Background="{ThemeResource SystemControlForegroundAccentBrush}"
+                                           DataContext="{TemplateBinding Value}"
+                                           Style="{StaticResource SliderThumbStyle}" />
                                     <Rectangle x:Name="HorizontalTrackRect"
                                                Grid.Row="1"
                                                Grid.ColumnSpan="3"
@@ -228,13 +245,6 @@
                                     <Rectangle x:Name="HorizontalDecreaseRect"
                                                Grid.Row="1"
                                                Fill="{TemplateBinding Foreground}" />
-                                    <TickBar x:Name="TopTickBar"
-                                             Grid.ColumnSpan="3"
-                                             Height="{ThemeResource SliderOutsideTickBarThemeHeight}"
-                                             Margin="0,0,0,4"
-                                             VerticalAlignment="Bottom"
-                                             Fill="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
-                                             Visibility="Collapsed" />
                                     <TickBar x:Name="HorizontalInlineTickBar"
                                              Grid.Row="1"
                                              Grid.ColumnSpan="3"
@@ -249,16 +259,6 @@
                                              VerticalAlignment="Top"
                                              Fill="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
                                              Visibility="Collapsed" />
-                                    <Thumb x:Name="HorizontalThumb"
-                                           Grid.Row="0"
-                                           Grid.RowSpan="3"
-                                           Grid.Column="1"
-                                           Width="8"
-                                           Height="24"
-                                           AutomationProperties.AccessibilityView="Raw"
-                                           Background="{ThemeResource SystemControlForegroundAccentBrush}"
-                                           DataContext="{TemplateBinding Value}"
-                                           Style="{StaticResource SliderThumbStyle}" />
                                 </Grid>
                                 <Grid x:Name="VerticalTemplate"
                                       MinWidth="44"
@@ -273,15 +273,6 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
-                                    <Rectangle x:Name="VerticalTrackRect"
-                                               Grid.RowSpan="3"
-                                               Grid.Column="1"
-                                               Width="{ThemeResource SliderTrackThemeHeight}"
-                                               Fill="{TemplateBinding Background}" />
-                                    <Rectangle x:Name="VerticalDecreaseRect"
-                                               Grid.Row="2"
-                                               Grid.Column="1"
-                                               Fill="{TemplateBinding Foreground}" />
                                     <TickBar x:Name="LeftTickBar"
                                              Grid.RowSpan="3"
                                              Width="{ThemeResource SliderOutsideTickBarThemeHeight}"
@@ -289,6 +280,11 @@
                                              HorizontalAlignment="Right"
                                              Fill="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
                                              Visibility="Collapsed" />
+                                    <Rectangle x:Name="VerticalTrackRect"
+                                               Grid.RowSpan="3"
+                                               Grid.Column="1"
+                                               Width="{ThemeResource SliderTrackThemeHeight}"
+                                               Fill="{TemplateBinding Background}" />
                                     <TickBar x:Name="VerticalInlineTickBar"
                                              Grid.RowSpan="3"
                                              Grid.Column="1"
@@ -313,6 +309,10 @@
                                            Background="{ThemeResource SystemControlForegroundAccentBrush}"
                                            DataContext="{TemplateBinding Value}"
                                            Style="{StaticResource SliderThumbStyle}" />
+                                    <Rectangle x:Name="VerticalDecreaseRect"
+                                               Grid.Row="2"
+                                               Grid.Column="1"
+                                               Fill="{TemplateBinding Foreground}" />
                                 </Grid>
                             </Grid>
                             <VisualStateManager.VisualStateGroups>
@@ -458,6 +458,223 @@
                           Icon="Globe"
                           Label="LibriVox" />
         </StackPanel>
+        <WebView x:Name="webView"
+                 Grid.RowSpan="10"
+                 Visibility="Collapsed" />
+        <ListView x:Name="operationsList"
+                  Grid.Row="0"
+                  Grid.RowSpan="10"
+                  Grid.Column="1"
+                  VerticalAlignment="Bottom"
+                  ItemsSource="{Binding UploadOperations}"
+                  Visibility="{Binding IsChecked,
+                                       ElementName=showSourceList,
+                                       Converter={StaticResource BoolToVisiblityConverter}}">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Image MaxHeight="50"
+                               CacheMode="BitmapCache"
+                               Source="{Binding Type,
+                                                Converter={StaticResource CloudTypeToImageConverter}}" />
+                        <StackPanel Grid.Column="1" Orientation="Vertical">
+                            <TextBlock Text="{Binding Status}" />
+                            <TextBlock Text="{Binding BookName}" />
+                            <ProgressBar Maximum="{Binding MaximumValue}" Value="{Binding Value}" />
+                            <TextBlock>
+                                <TextBlock.Inlines>
+                                    <Run Text="{Binding Value}" />
+                                    <Run Text=" from " />
+                                    <Run Text="{Binding MaximumValue}" />
+                                </TextBlock.Inlines>
+                            </TextBlock>
+                        </StackPanel>
+                        <VariableSizedWrapGrid Grid.Column="2"
+                                               MaximumRowsOrColumns="3"
+                                               Orientation="Horizontal">
+                            <AppBarButton Command="{Binding DataContext.PauseOperationCommand,
+                                                            ElementName=operationsList}"
+                                          CommandParameter="{Binding OperationId}"
+                                          Icon="Pause"
+                                          IsCompact="True"
+                                          IsEnabled="{Binding IsPaused,
+                                                              Mode=OneWay,
+                                                              Converter={StaticResource NoConverter},
+                                                              UpdateSourceTrigger=PropertyChanged}" />
+                            <AppBarButton Command="{Binding DataContext.ResumeOperationCommand,
+                                                            ElementName=operationsList}"
+                                          CommandParameter="{Binding OperationId}"
+                                          Icon="Play"
+                                          IsCompact="True"
+                                          IsEnabled="{Binding IsPaused,
+                                                              Mode=OneWay,
+                                                              UpdateSourceTrigger=PropertyChanged}" />
+                            <AppBarButton Command="{Binding DataContext.CancelOperationCommand,
+                                                            ElementName=operationsList}"
+                                          CommandParameter="{Binding OperationId}"
+                                          Icon="Clear"
+                                          Visibility="Visible" />
+                        </VariableSizedWrapGrid>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <TextBlock Grid.Row="1"
+                   HorizontalAlignment="Center"
+                   FontSize="20"
+                   Text="{Binding CurrentState.BookName}" />
+        <TextBlock Grid.Row="2"
+                   HorizontalAlignment="Center"
+                   Text="{Binding PlayingFile.Name}" />
+        <Slider Grid.Row="3"
+                Maximum="{Binding FileDuration.TotalSeconds,
+                                  UpdateSourceTrigger=PropertyChanged}"
+                Minimum="0"
+                Style="{StaticResource SliderStyle1}"
+                ThumbToolTipValueConverter="{StaticResource SecondsToTimeSpanConverter}"
+                Value="{Binding CurrentPosition,
+                                Mode=TwoWay,
+                                Converter={StaticResource TimeSpanToSecondsConverter},
+                                UpdateSourceTrigger=PropertyChanged}" />
+        <Grid Grid.Row="4">
+            <TextBlock HorizontalAlignment="Left" Text="{Binding CurrentPosition.TotalSeconds, UpdateSourceTrigger=PropertyChanged, Mode=OneWay, Converter={StaticResource SecondsToTimeSpanConverter}}" />
+            <TextBlock HorizontalAlignment="Center">
+                <TextBlock.Inlines>
+                    <Run Text="{Binding PlayingSource.CurrentFile}" />
+                    <Run Text=" from " />
+                    <Run Text="{Binding PlayingSource.Files.Count}" />
+                </TextBlock.Inlines>
+            </TextBlock>
+            <TextBlock HorizontalAlignment="Right" Text="{Binding FileDuration.TotalSeconds, Converter={StaticResource SecondsToTimeSpanConverter}, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
+        </Grid>
+        <VariableSizedWrapGrid Grid.Row="5"
+                               HorizontalAlignment="Center"
+                               Orientation="Horizontal">
+            <AppBarButton Command="{Binding PrevCommand}" Icon="Previous" />
+            <AppBarButton Command="{Binding MoveSecsCommand}"
+                          Icon="Previous"
+                          Label="10 sec">
+                <AppBarButton.CommandParameter>
+                    <x:Int32>-10</x:Int32>
+                </AppBarButton.CommandParameter>
+            </AppBarButton>
+            <AppBarButton Command="{Binding PlayCommand}"
+                          Icon="Play"
+                          IsCompact="True" />
+            <AppBarButton Command="{Binding PauseCommand}"
+                          Icon="Pause"
+                          IsCompact="True" />
+            <AppBarButton Command="{Binding MoveSecsCommand}"
+                          Icon="Next"
+                          Label="10 sec">
+                <AppBarButton.CommandParameter>
+                    <x:Int32>10</x:Int32>
+                </AppBarButton.CommandParameter>
+            </AppBarButton>
+            <AppBarButton Command="{Binding NextCommand}" Icon="Next" />
+            <AppBarButton Icon="Audio"
+                          Label="{Binding PlayBackRate,
+                                          Mode=OneWay,
+                                          UpdateSourceTrigger=PropertyChanged}"
+                          ToolTipService.ToolTip="Speed">
+
+                <AppBarButton.Flyout>
+                    <ListPickerFlyout Title="Playback speed"
+                                      ItemsSource="{Binding AvaliblePlayBackSpeed,
+                                                            Mode=OneTime}"
+                                      Placement="Top"
+                                      SelectedItem="{Binding Player.PlaybackSession.PlaybackRate,
+                                                             Mode=TwoWay}"
+                                      SelectionMode="Single" />
+                </AppBarButton.Flyout>
+            </AppBarButton>
+            <AppBarButton Click="GoToAddBookMark"
+                          Icon="Flag"
+                          IsEnabled="{Binding PlayingSource,
+                                              Converter={StaticResource NullToBoolConverter},
+                                              Mode=OneWay,
+                                              UpdateSourceTrigger=PropertyChanged}"
+                          Label="Bookmark"
+                          RightTapped="ShowBookmarksMenu"
+                          ToolTipService.ToolTip="Bookmark for current position">
+                <!--                <AppBarButton.Flyout>-->
+                <!--                    <Flyout Placement="Top" Closing="FlyoutBase_OnClosing">-->
+                <!--  <view:AddBookMark Position="{Binding PlayingSource.Position}"  -->
+                <!--  SaveCommand="{Binding AddBookMarkCommand,  -->
+                <!--  Mode=OneWay,  -->
+                <!--  UpdateSourceTrigger=PropertyChanged}"  -->
+                <!--  Source="{Binding PlayingSource,  -->
+                <!--  Mode=OneWay,  -->
+                <!--  UpdateSourceTrigger=PropertyChanged}" />  -->
+                <!--                    </Flyout>-->
+                <!--                </AppBarButton.Flyout>-->
+
+            </AppBarButton>
+            <AppBarButton Icon="Bullets"
+                          Label="History"
+                          ToolTipService.ToolTip="History of playing book">
+                <AppBarButton.Flyout>
+                    <ListPickerFlyout Title="History"
+                                      ItemsPicked="ListPickerFlyout_OnItemsPicked"
+                                      ItemsSource="{Binding PlayingSource.OrderedHistory}"
+                                      Placement="Top"
+                                      SelectionMode="Single">
+                        <ListPickerFlyout.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock FontSize="18">
+                                        <TextBlock.Inlines>
+                                            <Run Text="{Binding Type}" />
+                                            <Run Text=" at " />
+                                            <Run Text="{Binding Position.TotalSeconds, Converter={StaticResource SecondsToTimeSpanConverter}}" />
+                                        </TextBlock.Inlines>
+                                    </TextBlock>
+                                    <TextBlock Grid.Row="1"
+                                               FontSize="15"
+                                               Text="{Binding FileName}" />
+                                    <TextBlock Grid.Row="2"
+                                               FontSize="12"
+                                               Text="{Binding TimeStampLocal}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListPickerFlyout.ItemTemplate>
+                    </ListPickerFlyout>
+                </AppBarButton.Flyout>
+            </AppBarButton>
+            <AppBarButton Command="{Binding ChangeTimerStateCommand}"
+                          Icon="Clock"
+                          Label="{Binding LeftSleepTimer,
+                                          Mode=OneWay,
+                                          UpdateSourceTrigger=PropertyChanged}"
+                          ToolTipService.ToolTip="Set sleep timer" />
+            <Slider VerticalAlignment="Center"
+                    Header="Volume"
+                    IsThumbToolTipEnabled="True"
+                    Maximum="1"
+                    Minimum="0"
+                    StepFrequency="0.1"
+                    Style="{StaticResource CircleSlider}"
+                    VariableSizedWrapGrid.ColumnSpan="2"
+                    VariableSizedWrapGrid.RowSpan="1"
+                    Value="{Binding Path=Player.Volume,
+                                    UpdateSourceTrigger=PropertyChanged,
+                                    Mode=TwoWay}" />
+        </VariableSizedWrapGrid>
         <Image x:Name="image"
                Grid.Row="7"
                MinWidth="200"
@@ -579,215 +796,6 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-
-        <TextBlock Grid.Row="1"
-                   HorizontalAlignment="Center"
-                   FontSize="20"
-                   Text="{Binding CurrentState.BookName}" />
-        <TextBlock Grid.Row="2"
-                   HorizontalAlignment="Center"
-                   Text="{Binding PlayingFile.Name}" />
-        <Slider Grid.Row="3"
-                Maximum="{Binding FileDuration.TotalSeconds,
-                                  UpdateSourceTrigger=PropertyChanged}"
-                Minimum="0"
-                Style="{StaticResource SliderStyle1}"
-                ThumbToolTipValueConverter="{StaticResource SecondsToTimeSpanConverter}"
-                Value="{Binding CurrentPosition,
-                                Mode=TwoWay,
-                                Converter={StaticResource TimeSpanToSecondsConverter},
-                                UpdateSourceTrigger=PropertyChanged}" />
-        <Grid Grid.Row="4">
-            <TextBlock HorizontalAlignment="Left" Text="{Binding CurrentPosition.TotalSeconds, UpdateSourceTrigger=PropertyChanged, Mode=OneWay, Converter={StaticResource SecondsToTimeSpanConverter}}" />
-            <TextBlock HorizontalAlignment="Center">
-                <TextBlock.Inlines>
-                    <Run Text="{Binding PlayingSource.CurrentFile}" />
-                    <Run Text=" from " />
-                    <Run Text="{Binding PlayingSource.Files.Count}" />
-                </TextBlock.Inlines>
-            </TextBlock>
-            <TextBlock HorizontalAlignment="Right" Text="{Binding FileDuration.TotalSeconds, Converter={StaticResource SecondsToTimeSpanConverter}, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
-        </Grid>
-        <VariableSizedWrapGrid Grid.Row="5"
-                               HorizontalAlignment="Center"
-                               Orientation="Horizontal">
-            <AppBarButton Command="{Binding PrevCommand}" Icon="Previous" />
-            <AppBarButton Command="{Binding MoveSecsCommand}"
-                          Icon="Previous"
-                          Label="10 sec">
-                <AppBarButton.CommandParameter>
-                    <x:Int32>-10</x:Int32>
-                </AppBarButton.CommandParameter>
-            </AppBarButton>
-            <AppBarButton Command="{Binding PlayCommand}"
-                          Icon="Play"
-                          IsCompact="True" />
-            <AppBarButton Command="{Binding PauseCommand}"
-                          Icon="Pause"
-                          IsCompact="True" />
-            <AppBarButton Command="{Binding MoveSecsCommand}"
-                          Icon="Next"
-                          Label="10 sec">
-                <AppBarButton.CommandParameter>
-                    <x:Int32>10</x:Int32>
-                </AppBarButton.CommandParameter>
-            </AppBarButton>
-            <AppBarButton Command="{Binding NextCommand}" Icon="Next" />
-            <AppBarButton Icon="Audio"
-                          Label="{Binding PlayBackRate,
-                                          Mode=OneWay,
-                                          UpdateSourceTrigger=PropertyChanged}"
-                          ToolTipService.ToolTip="Speed">
-
-                <AppBarButton.Flyout>
-                    <ListPickerFlyout Title="Playback speed"
-                                      ItemsSource="{Binding AvaliblePlayBackSpeed,
-                                                            Mode=OneTime}"
-                                      Placement="Top"
-                                      SelectedItem="{Binding Player.PlaybackSession.PlaybackRate,
-                                                             Mode=TwoWay}"
-                                      SelectionMode="Single" />
-                </AppBarButton.Flyout>
-            </AppBarButton>
-            <AppBarButton Icon="Flag"
-                          Label="Bookmark"
-                          RightTapped="ShowBookmarksMenu"
-                          ToolTipService.ToolTip="Bookmark for current position">
-                <AppBarButton.Flyout>
-                    <Flyout Placement="Top">
-                        <view:AddBookMark Position="{Binding PlayingSource.Position}"
-                                          SaveCommand="{Binding AddBookMarkCommand,
-                                                                Mode=OneWay,
-                                                                UpdateSourceTrigger=PropertyChanged}"
-                                          Source="{Binding PlayingSource,
-                                                           Mode=OneWay,
-                                                           UpdateSourceTrigger=PropertyChanged}" />
-                    </Flyout>
-                </AppBarButton.Flyout>
-
-            </AppBarButton>
-            <AppBarButton Icon="Bullets"
-                          Label="History"
-                          ToolTipService.ToolTip="History of playing book">
-                <AppBarButton.Flyout>
-                    <ListPickerFlyout Title="History"
-                                      ItemsPicked="ListPickerFlyout_OnItemsPicked"
-                                      ItemsSource="{Binding PlayingSource.OrderedHistory}"
-                                      Placement="Top"
-                                      SelectionMode="Single">
-                        <ListPickerFlyout.ItemTemplate>
-                            <DataTemplate>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-                                    <TextBlock FontSize="18">
-                                        <TextBlock.Inlines>
-                                            <Run Text="{Binding Type}" />
-                                            <Run Text=" at " />
-                                            <Run Text="{Binding Position.TotalSeconds, Converter={StaticResource SecondsToTimeSpanConverter}}" />
-                                        </TextBlock.Inlines>
-                                    </TextBlock>
-                                    <TextBlock Grid.Row="1"
-                                               FontSize="15"
-                                               Text="{Binding FileName}" />
-                                    <TextBlock Grid.Row="2"
-                                               FontSize="12"
-                                               Text="{Binding TimeStampLocal}" />
-                                </Grid>
-                            </DataTemplate>
-                        </ListPickerFlyout.ItemTemplate>
-                    </ListPickerFlyout>
-                </AppBarButton.Flyout>
-            </AppBarButton>
-            <AppBarButton Command="{Binding ChangeTimerStateCommand}"
-                          Icon="Clock"
-                          Label="{Binding LeftSleepTimer,
-                                          Mode=OneWay,
-                                          UpdateSourceTrigger=PropertyChanged}"
-                          ToolTipService.ToolTip="Set sleep timer" />
-            <Slider VerticalAlignment="Center"
-                    Header="Volume"
-                    IsThumbToolTipEnabled="True"
-                    Maximum="1"
-                    Minimum="0"
-                    StepFrequency="0.1"
-                    Style="{StaticResource CircleSlider}"
-                    VariableSizedWrapGrid.ColumnSpan="2"
-                    VariableSizedWrapGrid.RowSpan="1"
-                    Value="{Binding Path=Player.Volume,
-                                    UpdateSourceTrigger=PropertyChanged,
-                                    Mode=TwoWay}" />
-        </VariableSizedWrapGrid>
-        <ListView x:Name="operationsList"
-                  Grid.Row="0"
-                  Grid.RowSpan="10"
-                  Grid.Column="1"
-                  VerticalAlignment="Bottom"
-                  ItemsSource="{Binding UploadOperations}"
-                  Visibility="{Binding IsChecked,
-                                       ElementName=showSourceList,
-                                       Converter={StaticResource BoolToVisiblityConverter}}">
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <Image MaxHeight="50"
-                               CacheMode="BitmapCache"
-                               Source="{Binding Type,
-                                                Converter={StaticResource CloudTypeToImageConverter}}" />
-                        <StackPanel Grid.Column="1" Orientation="Vertical">
-                            <TextBlock Text="{Binding Status}" />
-                            <TextBlock Text="{Binding BookName}" />
-                            <ProgressBar Maximum="{Binding MaximumValue}" Value="{Binding Value}" />
-                            <TextBlock>
-                                <TextBlock.Inlines>
-                                    <Run Text="{Binding Value}" />
-                                    <Run Text=" from " />
-                                    <Run Text="{Binding MaximumValue}" />
-                                </TextBlock.Inlines>
-                            </TextBlock>
-                        </StackPanel>
-                        <VariableSizedWrapGrid Grid.Column="2"
-                                               MaximumRowsOrColumns="3"
-                                               Orientation="Horizontal">
-                            <AppBarButton Command="{Binding DataContext.PauseOperationCommand,
-                                                            ElementName=operationsList}"
-                                          CommandParameter="{Binding OperationId}"
-                                          Icon="Pause"
-                                          IsCompact="True"
-                                          IsEnabled="{Binding IsPaused,
-                                                              Mode=OneWay,
-                                                              Converter={StaticResource NoConverter},
-                                                              UpdateSourceTrigger=PropertyChanged}" />
-                            <AppBarButton Command="{Binding DataContext.ResumeOperationCommand,
-                                                            ElementName=operationsList}"
-                                          CommandParameter="{Binding OperationId}"
-                                          Icon="Play"
-                                          IsCompact="True"
-                                          IsEnabled="{Binding IsPaused,
-                                                              Mode=OneWay,
-                                                              UpdateSourceTrigger=PropertyChanged}" />
-                            <AppBarButton Command="{Binding DataContext.CancelOperationCommand,
-                                                            ElementName=operationsList}"
-                                          CommandParameter="{Binding OperationId}"
-                                          Icon="Clear"
-                                          Visibility="Visible" />
-                        </VariableSizedWrapGrid>
-                    </Grid>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
         <VariableSizedWrapGrid Grid.Row="8"
                                VerticalAlignment="Bottom"
                                Orientation="Horizontal">
@@ -831,8 +839,5 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-        <WebView x:Name="webView"
-                 Grid.RowSpan="10"
-                 Visibility="Collapsed" />
     </Grid>
 </Page>

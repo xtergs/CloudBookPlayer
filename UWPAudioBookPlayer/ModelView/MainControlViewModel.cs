@@ -12,6 +12,8 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using Windows.Foundation;
 using Windows.Media.Core;
+using Windows.Media.Editing;
+using Windows.Media.MediaProperties;
 using Windows.Media.Playback;
 using Windows.Storage;
 using Windows.Storage.AccessCache;
@@ -117,7 +119,11 @@ namespace UWPAudioBookPlayer.ModelView
         public AudioBookSourceWithClouds PlayingSource
         {
             get { return _playingSource; }
-            set { _playingSource = value; }
+            set
+            {
+                _playingSource = value;
+                OnPropertyChanged(nameof(PlayingSource));
+            }
         }
 
         public AudiBookFile PlayingFile { get; private set; }
@@ -289,6 +295,12 @@ namespace UWPAudioBookPlayer.ModelView
             player.PlaybackSession.PositionChanged += PlaybackSessionOnPositionChanged;
             player.MediaOpened += PlayerOnMediaOpened;
             player.MediaPlayerRateChanged += PlayerOnMediaPlayerRateChanged;
+            player.MediaEnded += PlayerOnMediaEnded;
+        }
+
+        private void PlayerOnMediaEnded(MediaPlayer sender, object args)
+        {
+            //TODO next chapter
         }
 
         private void CurrentOnDataChanged(ApplicationData sender, object args)
@@ -355,7 +367,56 @@ namespace UWPAudioBookPlayer.ModelView
             if (PlayingSource.BookMarks == null)
                 PlayingSource.BookMarks = new List<BookMark>();
             repository.AddBookMark(PlayingSource, obj);
+            if (obj.IsRange)
+            {
+                CutAndSaveBookMarkFile(PlayingSource, obj.FileName, obj);
+            }
             OnPropertyChanged(nameof(BookMarksForSelectedPlayingBook));
+        }
+
+        private async void CutAndSaveBookMarkFile(AudioBookSourceWithClouds book, string fileName, BookMark bookmark)
+        {
+            var trimOperation = new UploadProgress()
+            {
+                BookName = fileName,
+                OperationId = Guid.NewGuid(),
+                Type = CloudType.Local,
+                Status = "Trimming..."
+            };
+
+            UploadOperations.Add(trimOperation);
+
+            try
+            {
+                var folder = await StorageApplicationPermissions.FutureAccessList.GetFolderAsync(book.AccessToken);
+                var file = await folder.GetFileAsync(fileName);
+                var encodingProfile = await MediaEncodingProfile.CreateFromFileAsync(file);
+                var clip = await MediaClip.CreateFromFileAsync(file);
+                clip.TrimTimeFromStart = bookmark.Position;
+                clip.TrimTimeFromEnd = clip.OriginalDuration.Subtract(bookmark.EndPosition);
+
+                var composition = new MediaComposition();
+                composition.Clips.Add(clip);
+
+                string bookMarkFileName = $"{bookmark.Order}_{bookmark.Title}{Path.GetExtension(fileName)}";
+
+                var fileToWrite = await
+                    (await folder.CreateFolderAsync("bookmarks", CreationCollisionOption.OpenIfExists)).CreateFileAsync(
+                        bookMarkFileName);
+                var result =
+                    await composition.RenderToFileAsync(fileToWrite, MediaTrimmingPreference.Precise, encodingProfile);
+
+                if (result != Windows.Media.Transcoding.TranscodeFailureReason.None)
+                {
+                    Debug.WriteLine("Trying to trim file");
+                    Debug.WriteLine(result.ToString());
+                    await notificator.ShowMessage("", $"Occured error trimming file {fileName}");
+                }
+            }
+            finally
+            {
+                UploadOperations.Remove(trimOperation);
+            }
         }
 
         private void PlayHistoryElement(PlayBackHistoryElement obj)
@@ -1379,7 +1440,7 @@ namespace UWPAudioBookPlayer.ModelView
 
         public void Pause()
         {
-            if (player.CanPause)
+            if (player.PlaybackSession.CanPause && PlayingSource != null)
             {
                 Debug.WriteLine($"Pause position is {player.Position}");
                 PlayingSource.Position = player.PlaybackSession.Position;

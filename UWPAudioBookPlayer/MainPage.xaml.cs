@@ -7,6 +7,7 @@ using Windows.Storage.Pickers;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Controls.Primitives;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Navigation;
 using UWPAudioBookPlayer.DAL.Model;
@@ -210,6 +211,16 @@ namespace UWPAudioBookPlayer
                 }
                 menu.ShowAt((FrameworkElement) sender);
             }
+        }
+
+        private void FlyoutBase_OnClosing(FlyoutBase sender, FlyoutBaseClosingEventArgs args)
+        {
+            args.Cancel = true;
+        }
+
+        private void GoToAddBookMark(object sender, RoutedEventArgs e)
+        {
+            Frame.Navigate(typeof (AddBookMark));
         }
     }
 }

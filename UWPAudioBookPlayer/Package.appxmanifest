@@ -26,5 +26,6 @@
     <Capability Name="internetClient" />
     <uap:Capability Name="removableStorage" />
     <uap3:Capability Name="backgroundMediaPlayback" />
+    <DeviceCapability Name="microphone" />
   </Capabilities>
 </Package>

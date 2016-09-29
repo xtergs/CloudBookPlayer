@@ -10,5 +10,7 @@
         <converter:CloudTypeToImageConverter x:Key="CloudTypetoImiageConverter" />
         <converter:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <converter:IRandomAccessStreamToImageSourceConverter x:Key="IRandomAccessStreamToImageSourceConverter" />
+        <converter:NullToBoolConverter x:Key="NullToBoolConverter" />
+        <converter:TimeSpanToSecondsConverter x:Key="TimeSpanToSecondsConverter" />
     </Application.Resources>
 </Application>

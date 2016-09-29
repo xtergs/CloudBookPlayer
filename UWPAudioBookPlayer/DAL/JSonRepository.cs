@@ -69,6 +69,17 @@ namespace UWPAudioBookPlayer.DAL
             }
         }
 
+        public BookMark[] BookMarks(AudioBookSourceWithClouds book)
+        {
+            return book.BookMarks.ToArray();
+        }
+
+        public bool AddBookMark(AudioBookSourceWithClouds book, BookMark bookMark)
+        {
+            book.BookMarks.Add(bookMark);
+            return true;
+        }
+
 
         //public async Task<CloudService[]> LoadClouds()
         //{

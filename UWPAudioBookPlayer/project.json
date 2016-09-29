@@ -7,7 +7,9 @@
     "Microsoft.NETCore.UniversalWindowsPlatform": "5.2.2",
     "Microsoft.OneDriveSDK": "2.0.0",
     "Microsoft.OneDriveSDK.Authentication": "1.0.4",
+    "Microsoft.Toolkit.Uwp.UI.Controls": "1.0.0",
     "MvvmLight": "5.3.0",
+    "NAudio": "1.7.3",
     "Newtonsoft.Json": "9.0.1",
     "PropertyChanged.Fody": "1.51.3",
     "Sqlite.net-pcl": "3.1.1"

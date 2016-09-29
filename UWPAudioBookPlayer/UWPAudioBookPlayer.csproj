@@ -110,6 +110,7 @@
     <Compile Include="Converter\IntToVisibilityConverter.cs" />
     <Compile Include="Converter\IRandomAccessStreamToImageSourceConverter.cs" />
     <Compile Include="Converter\NoConverter.cs" />
+    <Compile Include="Converter\NullToBoolConverter.cs" />
     <Compile Include="Converter\SecondsToStringConverter.cs" />
     <Compile Include="Converter\TimeSpanToSecondsConverter.cs" />
     <Compile Include="DAL\DropboxRepository.cs" />

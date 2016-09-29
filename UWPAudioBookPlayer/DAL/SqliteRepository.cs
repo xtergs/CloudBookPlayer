@@ -47,5 +47,15 @@ namespace UWPAudioBookPlayer.DAL
             db.Update(books.BaseFolder);
             db.Commit();
         }
+
+        public BookMark[] BookMarks(AudioBookSourceWithClouds book)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool AddBookMark(AudioBookSourceWithClouds book, BookMark bookMark)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

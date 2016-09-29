@@ -1,20 +1,22 @@
-﻿<UserControl x:Class="UWPAudioBookPlayer.View.AddBookMark"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:converter="using:UWPAudioBookPlayer.Converter"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:local="using:UWPAudioBookPlayer.View"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:model="using:UWPAudioBookPlayer.Model"
-             MinHeight="0"
-             HorizontalAlignment="Left"
-             VerticalAlignment="Top"
-             d:DataContext="{d:DesignInstance model:BookMark}"
-             mc:Ignorable="d">
+﻿<Page x:Class="UWPAudioBookPlayer.View.AddBookMark"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:controls="using:Microsoft.Toolkit.Uwp.UI.Controls"
+      xmlns:converter="using:UWPAudioBookPlayer.Converter"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:local="using:UWPAudioBookPlayer.View"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:model="using:UWPAudioBookPlayer.Model"
+      MinHeight="0"
+      Margin="10"
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Stretch"
+      d:DataContext="{d:DesignInstance model:BookMark}"
+      mc:Ignorable="d">
 
-    <UserControl.Resources>
+    <Page.Resources>
         <converter:SecondsToTimeSpanConverter x:Key="SecondsToTimeSpanConverter" />
-    </UserControl.Resources>
+    </Page.Resources>
     <StackPanel>
         <TextBlock>
             <TextBlock.Inlines>
@@ -30,15 +32,86 @@
             </TextBlock.Inlines>
         </TextBlock>
 
-        <TextBox x:Name="TextBox"
-                 Header="Title: "
-                 IsReadOnly="False"
-                 PlaceholderText="Type title here"
-                 Text="{Binding Title,
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="TextBox"
+                     Header="Title: "
+                     IsReadOnly="False"
+                     PlaceholderText="Type title here"
+                     Text="{Binding Title,
+                                    Mode=TwoWay,
+                                    UpdateSourceTrigger=PropertyChanged}" />
+            <AppBarButton Grid.Column="1"
+                          Click="RecognizeText"
+                          Icon="Microphone"
+                          IsCompact="True" />
+        </Grid>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="DescriptionTextBox"
+                     Header="Description: "
+                     IsReadOnly="False"
+                     PlaceholderText="Type description here"
+                     Text="{Binding Description,
+                                    Mode=TwoWay,
+                                    UpdateSourceTrigger=PropertyChanged}" />
+            <AppBarButton Grid.Column="1"
+                          Click="RecognizeDescriptionText"
+                          Icon="Microphone"
+                          IsCompact="True" />
+        </Grid>
+        <Grid>
+            <TextBlock HorizontalAlignment="Left" Text="{Binding Position.TotalSeconds, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource SecondsToTimeSpanConverter}}" />
+            <TextBlock HorizontalAlignment="Right" Text="{Binding EndPosition.TotalSeconds, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource SecondsToTimeSpanConverter}}" />
+        </Grid>
+        <CheckBox Content="Use range selector" IsChecked="{Binding IsRange, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBlock Text="Tip: If you check 'Use range selector' then bookmark will be saved like separate trimmed file "
+                   TextWrapping="WrapWholeWords"
+                   Visibility="{Binding IsRange,
+                                        Converter={StaticResource BoolToVisibilityConverter},
+                                        Mode=OneWay,
+                                        UpdateSourceTrigger=PropertyChanged}" />
+        <controls:RangeSelector Maximum="{Binding ElementName=player,
+                                                  Path=NaturalDuration.TimeSpan.TotalSeconds}"
+                                Minimum="0"
+                                RangeMax="{Binding EndPosition,
+                                                   Mode=TwoWay,
+                                                   Converter={StaticResource TimeSpanToSecondsConverter},
+                                                   UpdateSourceTrigger=PropertyChanged}"
+                                RangeMin="{Binding Position,
+                                                   Mode=TwoWay,
+                                                   UpdateSourceTrigger=PropertyChanged,
+                                                   Converter={StaticResource TimeSpanToSecondsConverter}}" />
+        <Slider Maximum="{Binding NaturalDuration.TimeSpan.TotalSeconds,
+                                  ElementName=player}"
+                ThumbToolTipValueConverter="{StaticResource SecondsToTimeSpanConverter}"
+                Value="{Binding Position,
                                 Mode=TwoWay,
-                                UpdateSourceTrigger=PropertyChanged}" />
+                                ElementName=player,
+                                Converter={StaticResource TimeSpanToSecondsConverter}}" />
+        <Grid>
+            <TextBlock HorizontalAlignment="Left" Text="{Binding ElementName=player, Path=Position.TotalSeconds, Mode=OneWay, Converter={StaticResource SecondsToTimeSpanConverter}}" />
+            <TextBlock HorizontalAlignment="Right" Text="{Binding ElementName=player, Path=NaturalDuration.TimeSpan.TotalSeconds, Mode=OneWay, Converter={StaticResource SecondsToTimeSpanConverter}}" />
+        </Grid>
+        <MediaElement x:Name="player"
+                      AreTransportControlsEnabled="False"
+                      Visibility="Collapsed" />
+        <VariableSizedWrapGrid Orientation="Horizontal">
+            <AppBarButton Click="palyPlayer"
+                          Icon="Play"
+                          Label="Play" />
+            <AppBarButton Click="pausePlayer"
+                          Icon="Pause"
+                          Label="Pause" />
+        </VariableSizedWrapGrid>
         <Button HorizontalAlignment="Center"
                 Click="SaveClicked"
                 Content="Save" />
     </StackPanel>
-</UserControl>
+</Page>
