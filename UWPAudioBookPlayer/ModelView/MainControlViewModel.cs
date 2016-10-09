@@ -174,6 +174,7 @@ namespace UWPAudioBookPlayer.ModelView
         public RelayCommand<PlayBackHistoryElement> PlayHistoryElementCommand { get; private set; }
 
         public RelayCommand<AudioBookSourceWithClouds> AddSourceToLibraryCommand { get; private set; }
+        public RelayCommand RefreshCloudsCommand { get; private set; }
 
 
         public event EventHandler<AudioBookSourcesCombined> ShowBookDetails;
@@ -210,6 +211,11 @@ namespace UWPAudioBookPlayer.ModelView
             1.5
         };
 
+        public async void RefreshCloudData()
+        {
+            foreach (var cloud in OnlyCloudControolers)
+                await RefreshCloudData(cloud);
+        }
 
         public MainControlViewModel()
         {
@@ -290,6 +296,7 @@ namespace UWPAudioBookPlayer.ModelView
             AddBookMarkCommand = new RelayCommand<BookMark>(AddBookMark);
             OnPropertyChanged(nameof(AddBookMarkCommand));
             AddSourceToLibraryCommand = new RelayCommand<AudioBookSourceWithClouds>(AddSourceToLibrary);
+            RefreshCloudsCommand = new RelayCommand(RefreshCloudData);
 
             player.CurrentStateChanged += PlayerOnCurrentStateChanged;
             player.PlaybackSession.PositionChanged += PlaybackSessionOnPositionChanged;
@@ -403,14 +410,40 @@ namespace UWPAudioBookPlayer.ModelView
                 var fileToWrite = await
                     (await folder.CreateFolderAsync("bookmarks", CreationCollisionOption.OpenIfExists)).CreateFileAsync(
                         bookMarkFileName);
-                var result =
-                    await composition.RenderToFileAsync(fileToWrite, MediaTrimmingPreference.Precise, encodingProfile);
-
-                if (result != Windows.Media.Transcoding.TranscodeFailureReason.None)
+                try
                 {
-                    Debug.WriteLine("Trying to trim file");
-                    Debug.WriteLine(result.ToString());
-                    await notificator.ShowMessage("", $"Occured error trimming file {fileName}");
+                    var result =
+                        await composition.RenderToFileAsync(fileToWrite, MediaTrimmingPreference.Precise, encodingProfile);
+
+                    if (result != Windows.Media.Transcoding.TranscodeFailureReason.None)
+                    {
+                        Debug.WriteLine("Trying to trim file");
+                        Debug.WriteLine(result.ToString());
+                        await notificator.ShowMessage("", $"Occured error trimming file {fileName}");
+                    }
+
+                }
+                catch (Exception e)
+                {
+                    await
+                        fileToWrite.RenameAsync(Path.GetFileNameWithoutExtension(fileToWrite.Name) + ".wav",
+                            NameCollisionOption.ReplaceExisting);
+                    var encoding = MediaEncodingProfile.CreateWav(AudioEncodingQuality.High);
+                    composition.Clips.Clear();
+                    composition = null;
+                    composition = new MediaComposition();
+                    composition.Clips.Add(clip);
+                    var result =
+                        await
+                            composition.RenderToFileAsync(fileToWrite, MediaTrimmingPreference.Precise,encoding);
+
+                    if (result != Windows.Media.Transcoding.TranscodeFailureReason.None)
+                    {
+                        Debug.WriteLine("Trying to trim file");
+                        Debug.WriteLine(result.ToString());
+                        await notificator.ShowMessage("", $"Occured error trimming file {fileName}");
+                    }
+
                 }
             }
             finally
@@ -619,6 +652,9 @@ namespace UWPAudioBookPlayer.ModelView
                             await
                                 cloudControllser.DownloadBookFile(tempSelectedFolder.Folder,
                                     avalibleFiles[index].Name);
+                        // somehow we didn't found a file
+                        if (stream == null)
+                            return;
                         var file =
                             await
                                 bookFolder.CreateFileAsync(avalibleFiles[index].Name,
@@ -817,6 +853,19 @@ namespace UWPAudioBookPlayer.ModelView
             operation.IsCancelled = true;
         }
 
+        private async Task UploadBookmarksToCloud(ICloudController controller, AudioBookSourceWithClouds source)
+        {
+            var rangedBookmarks = repository.BookMarks(source)?.Where(x => x.IsRange)?.ToArray();
+            if (rangedBookmarks == null)
+                return;
+            foreach (var bookmark in rangedBookmarks)
+            {
+                var stream = await factory.GetBookMark(source, bookmark);
+                await controller.Uploadfile(source, stream.Key, stream.Value, factory.BookMarksFolder);
+            }
+
+        }
+
         private async void UploadBookToCloud(ICloudController obj)
         {
             var selectedFolderTemp = SelectedFolder;
@@ -880,9 +929,10 @@ namespace UWPAudioBookPlayer.ModelView
                             obj.Uploadbook(selectedFolderTemp.Folder, selectedFolderTemp.Files[i].Name,
                                 stream.AsStreamForRead());
 
-                    selectedFolderTemp.CountFilesDropBox = i + 1;
-                    selectedFolderTemp.IsHaveDropBox = true;
+                    //selectedFolderTemp.CountFilesDropBox = i + 1;
+                    //selectedFolderTemp.IsHaveDropBox = true;
                 }
+                await UploadBookmarksToCloud(obj, selectedFolderTemp);
             }
             finally
             {
@@ -931,15 +981,71 @@ namespace UWPAudioBookPlayer.ModelView
 
         private void AddSources(AudioBookSourceWithClouds[] soures)
         {
-            if (soures == null)
+            if (soures == null )
                 return;
             foreach (var source in soures)
             {
-                var already  = Folders.FirstOrDefault(x => x.Name == source.Name);
-                if (already != null)
-                    already.AdditionSources.Add(source);
+                var inFolders = Folders.FirstOrDefault(x =>x.Name == source.Name) as
+                        AudioBookSourceWithClouds;
+                if (inFolders == null)
+                {
+                    if (source.AvalibleCount > 0)
+                        Folders.Add(source);
+                    continue;
+                }
+
+                var fromCloud = inFolders as AudioBookSourceCloud;
+                //Same entry from cloud already persist
+                if (fromCloud != null && fromCloud.CloudStamp == (source as AudioBookSourceCloud)?.CloudStamp)
+                {
+                    fromCloud.Files = MergeFilesLists(source.Files, fromCloud.Files);
+                    continue;
+                }
+                var isCloud = source as AudioBookSourceCloud;
+                if (isCloud != null)
+                {
+                    if (inFolders.AdditionSources.OfType<AudioBookSourceCloud>().Any(s=> s.CloudStamp == isCloud.CloudStamp && s.CreationDateTimeUtc == isCloud.CreationDateTimeUtc && s.ModifiDateTimeUtc == isCloud.ModifiDateTimeUtc))
+                        continue;
+                    var old = inFolders.AdditionSources.OfType<AudioBookSourceCloud>()
+                        .Where(s => s.CloudStamp == isCloud.CloudStamp)
+                        .ToList();
+                    foreach (var s in old)
+                        inFolders.AdditionSources.Remove(s);
+                }
+                if (inFolders.CreationDateTimeUtc > source.CreationDateTimeUtc)
+                {
+                    UpdateAudioBookWithClouds(inFolders, source);
+
+                }
+                else if (inFolders.CreationDateTimeUtc < source.CreationDateTimeUtc)
+                {
+                    var tempLocal = source;
+                    UpdateAudioBookWithClouds( source, inFolders);
+                    //tasks.Add(controller.UploadBookMetadata(inFolders));
+                }
                 else
+                if (inFolders.ModifiDateTimeUtc < source.ModifiDateTimeUtc)
+                {
+                    UpdateAudioBookWithClouds(inFolders, source);
+                }
+                else if (inFolders.ModifiDateTimeUtc > source.ModifiDateTimeUtc)
+                {
+                    UpdateAudioBookWithClouds(source, inFolders);
+//                    var tempLocal = f;
+//                    tasks.Add(controller.UploadBookMetadata(inFolders));
+                }
+                if (source.AvalibleCount <= 0)
+                    continue;
+                if (source is AudioBookSourceCloud)
+                    inFolders.AdditionSources.Add(source);
+                else
+                {
+                    source.AdditionSources.Add(inFolders);
+                    foreach (var f in inFolders.AdditionSources)
+                        source.AdditionSources.Add(f);
+                    Folders.Remove(inFolders);
                     Folders.Add(source);
+                }
             }
         }
 
@@ -1007,72 +1113,47 @@ namespace UWPAudioBookPlayer.ModelView
         {
             for (int i = 0; i < newList.Count; i++)
             {
-                newList[i].IsAvalible = oldList.Any(x => x.Name == newList[i].Name);
+                newList[i].IsAvalible = oldList.Any(x => x.Name == newList[i].Name && x.IsAvalible);
             }
             return newList;
         }
 
-        private List<AudioBookSourceCloud> drFolders = new List<AudioBookSourceCloud>(0);
+        private AudioBookSourceCloud[] drFolders = new AudioBookSourceCloud[] {};
+
+        bool AddRefreshCloud(ICloudController controller)
+        {
+            if (RefreshingControllers.Any(c => c.Type == controller.Type && c.CloudStamp == controller.CloudStamp))
+                return false;
+            RefreshingControllers.Add(controller);
+            return true;
+        }
+
+        private void UpdateAudioBookWithClouds(AudioBookSourceWithClouds dest, AudioBookSourceWithClouds source)
+        {
+            dest.Position = source.Position;
+            dest.Cover = source.Cover;
+            dest.CurrentFile = source.CurrentFile;
+            dest.ExternalLinks = source.ExternalLinks;
+            dest.IsLocked = source.IsLocked;
+            dest.PlaybackRate = source.PlaybackRate;
+            dest.Files = MergeFilesLists(source.Files, dest.Files);
+            dest.ModifiDateTimeUtc = source.ModifiDateTimeUtc;
+            dest.CreationDateTimeUtc = source.CreationDateTimeUtc;
+        }
 
         async Task RefreshCloudData(ICloudController controller)
         {
-            RefreshingControllers.Add(controller);
+            if (!AddRefreshCloud(controller))
+                return;
             try
             {
-                drFolders = (await controller.GetAudioBooksInfo()).ToList();
+                List<Task> tasks = new List<Task>();
+                    drFolders = (await controller.GetAudioBooksInfo()).ToArray();
                 var oldFolders =
                     Folders.OfType<AudioBookSourceCloud>().Where(x => x.CloudStamp == controller.CloudStamp).ToList();
                 foreach (var old in oldFolders)
                     Folders.Remove(old);
-                foreach (var f in drFolders)
-                {
-                    var inFolders =
-                        Folders.FirstOrDefault(
-                            x =>
-                                x.Folder == f.Folder) as
-                            AudioBookSourceWithClouds;
-                    if (inFolders == null)
-                        continue;
-                    var fromCloud = inFolders as AudioBookSourceCloud;
-                    if (fromCloud != null && fromCloud.CloudStamp == (f as AudioBookSourceCloud)?.CloudStamp)
-                        continue;
-                    var old = inFolders.AdditionSources.OfType<AudioBookSourceCloud>()
-                        .Where(s => s.CloudStamp == controller.CloudStamp)
-                        .ToList();
-                    foreach (var s in old)
-                        inFolders.AdditionSources.Remove(s);
-
-                    if (inFolders.CreationDateTimeUtc > f.CreationDateTimeUtc)
-                    {
-                        var tempLocal = inFolders;
-                        inFolders = f;
-                        inFolders.Path = tempLocal.Path;
-                        inFolders.AccessToken = tempLocal.AccessToken;
-                        inFolders.Files = MergeFilesLists(f.Files, tempLocal.Files);
-
-                    }
-                    else if (inFolders.CreationDateTimeUtc < f.CreationDateTimeUtc)
-                    {
-                        var tempLocal = f;
-                        await controller.UploadBookMetadata(inFolders);
-                    }
-                    else 
-                    if (inFolders.ModifiDateTimeUtc < f.ModifiDateTimeUtc)
-                    {
-                        var tempLocal = inFolders;
-                        inFolders = f;
-                        inFolders.Path = tempLocal.Path;
-                        inFolders.AccessToken = tempLocal.AccessToken;
-                        inFolders.Files = MergeFilesLists(f.Files, tempLocal.Files);
-                    }
-                    else if (inFolders.ModifiDateTimeUtc > f.ModifiDateTimeUtc)
-                    {
-                        var tempLocal = f;
-                        //tempLocal.Files = MergeFilesLists(inFolders.Files, f.Files);
-                        await controller.UploadBookMetadata(inFolders);
-                    }
-                    inFolders.AdditionSources.Add(f);
-                }
+                AddSources(drFolders);
                 Folders.Except(drFolders, new AudioBookWithCloudEqualityComparer()).Select(x =>
                 {
                     x.IsHaveDropBox = false;
@@ -1080,10 +1161,11 @@ namespace UWPAudioBookPlayer.ModelView
                 }).ToList();
                 List<AudioBookSourceWithClouds> onlyDrBox;
                 onlyDrBox = drFolders.Except(Folders, new AudioBookWithCloudEqualityComparer()).ToList();
-                foreach (var audioBookSourceWithCloudse in onlyDrBox.Where(x=> x.AvalibleCount > 0))
-                {
-                    Folders.Add(audioBookSourceWithCloudse);
-                }
+//                foreach (var audioBookSourceWithCloudse in onlyDrBox.Where(x=> x.AvalibleCount > 0))
+//                {
+//                    Folders.Add(audioBookSourceWithCloudse);
+//                }
+                await Task.WhenAll(tasks);
                 //UploadBookToDrBoxCommand.RaiseCanExecuteChanged();
                 //DownloadBookFromDrBoxCommand.RaiseCanExecuteChanged();
             }
@@ -1410,6 +1492,8 @@ namespace UWPAudioBookPlayer.ModelView
         {
             PlayingFile = book.GetCurrentFile;
             temp = book.Position;
+            if (PlayingFile == null)
+                return;
             //playRateTemp = book.PlaybackRate;
 //            var afterOpened = new TypedEventHandler<MediaPlayer, object>(delegate(MediaPlayer sender, object args)
 //            {
@@ -1440,19 +1524,26 @@ namespace UWPAudioBookPlayer.ModelView
 
         public void Pause()
         {
-            if (player.PlaybackSession.CanPause && PlayingSource != null)
+            try
             {
-                Debug.WriteLine($"Pause position is {player.Position}");
-                PlayingSource.Position = player.PlaybackSession.Position;
-                State = MediaPlaybackFlow.Pause;
-                player.Pause();
-                if (PlayingSource == null)
-                    return;
-                PlayingSource?.AddHistory(PlayBackHistoryElement.HistoryType.Pause);
-                foreach (var cloud in CloudControllers.Where(x=> x.IsCloud))
-                    cloud.UploadBookMetadata(PlayingSource);
-                //drbController.UploadBookMetadata(SelectedFolder);
-                //odController.UploadBookMetadata(SelectedFolder);
+                if (player.PlaybackSession.CanPause && PlayingSource != null)
+                {
+                    Debug.WriteLine($"Pause position is {player.Position}");
+                    PlayingSource.Position = player.PlaybackSession.Position;
+                    State = MediaPlaybackFlow.Pause;
+                    player.Pause();
+                    if (PlayingSource == null)
+                        return;
+                    PlayingSource?.AddHistory(PlayBackHistoryElement.HistoryType.Pause);
+                    foreach (var cloud in CloudControllers.Where(x => x.IsCloud))
+                        cloud.UploadBookMetadata(PlayingSource);
+                    //drbController.UploadBookMetadata(SelectedFolder);
+                    //odController.UploadBookMetadata(SelectedFolder);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"Exception: {e.Message}\n{e.StackTrace}");
             }
         }
 

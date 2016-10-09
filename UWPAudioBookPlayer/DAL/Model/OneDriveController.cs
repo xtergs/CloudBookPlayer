@@ -80,8 +80,22 @@ namespace UWPAudioBookPlayer.DAL.Model
 
         public async Task<Stream> DownloadBookFile(string BookName, string fileName)
         {
-            try { 
-            return (await client.Drive.Root.ItemWithPath(BaseFolder + "/" + BookName + "/" + fileName).Request().GetAsync()).Content;
+            try {
+#if DEBUG
+                var folder = (await client.Drive.Root.ItemWithPath(BaseFolder + "/" + BookName).Request().GetAsync());
+                var file =
+                    (await
+                        client.Drive.Root.ItemWithPath(BaseFolder + "/" + BookName + "/" + fileName)
+                            .Request()
+                            .GetAsync());
+                var file2 =
+                    (await
+                        client.Drive.Root.ItemWithPath(BaseFolder + "/" + BookName + "/" + fileName).Content
+                            .Request()
+                            .GetAsync());
+#endif
+                var stream =  (await client.Drive.Root.ItemWithPath(BaseFolder + "/" + BookName + "/" + fileName).Content.Request().GetAsync());
+                return stream;
             }
             catch (ServiceException e)
             {

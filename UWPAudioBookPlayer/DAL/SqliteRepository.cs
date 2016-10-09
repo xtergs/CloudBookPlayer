@@ -12,14 +12,23 @@ namespace UWPAudioBookPlayer.DAL
 {
     class SqliteRepository : IDataRepository
     {
-        public string FileName { get; set; } = "db.sqlite";
+        public string LocalStorePath { get; set; } = Windows.Storage.ApplicationData.Current.LocalFolder.Path;
+        public string RoamingStorePath { get; set; } = Windows.Storage.ApplicationData.Current.RoamingFolder.Path;
+
+
+        public string LocalFileName { get; set; } = "localdb.sqlite";
+        public string RoamingFileName { get; set; } = "roamindb.sqlite";
+
         private readonly SQLiteConnection db;
+
+
 
         public SqliteRepository()
         {
-            string path = Path.Combine(Windows.Storage.ApplicationData.Current.LocalFolder.Path, FileName);
+            string path = Path.Combine(LocalStorePath, LocalFileName);
 
             db = new SQLiteConnection(new SQLitePlatformWinRT(), path);
+            var x= db.CreateCommand("create table AudioBookSources (id integer primary key, name varchar);").ExecuteNonQuery();
             db.CreateTable<AudioBookSource>();
             db.CreateTable<CloudService>();
             db.CreateTable<Folder>();

@@ -6,7 +6,7 @@ namespace UWPAudioBookPlayer.DAL
 {
     public interface IDataRepository
     {
-        string FileName { get; set; }
+        string LocalFileName { get; set; }
 
         Task<SaveModel> Load();
         Task Save(SaveModel books);

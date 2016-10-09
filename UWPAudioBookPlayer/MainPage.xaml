@@ -1,6 +1,7 @@
 ﻿<Page x:Class="UWPAudioBookPlayer.MainPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:controls="using:Microsoft.Toolkit.Uwp.UI.Controls"
       xmlns:converter="using:UWPAudioBookPlayer.Converter"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -414,40 +415,26 @@
                     BorderThickness="0,0,0,3"
                     Orientation="Horizontal">
 
-            <AppBarToggleButton x:Name="showSourceList"
-                                Icon="List"
-                                Label="Operations" />
             <AppBarToggleButton x:Name="showBooks"
                                 Icon="List"
                                 IsChecked="True"
                                 Label="Books" />
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <AppBarButton Command="{Binding AddCloudAccountCommand}"
-                              Icon="MapDrive"
-                              Label="Dropbox">
-                    <AppBarButton.CommandParameter>
-                        <modelView:CloudType>DropBox</modelView:CloudType>
-                    </AppBarButton.CommandParameter>
-                </AppBarButton>
-
-            </Grid>
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <AppBarButton Command="{Binding AddCloudAccountCommand}"
-                              Icon="MapDrive"
-                              Label="OneDrive">
-                    <AppBarButton.CommandParameter>
-                        <modelView:CloudType>OneDrive</modelView:CloudType>
-                    </AppBarButton.CommandParameter>
-                </AppBarButton>
-            </Grid>
+            <AppBarButton Icon="MapDrive" Label="Cloud">
+                <AppBarButton.Flyout>
+                    <MenuFlyout>
+                        <MenuFlyoutItem Command="{Binding AddCloudAccountCommand}" Text="DropBox">
+                            <MenuFlyoutItem.CommandParameter>
+                                <modelView:CloudType>DropBox</modelView:CloudType>
+                            </MenuFlyoutItem.CommandParameter>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Command="{Binding AddCloudAccountCommand}" Text="OneDrive">
+                            <MenuFlyoutItem.CommandParameter>
+                                <modelView:CloudType>OneDrive</modelView:CloudType>
+                            </MenuFlyoutItem.CommandParameter>
+                        </MenuFlyoutItem>
+                    </MenuFlyout>
+                </AppBarButton.Flyout>
+            </AppBarButton>
             <AppBarButton Click="SelectBaseFolderClick"
                           Icon="Folder"
                           Label="Folder" />
@@ -457,10 +444,10 @@
             <AppBarButton Click="LibriVoxButtonclicked"
                           Icon="Globe"
                           Label="LibriVox" />
+            <AppBarToggleButton x:Name="showSourceList"
+                                Icon="List"
+                                Label="Operations" />
         </StackPanel>
-        <WebView x:Name="webView"
-                 Grid.RowSpan="10"
-                 Visibility="Collapsed" />
         <ListView x:Name="operationsList"
                   Grid.Row="0"
                   Grid.RowSpan="10"
@@ -691,17 +678,18 @@
                                     Mode=OneWay,
                                     UpdateSourceTrigger=PropertyChanged,
                                     Converter={StaticResource BoolToNotVisiblityConverter}}" />
-        <ListView Grid.Row="7"
-                  HorizontalAlignment="Stretch"
-                  VerticalAlignment="Stretch"
-                  Background="Silver"
-                  ItemTemplateSelector="{StaticResource AudioBookSourceTemplateSelector}"
-                  ItemsSource="{Binding Folders}"
-                  SelectedItem="{Binding SelectedFolder,
-                                         Mode=TwoWay}"
-                  Visibility="{Binding ElementName=showBooks,
-                                       Path=IsChecked,
-                                       Converter={StaticResource BoolToVisibilityConverter}}">
+        <controls:PullToRefreshListView Grid.Row="7"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Stretch"
+                                        Background="Silver"
+                                        ItemTemplateSelector="{StaticResource AudioBookSourceTemplateSelector}"
+                                        ItemsSource="{Binding Folders}"
+                                        RefreshCommand="{Binding RefreshCloudsCommand}"
+                                        SelectedItem="{Binding SelectedFolder,
+                                                               Mode=TwoWay}"
+                                        Visibility="{Binding ElementName=showBooks,
+                                                             Path=IsChecked,
+                                                             Converter={StaticResource BoolToVisibilityConverter}}">
             <!--<ListView.ContextFlyout>
                     <MenuFlyout>
                         <MenuFlyoutItem Command="{Binding RemoveAudioBookSource}"
@@ -795,33 +783,36 @@
                     </Grid>
                 </DataTemplate>
             </ListView.ItemTemplate>
-        </ListView>
-        <VariableSizedWrapGrid Grid.Row="8"
-                               VerticalAlignment="Bottom"
-                               Orientation="Horizontal">
-            <AppBarButton Click="AppBarButton_Click"
-                          Icon="Add"
-                          IsCompact="False"
-                          Label="Add" />
-            <AppBarButton HorizontalAlignment="Right"
-                          Command="{Binding RemoveAudioBookSource}"
-                          CommandParameter="{Binding SelectedFolder,
-                                                     UpdateSourceTrigger=PropertyChanged,
-                                                     Mode=OneWay}"
-                          Icon="Remove"
-                          Label="Remove" />
-            <AppBarButton Click="ShowContextMenuDownload"
-                          Icon="Upload"
-                          Label="ToDropBox" />
-            <AppBarButton Click="ShowContextMenuUpload"
-                          Icon="Download"
-                          Label="FromDropBox" />
-            <AppBarButton Command="{Binding ShowBookDetailCommand}"
-                          Icon="ContactInfo"
-                          Label="Details" />
-        </VariableSizedWrapGrid>
+        </controls:PullToRefreshListView>
+        <AppBar Grid.Row="8">
+            <VariableSizedWrapGrid Grid.Row="8"
+                                   VerticalAlignment="Bottom"
+                                   Orientation="Horizontal">
+                <AppBarButton Click="AppBarButton_Click"
+                              Icon="Add"
+                              IsCompact="False"
+                              Label="Add" />
+                <AppBarButton HorizontalAlignment="Right"
+                              Command="{Binding RemoveAudioBookSource}"
+                              CommandParameter="{Binding SelectedFolder,
+                                                         UpdateSourceTrigger=PropertyChanged,
+                                                         Mode=OneWay}"
+                              Icon="Remove"
+                              Label="Remove" />
+                <AppBarButton Click="ShowContextMenuDownload"
+                              Icon="Upload"
+                              Label="ToDropBox" />
+                <AppBarButton Click="ShowContextMenuUpload"
+                              Icon="Download"
+                              Label="FromDropBox" />
+                <AppBarButton Command="{Binding ShowBookDetailCommand}"
+                              Icon="ContactInfo"
+                              Label="Details" />
+            </VariableSizedWrapGrid>
+        </AppBar>
         <ListView Grid.Row="9"
                   Grid.Column="0"
+                  IsItemClickEnabled="False"
                   ItemsSource="{Binding RefreshingControllers}">
             <ListView.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -839,5 +830,10 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
+        <WebView x:Name="webView"
+                 Grid.Row="0"
+                 Grid.RowSpan="10"
+                 DefaultBackgroundColor="White"
+                 Visibility="Collapsed" />
     </Grid>
 </Page>

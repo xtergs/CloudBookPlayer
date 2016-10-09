@@ -11,7 +11,7 @@ namespace UWPAudioBookPlayer.DAL
 {
     public class JSonRepository : IDataRepository
     {
-        public string FileName { get; set; } = "audioBooksStore.json_v1";
+        public string LocalFileName { get; set; } = "audioBooksStore.json_v1";
         public string RoamingFileName { get; set; } = "clouds.json_v1";
         private bool isBusy = false;
 
@@ -40,7 +40,7 @@ namespace UWPAudioBookPlayer.DAL
         //    books.CloudServices = null;
         //    var file =
         //            await
-        //                ApplicationData.Current.LocalFolder.CreateFileAsync(FileName,
+        //                ApplicationData.Current.LocalFolder.CreateFileAsync(LocalFileName,
         //                    CreationCollisionOption.ReplaceExisting);
         //    string serialized = JsonConvert.SerializeObject(books);
         //    await FileIO.WriteTextAsync(file, serialized);
@@ -57,7 +57,7 @@ namespace UWPAudioBookPlayer.DAL
                 books.CloudServices = null;
                 List<Task> tasks = new List<Task>(2)
                 {
-                    Save(ApplicationData.Current.LocalFolder, FileName ,books)
+                    Save(ApplicationData.Current.LocalFolder, LocalFileName ,books)
                 };
                 if (clouds.Length > 0)
                     tasks.Add(Save(ApplicationData.Current.RoamingFolder, RoamingFileName, clouds));
@@ -124,7 +124,7 @@ namespace UWPAudioBookPlayer.DAL
         public async Task<SaveModel> Load()
         {
             var clouds = await Load<CloudService[]>(ApplicationData.Current.RoamingFolder,RoamingFileName) ?? new CloudService[0];
-            var allData = await Load<SaveModel>(ApplicationData.Current.LocalFolder, FileName) ?? new SaveModel();
+            var allData = await Load<SaveModel>(ApplicationData.Current.LocalFolder, LocalFileName) ?? new SaveModel();
             allData.CloudServices = clouds;
             return allData;
         }

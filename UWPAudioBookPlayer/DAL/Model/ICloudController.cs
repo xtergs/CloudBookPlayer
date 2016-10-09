@@ -31,6 +31,7 @@ namespace UWPAudioBookPlayer.DAL.Model
         Task<string> GetLink(AudioBookSourceCloud book, int fileNumber);
         Task Inicialize();
         Task Uploadbook(string BookName, string fileName, Stream stream);
+        Task Uploadfile(AudioBookSourceWithClouds book, string fileName, Stream stream, string subPath = "");
         Task UploadBookMetadata(AudioBookSource source, string revision = null);
     }
 }

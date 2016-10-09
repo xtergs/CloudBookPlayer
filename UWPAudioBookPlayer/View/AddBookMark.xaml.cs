@@ -22,6 +22,7 @@ using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using Autofac;
 using GalaSoft.MvvmLight.Command;
+using UWPAudioBookPlayer.DAL.Model;
 using UWPAudioBookPlayer.Model;
 using UWPAudioBookPlayer.ModelView;
 
@@ -82,10 +83,17 @@ namespace UWPAudioBookPlayer.View
             };
             DataContext = bookmark;
             TextBox.Focus(FocusState.Keyboard);
-            var stream = await book.GetFileStream(file.Name);
             OpeningMedia = true;
-            player.SetSource(stream.Item2, stream.Item1);
-
+            if (book is AudioBookSourceCloud)
+            {
+                //player.Source = new Uri(book.get); 
+            }
+            else
+            {
+                var stream = await book.GetFileStream(file.Name);
+                player.SetSource(stream.Item2, stream.Item1);
+                
+            }
             Windows.UI.Core.SystemNavigationManager.GetForCurrentView().AppViewBackButtonVisibility =
                 AppViewBackButtonVisibility.Visible;
             SystemNavigationManager.GetForCurrentView().BackRequested += OnBackRequested;

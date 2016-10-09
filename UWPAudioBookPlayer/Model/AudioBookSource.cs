@@ -318,6 +318,7 @@ namespace UWPAudioBookPlayer.Model
 
     public class AudioBookSourceFactory
     {
+        public string BookMarksFolder { get; set; } = "Bookmarks";
         public string[] Extensions { get; set; } = new[] {".mp3", ".vaw", "m4p"};
         public string[] ImageExtensions { get; private set; } = new[] {".jpg", ".png"};
         public Task<AudioBookSourceWithClouds> GetFromLocalFolderAsync(string folderPath, string token, IProgress<Tuple<int,int>> progress)
@@ -433,6 +434,30 @@ namespace UWPAudioBookPlayer.Model
                     break;
             }
             return null;
+        }
+
+        public string GetBookMarkFileName(BookMark bookmark)
+        {
+            return $"{bookmark.Order}_{bookmark.Title}";
+        }
+
+        public async Task<KeyValuePair<string, Stream>> GetBookMark(AudioBookSourceWithClouds book, BookMark bookMark)
+        {
+            if (string.IsNullOrWhiteSpace(book.AccessToken))
+                throw new ArgumentNullException(nameof(book.AdditionSources));
+
+            var folder = await StorageApplicationPermissions.FutureAccessList.GetFolderAsync(book.AccessToken);
+            try
+            {
+                folder = await folder.GetFolderAsync(BookMarksFolder);
+                var file = await folder.GetFileAsync(GetBookMarkFileName(bookMark));
+                return new KeyValuePair<string, Stream>(file.Name, await file.OpenStreamForReadAsync());
+            }
+            catch (FileNotFoundException ex)
+            {
+                Debug.WriteLine($"{ex.Message}, {bookMark.Order}_{bookMark.Title}");
+                return null;
+            }
         }
     }
 }

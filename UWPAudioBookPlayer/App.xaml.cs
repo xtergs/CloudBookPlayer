@@ -34,7 +34,13 @@ namespace UWPAudioBookPlayer
             this.InitializeComponent();
             this.Suspending += OnSuspending;
             this.EnteredBackground += OnEnteredBackground;
+            this.LeavingBackground += OnLeavingBackground;
             Resuming += OnResuming;
+        }
+
+        private void OnLeavingBackground(object sender, LeavingBackgroundEventArgs leavingBackgroundEventArgs)
+        {
+            
         }
 
         private void OnResuming(object sender, object o)
