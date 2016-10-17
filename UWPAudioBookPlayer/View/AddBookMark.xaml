@@ -88,7 +88,7 @@
                                                    Mode=TwoWay,
                                                    UpdateSourceTrigger=PropertyChanged,
                                                    Converter={StaticResource TimeSpanToSecondsConverter}}" />
-        <Slider Maximum="{Binding NaturalDuration.TimeSpan.TotalSeconds,
+        <!--<Slider Maximum="{Binding NaturalDuration.TimeSpan.TotalSeconds,
                                   ElementName=player}"
                 ThumbToolTipValueConverter="{StaticResource SecondsToTimeSpanConverter}"
                 Value="{Binding Position,
@@ -98,18 +98,34 @@
         <Grid>
             <TextBlock HorizontalAlignment="Left" Text="{Binding ElementName=player, Path=Position.TotalSeconds, Mode=OneWay, Converter={StaticResource SecondsToTimeSpanConverter}}" />
             <TextBlock HorizontalAlignment="Right" Text="{Binding ElementName=player, Path=NaturalDuration.TimeSpan.TotalSeconds, Mode=OneWay, Converter={StaticResource SecondsToTimeSpanConverter}}" />
-        </Grid>
-        <MediaElement x:Name="player"
-                      AreTransportControlsEnabled="False"
-                      Visibility="Collapsed" />
-        <VariableSizedWrapGrid Orientation="Horizontal">
+        </Grid>-->
+        <MediaPlayerElement x:Name="player"
+                            HorizontalAlignment="Stretch"
+                            AreTransportControlsEnabled="True"
+                            AutoPlay="False"
+                            Background="LightGray"
+                            Visibility="Visible">
+            <MediaPlayerElement.TransportControls>
+                <MediaTransportControls IsCompact="False"
+                                        IsFastForwardButtonVisible="True"
+                                        IsFastForwardEnabled="True"
+                                        IsFastRewindButtonVisible="True"
+                                        IsFastRewindEnabled="True"
+                                        IsFullWindowButtonVisible="False"
+                                        IsPlaybackRateButtonVisible="True"
+                                        IsPlaybackRateEnabled="True"
+                                        IsVolumeButtonVisible="True"
+                                        IsZoomButtonVisible="False" />
+            </MediaPlayerElement.TransportControls>
+        </MediaPlayerElement>
+        <!--<VariableSizedWrapGrid Orientation="Horizontal">
             <AppBarButton Click="palyPlayer"
                           Icon="Play"
                           Label="Play" />
             <AppBarButton Click="pausePlayer"
                           Icon="Pause"
                           Label="Pause" />
-        </VariableSizedWrapGrid>
+        </VariableSizedWrapGrid>-->
         <Button HorizontalAlignment="Center"
                 Click="SaveClicked"
                 Content="Save" />

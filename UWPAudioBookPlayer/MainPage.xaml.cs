@@ -2,6 +2,8 @@
 using System.ComponentModel;
 using System.Linq;
 using Windows.Foundation;
+using Windows.Media.Casting;
+using Windows.Media.DialProtocol;
 using Windows.Storage.AccessCache;
 using Windows.Storage.Pickers;
 using Windows.UI.Core;
@@ -32,6 +34,7 @@ namespace UWPAudioBookPlayer
     {
         private MainControlViewModel viewModel;
         private SettingsModelView _settingsModelView;
+        private CastService castService;
         public MainPage(/*SettingsModelView settingsModelView*/)
         {
             //if (settingsModelView == null)
@@ -49,6 +52,9 @@ namespace UWPAudioBookPlayer
 
             viewModel.PropertyChanged += ViewModelOnPropertyChanged;
 
+            viewModel.StartObserveDevices();
+
+            castService = new CastService(viewModel.Player);
         }
 
         private async void ViewModelOnPropertyChanged(object sender, PropertyChangedEventArgs propertyChangedEventArgs)
@@ -143,6 +149,8 @@ namespace UWPAudioBookPlayer
         }
 
             MenuFlyout menu = new MenuFlyout();
+        private DialDevicePicker picker;
+
         private async void ShowContextMenuDownload(object sender, RoutedEventArgs e)
         {
             var controllers = viewModel.CloudControllers.Where(c => c.IsAutorized).ToArray();
@@ -221,6 +229,52 @@ namespace UWPAudioBookPlayer
         private void GoToAddBookMark(object sender, RoutedEventArgs e)
         {
             Frame.Navigate(typeof (AddBookMark));
+        }
+
+        private void RemoteDevicesPicked(ListPickerFlyout sender, ItemsPickedEventArgs args)
+        {
+            if (args.AddedItems.Any())
+                this.viewModel.StreamToDeviceCommand.Execute(args.AddedItems[0]);
+            sender.SelectedItem = null;
+        }
+
+        private async void DeviceCastClick(object sender, RoutedEventArgs e)
+        {
+            castService.ShowPicker();
+        }
+
+        private void DialAppClick(object sender, RoutedEventArgs e)
+        {
+            picker = new DialDevicePicker();
+
+            //Add the DIAL Filter, so that the application only shows DIAL devices that have 
+            // the application installed or advertise that they can install them.
+            picker.Filter.SupportedAppNames.Add("cloudbookplayer");
+
+            //Hook up device selected event
+            picker.DialDeviceSelected += Picker_DeviceSelected;
+
+            //Hook up the picker disconnected event
+            picker.DisconnectButtonClicked += Picker_DisconnectButtonClicked;
+
+            //Hook up the picker dismissed event
+            picker.DialDevicePickerDismissed += Picker_DevicePickerDismissed;
+            picker.Show(new Rect(0, 0, 300, 300));
+        }
+
+        private void Picker_DevicePickerDismissed(DialDevicePicker sender, object args)
+        {
+            
+        }
+
+        private void Picker_DisconnectButtonClicked(DialDevicePicker sender, DialDisconnectButtonClickedEventArgs args)
+        {
+            
+        }
+
+        private void Picker_DeviceSelected(DialDevicePicker sender, DialDeviceSelectedEventArgs args)
+        {
+            
         }
     }
 }

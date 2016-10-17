@@ -10,6 +10,7 @@ using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.Globalization;
 using Windows.Media.Core;
+using Windows.Media.Playback;
 using Windows.Media.SpeechRecognition;
 using Windows.UI.Core;
 using Windows.UI.Popups;
@@ -47,28 +48,34 @@ namespace UWPAudioBookPlayer.View
             viewModel = Global.container.Resolve<MainControlViewModel>();
             book = viewModel.PlayingSource;
             file = book.GetCurrentFile;
-            player.MediaOpened += PlayerOnMediaOpened;
-            player.MediaFailed += PlayerOnMediaFailed;
+            player.MediaPlayer.MediaOpened += PlayerOnMediaOpened;
+            player.MediaPlayer.MediaFailed += PlayerOnMediaFailed;
             SaveCommand = viewModel.AddBookMarkCommand;
         }
 
-        private async void PlayerOnMediaFailed(object sender, ExceptionRoutedEventArgs exceptionRoutedEventArgs)
+        private async void PlayerOnMediaFailed(MediaPlayer mediaPlayer, MediaPlayerFailedEventArgs args)
         {
-            player.MediaFailed -= PlayerOnMediaFailed;
-            player.MediaOpened -= PlayerOnMediaOpened;
+            await Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
+            {
+                player.MediaPlayer.MediaFailed -= PlayerOnMediaFailed;
+                player.MediaPlayer.MediaOpened -= PlayerOnMediaOpened;
 
-            await new MessageDialog("Occured error opening media!").ShowAsync();
+                await new MessageDialog("Occured error opening media!").ShowAsync();
+            });
 
             Frame.GoBack();
         }
 
-        private void PlayerOnMediaOpened(object sender, RoutedEventArgs routedEventArgs)
+        private async void PlayerOnMediaOpened(MediaPlayer mediaPlayer, object args)
         {
-            player.MediaFailed -= PlayerOnMediaFailed;
-            player.MediaOpened -= PlayerOnMediaOpened;
-            bookmark.EndPosition = player.NaturalDuration.TimeSpan;
-            player.Position = bookmark.Position;
-            OpeningMedia = false;
+            await Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            {
+                player.MediaPlayer.MediaFailed -= PlayerOnMediaFailed;
+                player.MediaPlayer.MediaOpened -= PlayerOnMediaOpened;
+                bookmark.EndPosition = player.MediaPlayer.NaturalDuration;
+                player.MediaPlayer.Position = bookmark.Position;
+                OpeningMedia = false;
+            });
         }
 
         private async void OnLoaded(object sender, RoutedEventArgs routedEventArgs)
@@ -86,12 +93,18 @@ namespace UWPAudioBookPlayer.View
             OpeningMedia = true;
             if (book is AudioBookSourceCloud)
             {
-                //player.Source = new Uri(book.get); 
+                var controllers  = Global.container.Resolve<MainControlViewModel>().CloudControllers;
+                var controler = controllers.FirstOrDefault(x => x.CloudStamp == (book as AudioBookSourceCloud).CloudStamp);
+                if (controler == null)
+                    return;
+                var link = await controler.GetLink(book as AudioBookSourceCloud, book.CurrentFile);
+
+                player.MediaPlayer.Source = MediaSource.CreateFromUri(new Uri(link));
             }
             else
             {
                 var stream = await book.GetFileStream(file.Name);
-                player.SetSource(stream.Item2, stream.Item1);
+                player.MediaPlayer.Source = MediaSource.CreateFromStream(stream.Item2, stream.Item1);
                 
             }
             Windows.UI.Core.SystemNavigationManager.GetForCurrentView().AppViewBackButtonVisibility =
@@ -103,6 +116,15 @@ namespace UWPAudioBookPlayer.View
         {
             SystemNavigationManager.GetForCurrentView().BackRequested -= OnBackRequested;
             Frame.GoBack();
+        }
+
+        protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
+        {
+            base.OnNavigatingFrom(e);
+            player.MediaPlayer.Pause();
+            player.Source = null;
+            player.PosterSource = null;
+            player = null;
         }
 
         private void OnLoading(FrameworkElement sender, object args)
@@ -185,12 +207,12 @@ namespace UWPAudioBookPlayer.View
 
         private void palyPlayer(object sender, RoutedEventArgs e)
         {
-            player.Play();
+            player.MediaPlayer.Play();
         }
 
         private void pausePlayer(object sender, RoutedEventArgs e)
         {
-            player.Pause();
+            player.MediaPlayer.Pause();
         }
 
         private async Task<string> GetRecognizedText()

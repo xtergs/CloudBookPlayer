@@ -43,6 +43,23 @@ namespace UWPAudioBookPlayer
             
         }
 
+        protected override async void OnActivated(IActivatedEventArgs args)
+        {
+            base.OnActivated(args);
+            if (args.Kind == ActivationKind.Protocol)
+            {
+                switch (args.PreviousExecutionState)
+                {
+                    default:
+                        var protocolArgs = args as ProtocolActivatedEventArgs;
+                        if (protocolArgs.Uri.Scheme == "cloudbookplayer")
+                        await Global.container.Resolve<MainControlViewModel>().StartPlaySource(protocolArgs.Uri.OriginalString.Remove(0, "cloudbookplayer:?".Length));
+                        break;
+                }
+                
+            }
+        }
+
         private void OnResuming(object sender, object o)
         {
             Global.container.Resolve<MainControlViewModel>().LoadData();
@@ -50,7 +67,9 @@ namespace UWPAudioBookPlayer
 
         private async void OnEnteredBackground(object sender, EnteredBackgroundEventArgs enteredBackgroundEventArgs)
         {
+            var deferal = enteredBackgroundEventArgs.GetDeferral();
             await Global.container.Resolve<MainControlViewModel>().SaveData();
+            deferal.Complete();
         }
 
         /// <summary>
@@ -141,10 +160,10 @@ namespace UWPAudioBookPlayer
         /// <param name = "e">Details about the suspend request.</param>
         private async void OnSuspending(object sender, SuspendingEventArgs e)
         {
-            var deferral = e.SuspendingOperation.GetDeferral();
-            await Global.container.Resolve<MainControlViewModel>().SaveData();
-            //TODO: Save application state and stop any background activity
-            deferral.Complete();
+            //var deferral = e.SuspendingOperation.GetDeferral();
+            //await Global.container.Resolve<MainControlViewModel>().SaveData();
+            ////TODO: Save application state and stop any background activity
+            //deferral.Complete();
         }
 
         private void RegisterComponents()
@@ -155,6 +174,7 @@ namespace UWPAudioBookPlayer
             builder.RegisterType<UniversalApplicationSettingsHelper>().As<IApplicationSettingsHelper>();
             builder.RegisterType<LibrivoxOnlineBooksViewModel>();
             builder.RegisterType<LIbriVoxScraper>();
+            builder.RegisterType<RemoteDevicesService>();
 
             var container = builder.Build();
             Global.container = container;

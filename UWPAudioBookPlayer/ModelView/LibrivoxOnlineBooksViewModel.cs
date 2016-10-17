@@ -105,6 +105,7 @@ namespace UWPAudioBookPlayer.ModelView
             this.scraper = scraper;
             dispatcher = Window.Current.Dispatcher;
             AddBookToLibraryCommand = new RelayCommand<OnlineBook>(AddBookToLibrary);
+            PlayBookCommand = new RelayCommand<OnlineBook>(PlayBook);
 
 
             ShowBooksByTitleCommand = new RelayCommand(ShowBooksByTitle);
@@ -113,6 +114,7 @@ namespace UWPAudioBookPlayer.ModelView
             ShowAuthorsBooksCommand = new RelayCommand<OnlineAuthor>(ShowAuthorBooks);
 
         }
+
 
         public bool FetchingBook { get; set; } = false;
         public bool FetchingData { get; set; } = false;
@@ -381,8 +383,10 @@ namespace UWPAudioBookPlayer.ModelView
 
 
         public RelayCommand<OnlineBook> AddBookToLibraryCommand { get; }
+        public RelayCommand<OnlineBook> PlayBookCommand { get; }
 
-        private async void AddBookToLibrary(OnlineBook book)
+
+        private async Task<OnlineAudioBookSource> GetOnlineBookSource(OnlineBook book)
         {
             book = await GetBook(book);
             OnlineAudioBookSource source = new OnlineAudioBookSource("LibviVox", CloudType.Online)
@@ -396,12 +400,27 @@ namespace UWPAudioBookPlayer.ModelView
                 HostLink = "https://librivox.org",
                 Files = book.Files.Select(x => x.ToAudioBookFile()).ToList(),
             };
+            return source;
+        }
+
+        private async void AddBookToLibrary(OnlineBook book)
+        {
+            var source = await GetOnlineBookSource(book);
             if (AddSourceToLibrary == null)
                 throw new ArgumentNullException(nameof(AddSourceToLibrary));
             AddSourceToLibrary.Execute(source);
         }
 
+        private async void PlayBook(OnlineBook book)
+        {
+            var source = await GetOnlineBookSource(book);
+            if (AddAndPlayBook == null)
+                throw new ArgumentNullException(nameof(AddAndPlayBook));
+            AddAndPlayBook.Execute(source);
+        }
+
         public RelayCommand<AudioBookSourceWithClouds> AddSourceToLibrary { get; set; }
+        public RelayCommand<AudioBookSourceWithClouds> AddAndPlayBook { get; set; }
 
 
         public event PropertyChangedEventHandler PropertyChanged;

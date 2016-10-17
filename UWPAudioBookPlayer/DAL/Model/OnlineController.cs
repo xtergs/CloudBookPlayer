@@ -83,9 +83,18 @@ namespace UWPAudioBookPlayer.DAL.Model
         {
         }
 
+        public Task Uploadfile(AudioBookSourceWithClouds book, string fileName, Stream stream, string subPath = "")
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task UploadBookMetadata(AudioBookSource source, string revision = null)
         {
             
         }
+
+        public bool IsChangesObserveAvalible => false;
+        public event EventHandler<FileChangedStruct> FileChanged;
+        public event EventHandler<AudioBookSourceCloud> MediaInfoChanged;
     }
 }

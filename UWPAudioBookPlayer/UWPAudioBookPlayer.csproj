@@ -138,8 +138,10 @@
     <Compile Include="Properties\Annotations3.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Scrapers\LIbriVoxScraper.cs" />
+    <Compile Include="Service\CastService.cs" />
     <Compile Include="Service\ISettingsService.cs" />
     <Compile Include="Service\ManageOperationsService.cs" />
+    <Compile Include="Service\RemoteDevicesService.cs" />
     <Compile Include="Service\UniversalSettingsService.cs" />
     <Compile Include="TemplateSelector\AudioBookSourceTemplateSelector.cs" />
     <Compile Include="View\AddBookMark.xaml.cs">

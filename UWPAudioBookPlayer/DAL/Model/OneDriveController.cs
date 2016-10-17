@@ -125,18 +125,28 @@ namespace UWPAudioBookPlayer.DAL.Model
         {
             
 
-            var result = new List<AudioBookSource>();
-            var folders = await client.Drive.Root.ItemWithPath(BaseFolder).Children.Request().GetAsync();
-            var folder = folders.FirstOrDefault(x => String.Equals(x.Name, bookName, StringComparison.OrdinalIgnoreCase));
-           if (folder == null)
-                return null;
+           // var result = new List<AudioBookSource>();
+           // var folders = await client.Drive.Root.ItemWithPath(BaseFolder).Children.Request().GetAsync();
+           // var folder = folders.FirstOrDefault(x => String.Equals(x.Name, bookName, StringComparison.OrdinalIgnoreCase));
+           //if (folder == null)
+           //     return null;
             AudioBookSourceCloud book = new AudioBookSourceCloud(CloudStamp,CloudType.OneDrive);
-            book.Name = folder.Name;
-            book.Path = "OneDrive\\" + folder.Name;
+            book.Name = bookName;
+            book.Path = "OneDrive\\" + bookName;
             book.Files = new List<AudiBookFile>();
-            var files =
-                await client.Drive.Root.ItemWithPath(BaseFolder + "/" + folder.Name).Children.Request().GetAsync();
+            IItemChildrenCollectionPage files;
+            try
+            {
+                files = await client.Drive.Root.ItemWithPath(BaseFolder + "/" + bookName).Children.Request().GetAsync();
+            }
+            catch (ServiceException e)
+            {
+                if (e.Error.Code == OneDriveErrors.ItemNotFound)
+                    return null;
+                throw;
+            }
             AudioBookSourceCloud metaData = null;
+            string bookFolder = BaseFolder + "/" + bookName + "/";
             foreach (var filesEntry in files)
             {
                 if (filesEntry.File == null)
@@ -146,7 +156,7 @@ namespace UWPAudioBookPlayer.DAL.Model
                     using (
                 var stream =
                 (await
-                    client.Drive.Root.ItemWithPath(BaseFolder + "/" + folder.Name + "/" + filesEntry.Name ).Content
+                    client.Drive.Root.ItemWithPath( bookFolder + filesEntry.Name ).Content
                         .Request()
                         .GetAsync()))
                     {
@@ -178,14 +188,14 @@ namespace UWPAudioBookPlayer.DAL.Model
                 {
                     var dbFile = book.Files.FirstOrDefault(f => f.Name == metaData.Files[i].Name);
                     if (dbFile != null)
-                        metaData.Files[i] = dbFile;
+                        metaData.Files[i].IsAvalible = true;
                     else
                         metaData.Files[i].IsAvalible = false;
                 }
                 return metaData;
 
             }
-            result.Add(book);
+            //result.Add(book);
             book.CloudStamp = CloudStamp;
             book.Type = Type;
             return book;
@@ -202,11 +212,12 @@ namespace UWPAudioBookPlayer.DAL.Model
                 return new List<AudioBookSourceCloud>();
             var result = new List<AudioBookSourceCloud>();
             var folders = await client.Drive.Root.ItemWithPath(BaseFolder).Children.Request().GetAsync();
-            foreach (var folder in folders)
-            {
-                var book = await GetAudioBookInfo(folder.Name);
-                result.Add(book);
-            }
+            var tasts = new List<Task<AudioBookSourceCloud>>(folders.Count);
+
+            tasts.AddRange(folders.Select(folder => GetAudioBookInfo(folder.Name)));
+            var results = await Task.WhenAll(tasts);
+
+            result.AddRange(results.Where(x => x != null).ToArray());
             return result;
         }
 
@@ -271,6 +282,11 @@ namespace UWPAudioBookPlayer.DAL.Model
             await client.Drive.Root.ItemWithPath(BaseFolder + "/" + BookName + "/" + fileName).Content.Request().PutAsync<Item>(stream);
         }
 
+        public Task Uploadfile(AudioBookSourceWithClouds book, string fileName, Stream stream, string subPath = "")
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task UploadBookMetadata(AudioBookSource source, string revision = null)
         {
             if (!IsAutorized)
@@ -286,6 +302,10 @@ namespace UWPAudioBookPlayer.DAL.Model
 
             }
         }
+
+        public bool IsChangesObserveAvalible => false;
+        public event EventHandler<FileChangedStruct> FileChanged;
+        public event EventHandler<AudioBookSourceCloud> MediaInfoChanged;
 
         public override string ToString()
         {

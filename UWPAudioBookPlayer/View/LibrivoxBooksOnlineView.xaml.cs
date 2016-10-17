@@ -33,6 +33,7 @@ namespace UWPAudioBookPlayer.View
             viewModel = Global.container.Resolve<LibrivoxOnlineBooksViewModel>();
             var mainModel = Global.MainModelView;
             viewModel.AddSourceToLibrary = mainModel.AddSourceToLibraryCommand;
+            viewModel.AddAndPlayBook = mainModel.StartPlaySourceCommand;
             this.Loading += OnLoading;
             DataContext = viewModel;
         }

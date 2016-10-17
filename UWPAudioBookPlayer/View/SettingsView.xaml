@@ -5,6 +5,7 @@
       xmlns:local="using:UWPAudioBookPlayer.View"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:modelView="using:UWPAudioBookPlayer.ModelView"
+      xmlns:remoteSystems="using:Windows.System.RemoteSystems"
       x:Name="page"
       d:DataContext="{d:DesignInstance modelView:SettingsModelView}"
       mc:Ignorable="d">
@@ -13,6 +14,8 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <ToggleSwitch Header="Automaticali delete files from DropBox"
@@ -86,5 +89,33 @@
                 </MenuFlyout>
             </AppBarButton.Flyout>
         </AppBarButton>
+        <Button Grid.Row="3"
+                Click="StartDiscoveryListening"
+                Content="StartListening" />
+        <ListView x:Name="DevicesLists"
+                  Grid.Row="4"
+                  IsItemClickEnabled="True"
+                  ItemClick="DeviceSelected"
+                  SelectionMode="None">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel>
+                        <TextBlock>
+                            <TextBlock.Inlines>
+                                <Run Text="DisplayName: " />
+                                <Run Text="{Binding DisplayName}" />
+                                <Run Text="IsAvailableByProximity: " />
+                                <Run Text="{Binding IsAvailableByProximity}" />
+                                <Run Text="Kind: " />
+                                <Run Text="{Binding Kind}" />
+                                <Run Text="Status: " />
+                                <Run Text="{Binding Status}" />
+                            </TextBlock.Inlines>
+                        </TextBlock>
+                        <TextBlock Text="{Binding Id}" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
     </Grid>
 </Page>

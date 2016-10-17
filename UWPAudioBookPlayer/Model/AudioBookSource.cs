@@ -203,7 +203,7 @@ namespace UWPAudioBookPlayer.Model
         }
 
         [JsonIgnore]
-        public bool IgnoreTimeOfChanges { get; set; } = true;
+        public bool IgnoreTimeOfChanges { get; set; } = false;
         [JsonIgnore]
         public string Folder => System.IO.Path.GetFileName(Path);
         [JsonIgnore]
@@ -456,7 +456,7 @@ namespace UWPAudioBookPlayer.Model
             catch (FileNotFoundException ex)
             {
                 Debug.WriteLine($"{ex.Message}, {bookMark.Order}_{bookMark.Title}");
-                return null;
+                return new KeyValuePair<string, Stream>("", null);
             }
         }
     }

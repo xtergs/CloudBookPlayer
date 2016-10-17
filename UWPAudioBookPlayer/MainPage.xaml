@@ -519,16 +519,34 @@
         <TextBlock Grid.Row="2"
                    HorizontalAlignment="Center"
                    Text="{Binding PlayingFile.Name}" />
-        <Slider Grid.Row="3"
-                Maximum="{Binding FileDuration.TotalSeconds,
-                                  UpdateSourceTrigger=PropertyChanged}"
-                Minimum="0"
-                Style="{StaticResource SliderStyle1}"
-                ThumbToolTipValueConverter="{StaticResource SecondsToTimeSpanConverter}"
-                Value="{Binding CurrentPosition,
-                                Mode=TwoWay,
-                                Converter={StaticResource TimeSpanToSecondsConverter},
-                                UpdateSourceTrigger=PropertyChanged}" />
+        <StackPanel Grid.Row="3">
+            <Slider Grid.Row="3"
+                    Maximum="{Binding FileDuration.TotalSeconds,
+                                      UpdateSourceTrigger=PropertyChanged}"
+                    Minimum="0"
+                    Style="{StaticResource SliderStyle1}"
+                    ThumbToolTipValueConverter="{StaticResource SecondsToTimeSpanConverter}"
+                    Value="{Binding CurrentPosition,
+                                    Mode=TwoWay,
+                                    Converter={StaticResource TimeSpanToSecondsConverter},
+                                    UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock Text="Playing progress:" />
+            <ProgressBar Height="10"
+                         Maximum="{Binding FileDuration.TotalSeconds,
+                                           UpdateSourceTrigger=PropertyChanged}"
+                         Minimum="0"
+                         Value="{Binding CurrentPosition,
+                                         Mode=TwoWay,
+                                         Converter={StaticResource TimeSpanToSecondsConverter},
+                                         UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock Text="Downloading progress:" />
+            <ProgressBar Height="10"
+                         Maximum="1"
+                         Minimum="0"
+                         Value="{Binding DownloadingProgresss,
+                                         Mode=OneWay,
+                                         UpdateSourceTrigger=PropertyChanged}" />
+        </StackPanel>
         <Grid Grid.Row="4">
             <TextBlock HorizontalAlignment="Left" Text="{Binding CurrentPosition.TotalSeconds, UpdateSourceTrigger=PropertyChanged, Mode=OneWay, Converter={StaticResource SecondsToTimeSpanConverter}}" />
             <TextBlock HorizontalAlignment="Center">
@@ -649,6 +667,56 @@
                                           Mode=OneWay,
                                           UpdateSourceTrigger=PropertyChanged}"
                           ToolTipService.ToolTip="Set sleep timer" />
+            <AppBarButton Icon="Play"
+                          IsEnabled="{Binding RemoteSystems,
+                                              Mode=OneWay,
+                                              UpdateSourceTrigger=PropertyChanged}"
+                          Label="Continue">
+                <AppBarButton.Flyout>
+                    <ListPickerFlyout Title="Choose where to continue (tip: you need sign in on all you devices with single microsoft account)"
+                                      ItemsPicked="RemoteDevicesPicked"
+                                      ItemsSource="{Binding RemoteSystems,
+                                                            Mode=OneWay,
+                                                            UpdateSourceTrigger=PropertyChanged}"
+                                      SelectionMode="Single">
+                        <ListPickerFlyout.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock>
+                                        <TextBlock.Inlines>
+                                            <Run Text="Name: " />
+                                            <Run Text="{Binding DisplayName}" />
+                                        </TextBlock.Inlines>
+                                    </TextBlock>
+                                    <TextBlock>
+                                        <TextBlock.Inlines>
+                                            <Run Text="IsAvailableByProximity: " />
+                                            <Run Text="{Binding IsAvailableByProximity}" />
+                                        </TextBlock.Inlines>
+                                    </TextBlock>
+                                    <TextBlock>
+                                        <TextBlock.Inlines>
+                                            <Run Text="Kind: " />
+                                            <Run Text="{Binding Kind}" />
+                                        </TextBlock.Inlines>
+                                    </TextBlock>
+                                    <TextBlock>
+                                        <TextBlock.Inlines>
+                                            <Run Text="Status: " />
+                                            <Run Text="{Binding Status}" />
+                                        </TextBlock.Inlines>
+                                    </TextBlock>
+
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListPickerFlyout.ItemTemplate>
+                    </ListPickerFlyout>
+                </AppBarButton.Flyout>
+            </AppBarButton>
+            <AppBarButton Click="DeviceCastClick"
+                          Icon="Play"
+                          Label="Cast"
+                          ToolTipService.ToolTip="Cast to another device" />
             <Slider VerticalAlignment="Center"
                     Header="Volume"
                     IsThumbToolTipEnabled="True"
@@ -683,8 +751,9 @@
                                         VerticalAlignment="Stretch"
                                         Background="Silver"
                                         ItemTemplateSelector="{StaticResource AudioBookSourceTemplateSelector}"
-                                        ItemsSource="{Binding Folders}"
-                                        RefreshCommand="{Binding RefreshCloudsCommand}"
+                                        ItemsSource="{Binding Folders,
+                                                              UpdateSourceTrigger=PropertyChanged,
+                                                              Mode=OneWay}"
                                         SelectedItem="{Binding SelectedFolder,
                                                                Mode=TwoWay}"
                                         Visibility="{Binding ElementName=showBooks,
@@ -835,5 +904,21 @@
                  Grid.RowSpan="10"
                  DefaultBackgroundColor="White"
                  Visibility="Collapsed" />
+        <StackPanel Grid.Row="10">
+            <TextBlock>
+                <TextBlock.Inlines>
+                    <Run Text="Buffering progress: " />
+                    <Run Text="{Binding BufferingProgress, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <Run Text="%" />
+                </TextBlock.Inlines>
+            </TextBlock>
+            <TextBlock>
+                <TextBlock.Inlines>
+                    <Run Text="Downloading progress: " />
+                    <Run Text="{Binding DownloadingProgresss, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <Run Text="%" />
+                </TextBlock.Inlines>
+            </TextBlock>
+        </StackPanel>
     </Grid>
 </Page>

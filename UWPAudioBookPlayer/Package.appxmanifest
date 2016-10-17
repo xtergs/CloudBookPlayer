@@ -20,12 +20,21 @@
         </uap:DefaultTile>
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
       </uap:VisualElements>
+      <Extensions>
+        <uap:Extension Category="windows.dialProtocol">
+          <uap:DialProtocol Name="cloudbookplayer" />
+        </uap:Extension>
+        <uap:Extension Category="windows.protocol">
+          <uap:Protocol Name="cloudbookplayer" />
+        </uap:Extension>
+      </Extensions>
     </Application>
   </Applications>
   <Capabilities>
     <Capability Name="internetClient" />
     <uap:Capability Name="removableStorage" />
     <uap3:Capability Name="backgroundMediaPlayback" />
+    <uap3:Capability Name="remoteSystem" />
     <DeviceCapability Name="microphone" />
   </Capabilities>
 </Package>
