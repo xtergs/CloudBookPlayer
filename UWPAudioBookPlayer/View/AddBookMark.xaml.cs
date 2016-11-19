@@ -1,14 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using System.Windows.Input;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
-using Windows.Globalization;
 using Windows.Media.Core;
 using Windows.Media.Playback;
 using Windows.Media.SpeechRecognition;
@@ -16,13 +11,11 @@ using Windows.UI.Core;
 using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Controls.Primitives;
-using Windows.UI.Xaml.Data;
-using Windows.UI.Xaml.Input;
-using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using Autofac;
 using GalaSoft.MvvmLight.Command;
+using PropertyChanged;
+using UWPAudioBookPlayer.Annotations;
 using UWPAudioBookPlayer.DAL.Model;
 using UWPAudioBookPlayer.Model;
 using UWPAudioBookPlayer.ModelView;
@@ -31,7 +24,8 @@ using UWPAudioBookPlayer.ModelView;
 
 namespace UWPAudioBookPlayer.View
 {
-    public sealed partial class AddBookMark : Page
+    [ImplementPropertyChanged]
+    public sealed partial class AddBookMark : Page, INotifyPropertyChanged
     {
         private BookMark bookmark;
         private AudioBookSourceWithClouds book;
@@ -66,15 +60,21 @@ namespace UWPAudioBookPlayer.View
             Frame.GoBack();
         }
 
+        public TimeSpan MaxDurations { get; set; }
+
         private async void PlayerOnMediaOpened(MediaPlayer mediaPlayer, object args)
         {
             await Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
+                if (player == null)
+                    return;
                 player.MediaPlayer.MediaFailed -= PlayerOnMediaFailed;
                 player.MediaPlayer.MediaOpened -= PlayerOnMediaOpened;
+                MaxDurations = player.MediaPlayer.NaturalDuration;
                 bookmark.EndPosition = player.MediaPlayer.NaturalDuration;
                 player.MediaPlayer.Position = bookmark.Position;
                 OpeningMedia = false;
+                //Bindings.Update();
             });
         }
 
@@ -125,6 +125,22 @@ namespace UWPAudioBookPlayer.View
             player.Source = null;
             player.PosterSource = null;
             player = null;
+        }
+
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
+            if (e.Parameter is AudioBookSourceWithClouds)
+            {
+                book = e.Parameter as AudioBookSourceWithClouds;
+                file = book.GetCurrentFile;
+            }
+        }
+
+        protected override void OnNavigatedFrom(NavigationEventArgs e)
+        {
+            base.OnNavigatedFrom(e);
+            SystemNavigationManager.GetForCurrentView().BackRequested -= OnBackRequested;
         }
 
         private void OnLoading(FrameworkElement sender, object args)
@@ -241,6 +257,14 @@ namespace UWPAudioBookPlayer.View
         private async void RecognizeDescriptionText(object sender, RoutedEventArgs e)
         {
             DescriptionTextBox.Text = await GetRecognizedText();
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        [NotifyPropertyChangedInvocator]
+        private void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

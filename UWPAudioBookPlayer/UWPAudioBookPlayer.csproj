@@ -12,7 +12,7 @@
     <DefaultLanguage>en-US</DefaultLanguage>
     <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
     <TargetPlatformVersion>10.0.14393.0</TargetPlatformVersion>
-    <TargetPlatformMinVersion>10.0.10240.0</TargetPlatformMinVersion>
+    <TargetPlatformMinVersion>10.0.14393.0</TargetPlatformMinVersion>
     <MinimumVisualStudioVersion>14</MinimumVisualStudioVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{A5A43C5B-DE2A-4C0C-9213-0A381AF9435A};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -27,7 +27,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\x86\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;SDKVERSION_10586;SDKVERSION_14393;NETFX_CORE;WINDOWS_UWP;CODE_ANALYSIS</DefineConstants>
     <NoWarn>;2008</NoWarn>
     <DebugType>full</DebugType>
     <PlatformTarget>x86</PlatformTarget>
@@ -103,6 +103,7 @@
     </Compile>
     <Compile Include="Comparer\AudioBookFileEqualityComparer.cs" />
     <Compile Include="Comparer\AudioBookWithCloudEqualityComparer.cs" />
+    <Compile Include="Converter\AudioBookSourceToCoverConverter.cs" />
     <Compile Include="Converter\AudioBookSourceToImageConverter.cs" />
     <Compile Include="Converter\BoolToOpacityConverter.cs" />
     <Compile Include="Converter\BoolToVisibilityConverter.cs" />
@@ -130,6 +131,7 @@
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="ModelView\AudioBookSourceDetailViewModel.cs" />
+    <Compile Include="ModelView\BookMarksViewModel.cs" />
     <Compile Include="ModelView\LibrivoxOnlineBooksViewModel.cs" />
     <Compile Include="ModelView\MainControlViewModel.cs" />
     <Compile Include="ModelView\SettingsModelView.cs" />
@@ -141,6 +143,7 @@
     <Compile Include="Service\CastService.cs" />
     <Compile Include="Service\ISettingsService.cs" />
     <Compile Include="Service\ManageOperationsService.cs" />
+    <Compile Include="Service\ManageSources.cs" />
     <Compile Include="Service\RemoteDevicesService.cs" />
     <Compile Include="Service\UniversalSettingsService.cs" />
     <Compile Include="TemplateSelector\AudioBookSourceTemplateSelector.cs" />
@@ -149,6 +152,9 @@
     </Compile>
     <Compile Include="View\BookDetailInfo.xaml.cs">
       <DependentUpon>BookDetailInfo.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\BookMarksView.xaml.cs">
+      <DependentUpon>BookMarksView.xaml</DependentUpon>
     </Compile>
     <Compile Include="View\LibrivoxBooksOnlineView.xaml.cs">
       <DependentUpon>LibrivoxBooksOnlineView.xaml</DependentUpon>
@@ -171,6 +177,7 @@
     <Content Include="Image\DropBoxLogo.png" />
     <Content Include="Image\HDD.png" />
     <None Include="Package.StoreAssociation.xml" />
+    <Content Include="Image\no-image-available.jpg" />
     <Content Include="Image\OneDriveLogo.png" />
     <Content Include="Image\online.png" />
     <Content Include="Properties\Default.rd.xml" />
@@ -199,6 +206,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="View\BookMarksView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="View\LibrivoxBooksOnlineView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -215,8 +226,14 @@
     <Folder Include="Scrapers\LIbriVox\" />
   </ItemGroup>
   <ItemGroup>
-    <SDKReference Include="SQLite.UWP.2015, Version=3.14.2">
-      <Name>SQLite for Universal Windows Platform %28SQLite.UWP.2015, Version=3.14.2%29</Name>
+    <SDKReference Include="Microsoft.Services.Store.Engagement, Version=10.0">
+      <Name>Microsoft Engagement Framework</Name>
+    </SDKReference>
+    <SDKReference Include="Microsoft.VCLibs, Version=14.0">
+      <Name>Visual C++ 2015 Runtime for Universal Windows Platform Apps</Name>
+    </SDKReference>
+    <SDKReference Include="SQLite.UWP.2015, Version=3.15.0">
+      <Name>SQLite for Universal Windows Platform %28SQLite.UWP.2015, Version=3.15.0%29</Name>
     </SDKReference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">

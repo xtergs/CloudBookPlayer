@@ -39,6 +39,14 @@ namespace UWPAudioBookPlayer.View
                     a.Handled = true;
                 }
             };
+
+            this.Loaded += OnLoaded;
+        }
+
+        private async void OnLoaded(object sender, RoutedEventArgs routedEventArgs)
+        {
+            this.Loaded -= OnLoaded;
+            await viewModel.GetCover().ConfigureAwait(false);
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -162,6 +163,8 @@ namespace UWPAudioBookPlayer.Model
         public List<AudiBookFile> Files { get; set;} = new List<AudiBookFile>();
 
         public DateTime CreationDateTimeUtc { get; set; } = DateTime.UtcNow;
+        [JsonIgnore]
+        public DateTime CreationDateTimeLocal => CreationDateTimeUtc.ToLocalTime();
         public DateTime ModifiDateTimeUtc { get; set; } = DateTime.UtcNow;
 
         public bool IsLocked { get; set; }
@@ -246,6 +249,18 @@ namespace UWPAudioBookPlayer.Model
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+
+        public string GetAnyCover()
+        {
+            return Cover ?? Images?.FirstOrDefault();
+        }
+
+        public bool IsLink(string url)
+        {
+            if (url.StartsWith("http", StringComparison.CurrentCultureIgnoreCase))
+                return true;
+            return false;
+        }
     }
 
     public class PlayBackHistoryElement
@@ -277,6 +292,19 @@ namespace UWPAudioBookPlayer.Model
 
         [JsonIgnore]
         public DateTime TimeStampLocal => TimeStampUtc.ToLocalTime();
+
+        [JsonIgnore]
+        public TimeSpan Duration
+        {
+            get
+            {
+                if (IsRange)
+                {
+                    return EndPosition - Position;
+                }
+                return Position;
+            }
+        }
     }
 
     [ImplementPropertyChanged]
@@ -316,7 +344,12 @@ namespace UWPAudioBookPlayer.Model
         public string Name { get; set; }
     }
 
-    public class AudioBookSourceFactory
+    public interface IImageController
+    {
+        Task<Stream> GetImageAsStream(AudioBookSourceWithClouds book,string imageName);
+    }
+
+    public class AudioBookSourceFactory : IImageController
     {
         public string BookMarksFolder { get; set; } = "Bookmarks";
         public string[] Extensions { get; set; } = new[] {".mp3", ".vaw", "m4p"};
@@ -441,16 +474,35 @@ namespace UWPAudioBookPlayer.Model
             return $"{bookmark.Order}_{bookmark.Title}";
         }
 
+        public BookMark GetBookMarkFromFileName(string fileName)
+        {
+            var str1 = fileName.Split(new[] {'_'}, StringSplitOptions.RemoveEmptyEntries);
+            return new BookMark
+            {
+                Order = int.Parse(str1[0]),
+                Title = str1[1],
+                IsRange =  true,
+                FileName = fileName,
+            };
+        }
+
         public async Task<KeyValuePair<string, Stream>> GetBookMark(AudioBookSourceWithClouds book, BookMark bookMark)
         {
+            if (!bookMark.IsRange)
+            {
+                var res = await book.GetFileStream(bookMark.FileName);
+                return new KeyValuePair<string, Stream>(res.Item1, res.Item2.AsStream());
+            }
             if (string.IsNullOrWhiteSpace(book.AccessToken))
-                throw new ArgumentNullException(nameof(book.AdditionSources));
+                throw new ArgumentNullException(nameof(book.AccessToken));
 
             var folder = await StorageApplicationPermissions.FutureAccessList.GetFolderAsync(book.AccessToken);
             try
             {
                 folder = await folder.GetFolderAsync(BookMarksFolder);
-                var file = await folder.GetFileAsync(GetBookMarkFileName(bookMark));
+                var files = (await folder.GetFilesAsync()).ToArray();
+                var name = bookMark.FileName;
+                var file =  files.FirstOrDefault(x=> x.Name == name);
                 return new KeyValuePair<string, Stream>(file.Name, await file.OpenStreamForReadAsync());
             }
             catch (FileNotFoundException ex)
@@ -459,5 +511,89 @@ namespace UWPAudioBookPlayer.Model
                 return new KeyValuePair<string, Stream>("", null);
             }
         }
+
+        public async Task<string[]> GetBookMarks(AudioBookSourceWithClouds book)
+        {
+            if (string.IsNullOrWhiteSpace(book.AccessToken))
+                throw new ArgumentNullException(nameof(book.AccessToken));
+
+            var folder = await StorageApplicationPermissions.FutureAccessList.GetFolderAsync(book.AccessToken);
+            try
+            {
+                folder = await folder.GetFolderAsync(BookMarksFolder);
+                var files = await folder.GetFilesAsync();
+                var result = new string[files.Count()];
+                for (int i = 0; i < files.Count(); i++)
+                    result[i] = files[i].Name;
+
+                return result;
+            }
+            catch (FileNotFoundException ex)
+            {
+                Debug.WriteLine($"{ex.Message}\n{ex.StackTrace}");
+                return new string[0];
+            }
+
+        }
+
+        public async Task<string[]> GetBookFiles(AudioBookSourceWithClouds book)
+        {
+            var dir = await StorageApplicationPermissions.FutureAccessList.GetFolderAsync(book.AccessToken);
+
+            var files =
+                (await dir.GetFilesAsync()).Where(f => Extensions.Contains(f.FileType)).Select(x => x.Name).ToArray();
+            return files;
+        }
+
+        public async Task<bool> ClearAllBookMarks(bool deleteFiles, AudioBookSourceWithClouds book)
+        {
+            var folder = await StorageApplicationPermissions.FutureAccessList.GetFolderAsync(book.AccessToken);
+            try
+            {
+                folder = await folder.GetFolderAsync(BookMarksFolder);
+            }
+            catch (FileNotFoundException ex)
+            {
+                Debug.WriteLine($"{ex.Message}\n{ex.StackTrace}");
+                book.BookMarks.Clear();
+                return true;
+            }
+            var files = await folder.GetFilesAsync();
+
+            try
+            {
+                List<Task> tasks = new List<Task>(files.Count + 1);
+                tasks.AddRange(files.Select(file => file.DeleteAsync().AsTask()));
+                await Task.WhenAll(tasks);
+                await folder.DeleteAsync(StorageDeleteOption.Default);
+                book.BookMarks.Clear();
+            }
+            catch (System.UnauthorizedAccessException ex)
+            {
+                return false;
+            }
+            catch (Exception e)
+            {
+                throw;
+            }
+            return true;
+        }
+
+        public async Task DeleteBookMarks(BookMark bookMark, AudioBookSourceWithClouds book)
+        {
+            var folder = await StorageApplicationPermissions.FutureAccessList.GetFolderAsync(book.AccessToken);
+            folder = await folder.GetFolderAsync(BookMarksFolder);
+            var file = await folder.GetFileAsync(bookMark.FileName);
+            if (file != null)
+                await file.DeleteAsync();
+        }
+
+
+        public async Task<Stream> GetImageAsStream(AudioBookSourceWithClouds book, string imageName)
+        {
+            var result = await book.GetFileStream(imageName);
+            return result.Item2.AsStream();
+        }
     }
+
 }

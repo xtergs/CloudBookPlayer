@@ -1,6 +1,7 @@
 ﻿<Page x:Class="UWPAudioBookPlayer.View.BookDetailInfo"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:controls="using:Microsoft.Toolkit.Uwp.UI.Controls"
       xmlns:converter="using:UWPAudioBookPlayer.Converter"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:local="using:UWPAudioBookPlayer.View"
@@ -19,15 +20,29 @@
             <RowDefinition Height="Auto" />
             <RowDefinition />
         </Grid.RowDefinitions>
-        <StackPanel>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+        <StackPanel Margin="10">
             <TextBlock Text="Title:" />
             <TextBlock Text="{Binding Book.Name}" />
             <TextBlock Text="Path: " />
             <TextBlock Text="{Binding Book.Path}" />
             <TextBlock Text="Folder: " />
             <TextBlock Text="{Binding Book.Folder}" />
+            <TextBlock Text="Total duration:" />
+            <TextBlock Text="{Binding Book.TotalDuration}" />
         </StackPanel>
-        <ListView Grid.Row="1" ItemsSource="{Binding Files}">
+        <controls:ImageEx Grid.Column="1"
+                          IsCacheEnabled="True"
+                          Source="{Binding Cover,
+                                           Mode=OneWay,
+                                           UpdateSourceTrigger=PropertyChanged}"
+                          Stretch="UniformToFill" />
+        <ListView Grid.Row="1"
+                  Grid.ColumnSpan="2"
+                  ItemsSource="{Binding Files}">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <Grid>

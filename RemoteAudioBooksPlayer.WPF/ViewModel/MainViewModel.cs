@@ -62,9 +62,7 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
 
         public MainViewModel(StreamPlayer player, bool startupDiscoveryListener = false)
         {
-            if (player == null)
-                throw new ArgumentNullException(nameof(player));
-            this.player = player;
+            this.player = player ?? throw new ArgumentNullException(nameof(player));
             streamerUdp = new StreamingUDP();
             discoverModule = new DiscoverModule();
             bookStreamer = new BookStreamer(streamerUdp);

@@ -6,6 +6,9 @@ using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
 using Autofac;
+using UWPAudioBookPlayer.DAL;
+using UWPAudioBookPlayer.Helper;
+using UWPAudioBookPlayer.Model;
 using UWPAudioBookPlayer.ModelView;
 using UWPAudioBookPlayer.Scrapers;
 using UWPAudioBookPlayer.Service;
@@ -17,6 +20,7 @@ namespace UWPAudioBookPlayer
         public static IContainer container;
 
         public static MainControlViewModel MainModelView;
+        public static BookMarksViewModel BookMarksViewModel;
     }
     
     /// <summary>
@@ -175,6 +179,11 @@ namespace UWPAudioBookPlayer
             builder.RegisterType<LibrivoxOnlineBooksViewModel>();
             builder.RegisterType<LIbriVoxScraper>();
             builder.RegisterType<RemoteDevicesService>();
+            builder.RegisterType<BookMarksViewModel>();
+            builder.RegisterType<UniversalNotification>().As<INotification>();
+            builder.RegisterType<JSonRepository>().As<IDataRepository>();
+            builder.RegisterType<AudioBookSourceFactory>();
+            builder.RegisterType<ManageSources>();
 
             var container = builder.Build();
             Global.container = container;

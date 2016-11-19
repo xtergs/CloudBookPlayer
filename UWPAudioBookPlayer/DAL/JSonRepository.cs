@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Windows.Storage;
 using Newtonsoft.Json;
@@ -76,7 +77,24 @@ namespace UWPAudioBookPlayer.DAL
 
         public bool AddBookMark(AudioBookSourceWithClouds book, BookMark bookMark)
         {
+            bookMark.Order = book.BookMarks.Count;
             book.BookMarks.Add(bookMark);
+            return true;
+        }
+
+        public void UpdateBookMark(AudioBookSourceWithClouds playingSource, BookMark obj)
+        {
+            var already = playingSource.BookMarks.Find(p => p.Order == obj.Order);
+            already.FileName = obj.FileName;
+            already.Position = obj.Position;
+            already.Title = obj.Title;
+            already.Description = obj.Description;
+        }
+
+        public bool RemoveBookMark(BookMark bookMark, AudioBookSourceWithClouds audioBook)
+        {
+            audioBook.BookMarks.Remove(
+                audioBook.BookMarks.FirstOrDefault(x => x.Order == bookMark.Order && x.Title == bookMark.Title));
             return true;
         }
 

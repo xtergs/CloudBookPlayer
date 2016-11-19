@@ -1,16 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using GalaSoft.MvvmLight.Command;
+using Windows.Storage;
+using Windows.Storage.AccessCache;
+using Windows.UI.Xaml.Data;
+using Windows.UI.Xaml.Media.Imaging;
+using PropertyChanged;
 using UWPAudioBookPlayer.DAL.Model;
 using UWPAudioBookPlayer.Model;
+using Binding = System.ServiceModel.Channels.Binding;
 
 namespace UWPAudioBookPlayer.ModelView
 {
+    [ImplementPropertyChanged]
     public class AudioBookSourceDetailViewModel
     {
+        public AudioBookSourceFactory factory;
         public List<AudioBookFileDetailWithClouds> Files { get; set; }
         public AudioBookSource Book { get; set; }
 
@@ -19,6 +26,46 @@ namespace UWPAudioBookPlayer.ModelView
         public bool IsShowOnlineFiles { get; set; }
 
         //public RelayCommand<AudioBookFileDetailWithClouds> UploadFile
+
+        public object Cover { get
+            ;
+            set;
+        }
+
+        public async Task<object> GetCover()
+        {
+            if (Book.Images != null && Book.Images.Any())
+            {
+                if (Book.Images[0].StartsWith("http"))
+                {
+                    Cover =  Book.Images[0];
+                    return Cover;
+                }
+
+                Cover =  await LoadPictyri(Book.Images[0]);
+                return Cover;
+
+            }
+            return null;
+        }
+
+        private async Task<object>  LoadPictyri(string filename)
+        {
+            try
+            {
+                var folder = await StorageApplicationPermissions.FutureAccessList.GetFolderAsync(Book.AccessToken);
+                var file = await folder.GetFileAsync(filename);
+                BitmapImage image = new BitmapImage();
+                await image.SetSourceAsync(await file.OpenReadAsync());
+                return image;
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"{e.Message} \n{e.StackTrace}");
+                return null;
+            }
+
+        }
 
         public AudioBookSourceDetailViewModel(AudioBookSource source, AudioBookSource[] clouds)
         {

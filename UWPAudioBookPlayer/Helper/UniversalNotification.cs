@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using Windows.UI.Core;
 using Windows.UI.Popups;
 
 namespace UWPAudioBookPlayer.Helper
 {
     class UniversalNotification : INotification
     {
-        private List<UICommand> GetCommand(ActionButtons buttons)
+        private static List<UICommand> GetCommand(ActionButtons buttons)
         {
             var res = new List<UICommand>(2);
             if (buttons.HasFlag(ActionButtons.Ok))
@@ -17,6 +17,13 @@ namespace UWPAudioBookPlayer.Helper
                 res.Add(new UICommand(ActionButtons.Cancel.ToString()));
             return res;
         }
+
+        private static List<UICommand> GetCommand(ActionButtons[] buttons)
+        {
+            var res = buttons.Select(c => new UICommand(c.ToString())).ToList();
+            return res;
+        }
+
         public async Task ShowMessage(string title, string message)
         {
             var messageDialog = new MessageDialog(message, title);
@@ -24,6 +31,16 @@ namespace UWPAudioBookPlayer.Helper
         }
 
         public async Task<ActionButtons> ShowMessage(string title, string message, ActionButtons buttons)
+        {
+            var messageDialog = new MessageDialog(message, title);
+            var commands = GetCommand(buttons);
+            foreach (var command in commands)
+                messageDialog.Commands.Add(command);
+            var res = await messageDialog.ShowAsync();
+            return (ActionButtons)Enum.Parse(typeof(ActionButtons), res.Label);
+        }
+
+        public async Task<ActionButtons> ShowMessage(string title, string message, params ActionButtons[] buttons)
         {
             var messageDialog = new MessageDialog(message, title);
             var commands = GetCommand(buttons);
@@ -58,6 +75,12 @@ namespace UWPAudioBookPlayer.Helper
             return result;
 
 
+        }
+
+        public async Task ShowMessageAsync(string changelog)
+        {
+            var messageDialog = new MessageDialog(changelog);
+            await messageDialog.ShowAsync();
         }
     }
 }

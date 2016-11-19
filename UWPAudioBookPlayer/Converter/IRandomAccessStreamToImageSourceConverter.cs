@@ -20,6 +20,7 @@ namespace UWPAudioBookPlayer.Converter
             var bitMap = new BitmapImage();
             try
             {
+                stream.Seek(0);
                 bitMap.SetSourceAsync(stream);
             }
             catch

@@ -7,6 +7,7 @@
       xmlns:local="using:UWPAudioBookPlayer.View"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:model="using:UWPAudioBookPlayer.Model"
+      x:Name="page"
       MinHeight="0"
       Margin="10"
       HorizontalAlignment="Stretch"
@@ -66,19 +67,25 @@
                           Icon="Microphone"
                           IsCompact="True" />
         </Grid>
-        <Grid>
-            <TextBlock HorizontalAlignment="Left" Text="{Binding Position.TotalSeconds, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource SecondsToTimeSpanConverter}}" />
-            <TextBlock HorizontalAlignment="Right" Text="{Binding EndPosition.TotalSeconds, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource SecondsToTimeSpanConverter}}" />
-        </Grid>
+
         <CheckBox Content="Use range selector" IsChecked="{Binding IsRange, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-        <TextBlock Text="Tip: If you check 'Use range selector' then bookmark will be saved like separate trimmed file "
+        <TextBlock FontSize="10"
+                   Text="Tip: If you check 'Use range selector' then bookmark will be saved like separate trimmed file "
                    TextWrapping="WrapWholeWords"
                    Visibility="{Binding IsRange,
                                         Converter={StaticResource BoolToVisibilityConverter},
                                         Mode=OneWay,
                                         UpdateSourceTrigger=PropertyChanged}" />
-        <controls:RangeSelector Maximum="{Binding ElementName=player,
-                                                  Path=NaturalDuration.TimeSpan.TotalSeconds}"
+        <TextBlock Margin="0,5,0,0" Text="Use left handle to select a bookmark position" />
+        <TextBlock Text="Use right handle to select end of bookmark" Visibility="{Binding IsRange, Converter={StaticResource BoolToVisibilityConverter}, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
+        <Grid Margin="0,10,0,0">
+            <TextBlock HorizontalAlignment="Left" Text="{Binding Position.TotalSeconds, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource SecondsToTimeSpanConverter}}" />
+            <TextBlock HorizontalAlignment="Right" Text="{Binding EndPosition.TotalSeconds, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource SecondsToTimeSpanConverter}}" />
+        </Grid>
+        <controls:RangeSelector x:Name="range"
+                                Maximum="{Binding ElementName=page,
+                                                  Path=MaxDurations.TotalSeconds,
+                                                  Mode=OneWay}"
                                 Minimum="0"
                                 RangeMax="{Binding EndPosition,
                                                    Mode=TwoWay,
@@ -88,6 +95,26 @@
                                                    Mode=TwoWay,
                                                    UpdateSourceTrigger=PropertyChanged,
                                                    Converter={StaticResource TimeSpanToSecondsConverter}}" />
+        <!--<TextBlock>
+            <Run Text="Maximum: " />
+            <Run Text="{x:Bind range.Maximum, Mode=OneWay}" />
+            <LineBreak />
+            <Run Text="Minumum: " />
+            <Run Text="{x:Bind range.Minimum}" />
+            <LineBreak />
+            <Run Text="Value: " />
+            <Run Text="{x:Bind range.RangeMin, Mode=OneWay}" />
+        </TextBlock>
+        <TextBlock>
+            <Run Text="Maximum: " />
+            <Run Text="{x:Bind MaxDurations, Mode=OneWay}" />
+            <LineBreak />
+            <Run Text="Minumum: " />
+            <Run Text="{x:Bind range.Minimum}" />
+            <LineBreak />
+            <Run Text="Value: " />
+            <Run Text="{x:Bind bookmark.Position, Mode=OneWay}" />
+        </TextBlock>-->
         <!--<Slider Maximum="{Binding NaturalDuration.TimeSpan.TotalSeconds,
                                   ElementName=player}"
                 ThumbToolTipValueConverter="{StaticResource SecondsToTimeSpanConverter}"
@@ -103,7 +130,6 @@
                             HorizontalAlignment="Stretch"
                             AreTransportControlsEnabled="True"
                             AutoPlay="False"
-                            Background="LightGray"
                             Visibility="Visible">
             <MediaPlayerElement.TransportControls>
                 <MediaTransportControls IsCompact="False"

@@ -11,9 +11,11 @@ using Microsoft.QueryStringDotNET; // QueryString.NET
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Data;
+using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Navigation;
 using UWPAudioBookPlayer.ModelView;
 using Autofac;
+using UWPAudioBookPlayer.Helper;
 using UWPAudioBookPlayer.Service;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=234238
@@ -44,6 +46,11 @@ namespace UWPAudioBookPlayer.View
                     a.Handled = true;
                 }
             };
+
+            if (Microsoft.Services.Store.Engagement.StoreServicesFeedbackLauncher.IsSupported())
+            {
+                this.feedbackButton.Visibility = Visibility.Visible;
+            }
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -186,6 +193,22 @@ namespace UWPAudioBookPlayer.View
 
                 ToastNotificationManager.CreateToastNotifier().Show(new ToastNotification(toastContent.GetXml()));
             });
+        }
+
+        private void ButtonBase_OnClick(object sender, RoutedEventArgs e)
+        {
+            Global.container.Resolve<INotification>().ShowMessageAsync(_modelView.Changelog);
+        }
+
+        private async void feedbackButton_Click(object sender, RoutedEventArgs e)
+        {
+            var launcher = Microsoft.Services.Store.Engagement.StoreServicesFeedbackLauncher.GetDefault();
+            await launcher.LaunchAsync();
+        }
+
+        private void UIElement_OnPointerPressed(object sender, PointerRoutedEventArgs e)
+        {
+            
         }
     }
 }

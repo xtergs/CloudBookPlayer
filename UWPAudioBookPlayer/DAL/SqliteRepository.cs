@@ -66,5 +66,15 @@ namespace UWPAudioBookPlayer.DAL
         {
             throw new NotImplementedException();
         }
+
+        public void UpdateBookMark(AudioBookSourceWithClouds playingSource, BookMark obj)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool RemoveBookMark(BookMark bookMark, AudioBookSourceWithClouds audioBook)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

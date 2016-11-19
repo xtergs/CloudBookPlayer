@@ -93,6 +93,11 @@ namespace UWPAudioBookPlayer.DAL.Model
             
         }
 
+        public override string ToString()
+        {
+            return "LibriVox";
+        }
+
         public bool IsChangesObserveAvalible => false;
         public event EventHandler<FileChangedStruct> FileChanged;
         public event EventHandler<AudioBookSourceCloud> MediaInfoChanged;

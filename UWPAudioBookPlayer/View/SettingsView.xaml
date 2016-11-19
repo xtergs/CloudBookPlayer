@@ -6,6 +6,8 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:modelView="using:UWPAudioBookPlayer.ModelView"
       xmlns:remoteSystems="using:Windows.System.RemoteSystems"
+      xmlns:service="using:UWPAudioBookPlayer.Service"
+      xmlns:uwpColor="using:UWPColor"
       x:Name="page"
       d:DataContext="{d:DesignInstance modelView:SettingsModelView}"
       mc:Ignorable="d">
@@ -14,6 +16,11 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -71,6 +78,16 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
+        <Button x:Name="feedbackButton"
+                Grid.Row="1"
+                Grid.Column="0"
+                Margin="0,0,10,0"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Click="feedbackButton_Click"
+                Content="&#xE939;"
+                FontFamily="Segoe MDL2 Assets"
+                Visibility="Collapsed" />
         <AppBarButton Grid.Row="2"
                       Icon="Add"
                       Label="Add more">
@@ -89,11 +106,104 @@
                 </MenuFlyout>
             </AppBarButton.Flyout>
         </AppBarButton>
-        <Button Grid.Row="3"
+        <StackPanel Grid.Row="3" Orientation="Vertical">
+            <ToggleSwitch IsOn="{Binding StartInCompactMode,
+                                         Mode=TwoWay,
+                                         UpdateSourceTrigger=PropertyChanged}"
+                          OffContent="Start in normal mode"
+                          OnContent="Start in compact mode" />
+            <ToggleSwitch IsOn="{Binding AskBeforeDeletionBook,
+                                         Mode=TwoWay,
+                                         UpdateSourceTrigger=PropertyChanged}"
+                          OffContent="Do not ask before deletion of book"
+                          OnContent="Always ask before deletion of book" />
+            <Button Click="ButtonBase_OnClick" Content="Show changlog" />
+            <TextBlock>
+                <Run Text="App version: " />
+                <Run Text="{Binding SavedVersion, Mode=OneTime}" />
+            </TextBlock>
+            <TextBlock>
+                <Hyperlink Click="feedbackButton_Click">Click to write suggestion or request</Hyperlink>
+            </TextBlock>
+            <ComboBox ItemsSource="{x:Bind _modelView.AvaliableListDataTemplages}" DisplayMemberPath="HumanValue" SelectedItem="{Binding SelectedListDataTemplate, Mode=TwoWay}" Header="Show list item as:"/>
+            <TextBlock Text="Standart cover:"/>
+            <FlipView MaxHeight="200" MaxWidth="200" ItemsSource="{Binding AvaliableStandartCovers, Mode=OneTime}" SelectedItem="{Binding StandartCover,Mode=TwoWay}">
+                <FlipView.ItemTemplate>
+                    <DataTemplate>
+                        <Image Source="{Binding}"/>
+                    </DataTemplate>
+                </FlipView.ItemTemplate>
+            </FlipView>
+            <StackPanel Visibility="{Binding IsDevelopMode, Converter={StaticResource BoolToVisibilityConverter}}" Background="Gray">
+                <TextBlock Text="For Development:" FontSize="20"/>
+                <ToggleSwitch IsOn="{Binding IsShowBackgroundImage, Mode=TwoWay}" OnContent="IsShowBackgroundImage" />
+                <ToggleSwitch IsOn="{Binding IsShowPlayingBookImage, Mode=TwoWay}" OnContent="IsShowPlayingBookImage" />
+                <ToggleSwitch IsOn="{Binding IsBlurBackgroundImage, Mode=TwoWay}" OnContent="Is blur background Image" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Margin="5" VerticalAlignment="Center">
+                        <Run Text="Blur: " />
+                        <Run Text="{Binding ValueToBlurBackgroundImage, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </TextBlock>
+                    <Slider Grid.Column="1"
+                            IsEnabled="{Binding IsBlurBackgroundImage,
+                                                Mode=OneWay,
+                                                UpdateSourceTrigger=PropertyChanged}"
+                            Maximum="50"
+                            Minimum="0"
+                            StepFrequency="1"
+                            Value="{Binding ValueToBlurBackgroundImage,
+                                            Mode=TwoWay,
+                                            UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Margin="5" VerticalAlignment="Center">
+                        <Run Text="Blur user controls: " />
+                        <Run Text="{Binding BlurControlPanel, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </TextBlock>
+                    <Slider Grid.Row="1"
+                            Maximum="50"
+                            Minimum="0"
+                            StepFrequency="1"
+                            Value="{Binding BlurControlPanel,
+                                            Mode=TwoWay,
+                                            UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+                <ToggleSwitch IsOn="{Binding BlurOnlyOverImage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" OnContent="Blur only over background image" />
+                <ToggleSwitch IsOn="{Binding FillBackgroundEntireWindow, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" OnContent="Fill background image entire window" />
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Margin="5" VerticalAlignment="Center">
+                        <Run Text="Blur user controls: " />
+                        <Run Text="{Binding OpacityUserBlur, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </TextBlock>
+                    <Slider Grid.Row="1"
+                            Maximum="255"
+                            Minimum="0"
+                            StepFrequency="1"
+                            Value="{Binding OpacityUserBlur,
+                                            Mode=TwoWay,
+                                            UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+            </StackPanel>
+        </StackPanel>
+        <Button Grid.Row="4"
                 Click="StartDiscoveryListening"
-                Content="StartListening" />
+                Content="StartListening"
+                Visibility="Collapsed" />
         <ListView x:Name="DevicesLists"
-                  Grid.Row="4"
+                  Grid.Row="5"
                   IsItemClickEnabled="True"
                   ItemClick="DeviceSelected"
                   SelectionMode="None">

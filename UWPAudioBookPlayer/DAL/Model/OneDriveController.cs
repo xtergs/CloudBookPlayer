@@ -277,14 +277,16 @@ namespace UWPAudioBookPlayer.DAL.Model
             CloudStamp = _msaAuthenticationProvider.CurrentAccountSession.UserId;
         }
 
-        public async Task Uploadbook(string BookName, string fileName, Stream stream)
+        public Task Uploadbook(string BookName, string fileName, Stream stream)
         {
-            await client.Drive.Root.ItemWithPath(BaseFolder + "/" + BookName + "/" + fileName).Content.Request().PutAsync<Item>(stream);
+            return client.Drive.Root.ItemWithPath(BaseFolder + "/" + BookName + "/" + fileName).Content.Request().PutAsync<Item>(stream);
         }
 
         public Task Uploadfile(AudioBookSourceWithClouds book, string fileName, Stream stream, string subPath = "")
         {
-            throw new NotImplementedException();
+            if (!string.IsNullOrWhiteSpace(subPath) && !subPath.StartsWith("/"))
+                subPath = "/" + subPath;
+            return client.Drive.Root.ItemWithPath(BaseFolder + "/" + book.Folder + subPath + "/" + fileName).Content.Request().PutAsync<Item>(stream);
         }
 
         public async Task UploadBookMetadata(AudioBookSource source, string revision = null)

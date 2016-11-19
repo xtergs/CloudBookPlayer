@@ -1,21 +1,20 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace UWPAudioBookPlayer.Helper
 {
     [Flags]
-    enum ActionButtons
+    public enum ActionButtons
     {
         Ok, Cancel,
-        Retry, None, Continue
+        Retry, None, Continue, Yes, No
     }
-    interface INotification
+
+    public interface INotification
     {
         Task ShowMessage(string title, string message);
-        Task<ActionButtons> ShowMessage(string title, string message, ActionButtons buttons);
+        Task<ActionButtons> ShowMessage(string title, string message, params ActionButtons[] buttons);
         Task<ActionButtons> ShowMessageWithTimer(string title, string message, ActionButtons buttons, int duration);
+        Task ShowMessageAsync(string changelog);
     }
 }

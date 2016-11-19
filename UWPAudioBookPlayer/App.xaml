@@ -12,5 +12,7 @@
         <converter:IRandomAccessStreamToImageSourceConverter x:Key="IRandomAccessStreamToImageSourceConverter" />
         <converter:NullToBoolConverter x:Key="NullToBoolConverter" />
         <converter:TimeSpanToSecondsConverter x:Key="TimeSpanToSecondsConverter" />
+        <converter:BoolToNotVisiblityConverter x:Key="BoolToNotVisiblityConverter" />
+        <converter:BoolToUniformOrFillConverter x:Key="BoolToUniformOrFillConverter" />
     </Application.Resources>
 </Application>

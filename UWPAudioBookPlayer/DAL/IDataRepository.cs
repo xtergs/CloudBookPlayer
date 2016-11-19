@@ -13,5 +13,7 @@ namespace UWPAudioBookPlayer.DAL
 
         BookMark[] BookMarks(AudioBookSourceWithClouds book);
         bool AddBookMark(AudioBookSourceWithClouds book, BookMark bookMark);
+        void UpdateBookMark(AudioBookSourceWithClouds playingSource, BookMark obj);
+        bool RemoveBookMark(BookMark bookMark, AudioBookSourceWithClouds audioBook);
     }
 }
