@@ -481,13 +481,14 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <controls:ImageEx Grid.Row="0"
+                                  MaxWidth="200" MaxHeight="200"
                                           HorizontalAlignment="Stretch"
                                           VerticalAlignment="Stretch"
                                           DataContextChanged="FrameworkElement_OnDataContextChanged"
                                           IsCacheEnabled="True"
                                           PlaceholderSource="{Binding ElementName=page, Path=DataContext.Settings.StandartCover, Mode=OneTime}"
                                           Source="{Binding Cover}"
-                                          Stretch="UniformToFill" />
+                                          Stretch="Uniform" />
                 <ProgressBar Grid.Row="1"
                                      Maximum="{Binding Files.Count}"
                                      Minimum="0"
@@ -944,6 +945,8 @@
                 <Style TargetType="ListViewItem">
                     <Setter Property="HorizontalAlignment" Value="Stretch" />
                     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="VerticalAlignment" Value="Stretch"/>
+                    <Setter Property="VerticalContentAlignment" Value="Stretch"/>
                 </Style>
             </controls:PullToRefreshListView.ItemContainerStyle>
             <controls:PullToRefreshListView.ContextFlyout>

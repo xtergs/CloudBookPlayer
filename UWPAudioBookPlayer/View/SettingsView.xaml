@@ -13,6 +13,28 @@
       mc:Ignorable="d">
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="VisualStateGroup">
+                <VisualState x:Name="Compact">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowHeight="0"/>
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="listView.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="flipView.(UIElement.Visibility)" Value="Visible"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="FullWindow">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="720"/>
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="listView.(UIElement.Visibility)" Value="Visible"/>
+                        <Setter Target="flipView.(UIElement.Visibility)" Value="Collapsed"/>
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition />
@@ -26,9 +48,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <ToggleSwitch Header="Automaticali delete files from DropBox"
-                      IsOn="{Binding AutomaticaliDeleteFilesFromDrBox,
-                                     UpdateSourceTrigger=PropertyChanged,
-                                     Mode=TwoWay}"
+                      IsOn="{Binding AutomaticaliDeleteFilesFromDrBox, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                       Visibility="Collapsed" />
         <ListView Grid.Row="1"
                   VerticalAlignment="Stretch"
@@ -43,35 +63,26 @@
                         </Grid.ColumnDefinitions>
                         <Image Source="{Binding Type, Converter={StaticResource CloudTypetoImiageConverter}}" />
                         <AppBarButton Grid.Column="2"
-                                      Command="{Binding ElementName=page,
-                                                        Path=DataContext.RemoveCloudController}"
+                                      Command="{Binding DataContext.RemoveCloudController, ElementName=page}"
                                       CommandParameter="{Binding}"
                                       Icon="Remove"
                                       Label="Remove" />
                         <StackPanel Grid.Column="1">
                             <TextBlock>
-                                <TextBlock.Inlines>
                                     <Run Text="Type: " />
                                     <Run Text="{Binding}" />
-                                </TextBlock.Inlines>
                             </TextBlock>
                             <TextBlock ToolTipService.ToolTip="{Binding Token}">
-                                <TextBlock.Inlines>
                                     <Run Text="Token: " />
                                     <Run Text="will not show" />
-                                </TextBlock.Inlines>
                             </TextBlock>
                             <TextBlock>
-                                <TextBlock.Inlines>
                                     <Run Text="CloudStamp: " />
                                     <Run Text="{Binding CloudStamp}" />
-                                </TextBlock.Inlines>
                             </TextBlock>
                             <TextBlock>
-                                <TextBlock.Inlines>
                                     <Run Text="BaseFolder: " />
                                     <Run Text="{Binding BaseFolder}" />
-                                </TextBlock.Inlines>
                             </TextBlock>
                         </StackPanel>
                     </Grid>
@@ -107,14 +118,10 @@
             </AppBarButton.Flyout>
         </AppBarButton>
         <StackPanel Grid.Row="3" Orientation="Vertical">
-            <ToggleSwitch IsOn="{Binding StartInCompactMode,
-                                         Mode=TwoWay,
-                                         UpdateSourceTrigger=PropertyChanged}"
+            <ToggleSwitch IsOn="{Binding StartInCompactMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                           OffContent="Start in normal mode"
                           OnContent="Start in compact mode" />
-            <ToggleSwitch IsOn="{Binding AskBeforeDeletionBook,
-                                         Mode=TwoWay,
-                                         UpdateSourceTrigger=PropertyChanged}"
+            <ToggleSwitch IsOn="{Binding AskBeforeDeletionBook, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                           OffContent="Do not ask before deletion of book"
                           OnContent="Always ask before deletion of book" />
             <Button Click="ButtonBase_OnClick" Content="Show changlog" />
@@ -123,11 +130,32 @@
                 <Run Text="{Binding SavedVersion, Mode=OneTime}" />
             </TextBlock>
             <TextBlock>
-                <Hyperlink Click="feedbackButton_Click">Click to write suggestion or request</Hyperlink>
+                <Hyperlink Click="feedbackButton_Click">
+                    <Run Text="Click to write suggestion or request"/>
+</Hyperlink>
             </TextBlock>
-            <ComboBox ItemsSource="{x:Bind _modelView.AvaliableListDataTemplages}" DisplayMemberPath="HumanValue" SelectedItem="{Binding SelectedListDataTemplate, Mode=TwoWay}" Header="Show list item as:"/>
+            <ComboBox ItemsSource="{Binding AvaliableListDataTemplages, Mode=OneTime}" DisplayMemberPath="HumanValue" SelectedItem="{Binding SelectedListDataTemplate, Mode=TwoWay}" Header="Show list item as:"/>
             <TextBlock Text="Standart cover:"/>
-            <FlipView MaxHeight="200" MaxWidth="200" ItemsSource="{Binding AvaliableStandartCovers, Mode=OneTime}" SelectedItem="{Binding StandartCover,Mode=TwoWay}">
+            <ListView x:Name="listView" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ItemsSource="{Binding AvaliableStandartCovers, Mode=OneTime}" SelectedItem="{Binding StandartCover, Mode=TwoWay}" SelectionMode="Single">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                        <Setter Property="MinWidth" Value="0"/>
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Image HorizontalAlignment="Center" MaxHeight="200" MaxWidth="200" Source="{Binding}"/>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+                <ListView.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <ItemsWrapGrid Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ListView.ItemsPanel>
+            </ListView>
+            <FlipView x:Name="flipView" MaxHeight="200" MaxWidth="200" ItemsSource="{Binding AvaliableStandartCovers, Mode=OneTime}" SelectedItem="{Binding StandartCover, Mode=TwoWay}">
                 <FlipView.ItemTemplate>
                     <DataTemplate>
                         <Image Source="{Binding}"/>
@@ -149,15 +177,11 @@
                         <Run Text="{Binding ValueToBlurBackgroundImage, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
                     </TextBlock>
                     <Slider Grid.Column="1"
-                            IsEnabled="{Binding IsBlurBackgroundImage,
-                                                Mode=OneWay,
-                                                UpdateSourceTrigger=PropertyChanged}"
+                            IsEnabled="{Binding IsBlurBackgroundImage, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                             Maximum="50"
                             Minimum="0"
                             StepFrequency="1"
-                            Value="{Binding ValueToBlurBackgroundImage,
-                                            Mode=TwoWay,
-                                            UpdateSourceTrigger=PropertyChanged}" />
+                            Value="{Binding ValueToBlurBackgroundImage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                 </Grid>
 
                 <Grid>
@@ -173,9 +197,7 @@
                             Maximum="50"
                             Minimum="0"
                             StepFrequency="1"
-                            Value="{Binding BlurControlPanel,
-                                            Mode=TwoWay,
-                                            UpdateSourceTrigger=PropertyChanged}" />
+                            Value="{Binding BlurControlPanel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                 </Grid>
                 <ToggleSwitch IsOn="{Binding BlurOnlyOverImage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" OnContent="Blur only over background image" />
                 <ToggleSwitch IsOn="{Binding FillBackgroundEntireWindow, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" OnContent="Fill background image entire window" />
@@ -192,9 +214,7 @@
                             Maximum="255"
                             Minimum="0"
                             StepFrequency="1"
-                            Value="{Binding OpacityUserBlur,
-                                            Mode=TwoWay,
-                                            UpdateSourceTrigger=PropertyChanged}" />
+                            Value="{Binding OpacityUserBlur, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                 </Grid>
             </StackPanel>
         </StackPanel>
@@ -211,7 +231,6 @@
                 <DataTemplate>
                     <StackPanel>
                         <TextBlock>
-                            <TextBlock.Inlines>
                                 <Run Text="DisplayName: " />
                                 <Run Text="{Binding DisplayName}" />
                                 <Run Text="IsAvailableByProximity: " />
@@ -220,7 +239,6 @@
                                 <Run Text="{Binding Kind}" />
                                 <Run Text="Status: " />
                                 <Run Text="{Binding Status}" />
-                            </TextBlock.Inlines>
                         </TextBlock>
                         <TextBlock Text="{Binding Id}" />
                     </StackPanel>
