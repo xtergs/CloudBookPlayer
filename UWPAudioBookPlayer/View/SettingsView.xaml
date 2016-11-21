@@ -21,7 +21,6 @@
                     <VisualState.Setters>
                         <Setter Target="listView.(UIElement.Visibility)" Value="Collapsed"/>
                         <Setter Target="flipView.(UIElement.Visibility)" Value="Visible"/>
-                        <Setter Target="listView1.(UIElement.Visibility)" Value="Visible"/>
                         <Setter Target="stackPanel.(UIElement.Visibility)" Value="Collapsed"/>
                         <Setter Target="scrollViewer.(UIElement.Visibility)" Value="Collapsed"/>
                     </VisualState.Setters>
@@ -30,13 +29,11 @@
                     <VisualState.Setters>
                         <Setter Target="listView.(UIElement.Visibility)" Value="Visible"/>
                         <Setter Target="flipView.(UIElement.Visibility)" Value="Collapsed"/>
-                        <Setter Target="listView1.(UIElement.Visibility)" Value="Collapsed"/>
                         <Setter Target="stackPanel.(UIElement.Visibility)" Value="Visible"/>
                     </VisualState.Setters>
                 </VisualState>
                 <VisualState x:Name="Accounts">
                     <VisualState.Setters>
-                        <Setter Target="listView1.(UIElement.Visibility)" Value="Collapsed"/>
                         <Setter Target="stackPanel.(UIElement.Visibility)" Value="Visible"/>
                         <Setter Target="scrollViewer.(UIElement.Visibility)" Value="Visible"/>
                         <Setter Target="SomeSettingsStack.(UIElement.Visibility)" Value="Collapsed"/>
@@ -48,14 +45,12 @@
                     <VisualState.Setters>
                         <Setter Target="stackPanel.(UIElement.Visibility)" Value="Collapsed"/>
                         <Setter Target="stackPanel1.(UIElement.Visibility)" Value="Collapsed"/>
-                        <Setter Target="listView1.(UIElement.Visibility)" Value="Collapsed"/>
                         <Setter Target="SomeSettingsStack.(UIElement.Visibility)" Value="Visible"/>
                         <Setter Target="CoverStack.(UIElement.Visibility)" Value="Collapsed"/>
                     </VisualState.Setters>
                 </VisualState>
                 <VisualState x:Name="Development">
                     <VisualState.Setters>
-                        <Setter Target="listView1.(UIElement.Visibility)" Value="Collapsed"/>
                         <Setter Target="stackPanel.(UIElement.Visibility)" Value="Collapsed"/>
                         <Setter Target="stackPanel1.(UIElement.Visibility)" Value="Visible"/>
                         <Setter Target="CoverStack.(UIElement.Visibility)" Value="Collapsed"/>
@@ -65,15 +60,35 @@
                 <VisualState x:Name="CoverViewState">
                     <VisualState.Setters>
                         <Setter Target="SomeSettingsStack.(UIElement.Visibility)" Value="Collapsed"/>
-                        <Setter Target="listView1.(UIElement.Visibility)" Value="Collapsed"/>
                         <Setter Target="stackPanel.(UIElement.Visibility)" Value="Collapsed"/>
                         <Setter Target="stackPanel1.(UIElement.Visibility)" Value="Collapsed"/>
                         <Setter Target="listView.(UIElement.Visibility)" Value="Collapsed"/>
                     </VisualState.Setters>
                 </VisualState>
+                <VisualState x:Name="FullWindowImages">
+                    <VisualState.Setters>
+                        <Setter Target="SomeSettingsStack.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="stackPanel.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="stackPanel1.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="flipView.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="listView.(UIElement.Visibility)" Value="Visible"/>
+                    </VisualState.Setters>
+                </VisualState>
             </VisualStateGroup>
-            
-                
+            <VisualStateGroup x:Name="LeftPanelStateGroup">
+                <VisualState x:Name="ShowPanel">
+                    <VisualState.Setters>
+                        <Setter Target="listView1.(UIElement.Visibility)" Value="Visible"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="HidePanel">
+                    <VisualState.Setters>
+                        <Setter Target="listView1.(UIElement.Visibility)" Value="Collapsed"/>
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+
+
         </VisualStateManager.VisualStateGroups>
         <Grid.RowDefinitions>
             <RowDefinition />
@@ -84,13 +99,17 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <ListView x:Name="listView1" Header="App settings"  SelectionMode="None" IsItemClickEnabled="True" ItemClick="listView1_ItemClick" >
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <ListView x:Name="listView1" Header="App settings"  SelectionMode="Single" IsItemClickEnabled="True" ItemClick="listView1_ItemClick" >
             <ListViewItem Content="Accounts" Tag="Accounts"/>
             <ListViewItem Content="Some settings" Tag="SomeSettings"/>
             <ListViewItem Content="Development settings" Tag="Development"/>
             <ListViewItem Content="Cover settings" Tag="CoverViewState"/>
         </ListView>
-        <ScrollViewer VerticalScrollBarVisibility="Auto" x:Name="scrollViewer" Grid.Row="0" VerticalAlignment="Stretch">
+        <ScrollViewer Grid.Column="1"  VerticalScrollBarVisibility="Auto" x:Name="scrollViewer" Grid.Row="0" VerticalAlignment="Stretch">
             <StackPanel Grid.Row="3" Orientation="Vertical">
         <ToggleSwitch Header="Automaticali delete files from DropBox"
                       IsOn="{Binding AutomaticaliDeleteFilesFromDrBox, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -184,7 +203,7 @@
                 <ComboBox ItemsSource="{Binding AvaliableListDataTemplages, Mode=OneTime}" DisplayMemberPath="HumanValue" SelectedItem="{Binding SelectedListDataTemplate, Mode=TwoWay}" Header="Show list item as:"/>
                 </StackPanel>
                 <StackPanel x:Name="CoverStack">
-                <TextBlock Text="Standart cover:"/>
+                    <TextBlock Text="Standart cover:"/>
                     <ToggleSwitch x:Name="UseStandartCoverSwitch" OnContent="Use standart cover" IsOn="{Binding UseStandartCover, Mode=TwoWay}" OffContent="Use my own cover"/>
                     <Grid Visibility="{Binding ElementName=UseStandartCoverSwitch, Path=IsOn, Converter={StaticResource BoolToNotVisiblityConverter}, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
                         <Grid.RowDefinitions>
@@ -310,8 +329,9 @@
             </ListView.ItemTemplate>
         </ListView>
 
-        <Button x:Name="feedbackButton"
+        <Button  x:Name="feedbackButton"
                 Grid.Column="0"
+                 Grid.ColumnSpan="2"
                 Margin="0,0,10,0"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Top"

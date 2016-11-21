@@ -247,21 +247,48 @@ namespace UWPAudioBookPlayer.View
             ChangeVisualState();
         }
 
-        private void ChangeVisualState()
+        private void ChangeLeftPanelUI(double width, double height)
         {
-            if (this.ActualWidth >= WidthCompactTrashhold)
+            if (width >= WidthCompactTrashhold)
             {
-                VisualStateManager.GoToState(this, FullWindow.Name, true);
-                return;
+                VisualStateManager.GoToState(this, ShowPanel.Name, true);
             }
-            if (CompactState == "")
+            else if (CompactState == "")
             {
-                VisualStateManager.GoToState(this, Compact.Name, true);
-                return;
+                VisualStateManager.GoToState(this, ShowPanel.Name, true);
             }
             else
-                VisualStateManager.GoToState(this, CompactState, true);
+                VisualStateManager.GoToState(this, HidePanel.Name, true);
+        }
 
+        private void ChangeRightPartUI(double width, double height)
+        {
+            if (width >= WidthCompactTrashhold)
+            {
+                if (listView1.SelectedIndex < 0)
+                    listView1.SelectedIndex = 0;
+                if (CompactState == CoverViewState.Name)
+                    VisualStateManager.GoToState(this, FullWindowImages.Name, true);
+            }
+            else
+            {
+                if (CompactState == "")
+                {
+                    listView1.SelectedIndex = -1;
+                    VisualStateManager.GoToState(this, Compact.Name, true);
+                }
+                else if (CompactState == CoverViewState.Name)
+                {
+                    VisualStateManager.GoToState(this, CompactState, true);
+
+                }
+            }
+        }
+
+        private void ChangeVisualState()
+        {
+            ChangeLeftPanelUI(ActualWidth, ActualHeight);
+            ChangeRightPartUI(ActualWidth, ActualHeight);
         }
 
         private void listView1_ItemClick(object sender, ItemClickEventArgs e)
@@ -270,6 +297,7 @@ namespace UWPAudioBookPlayer.View
             var listView = (ListView)e.OriginalSource;
 
             CompactState = (string)listView.Items.OfType<ListViewItem>().First(x=> x.Content as string == selectedSettings).Tag;
+            VisualStateManager.GoToState(this, CompactState, true);
             ChangeVisualState();
         }
 
