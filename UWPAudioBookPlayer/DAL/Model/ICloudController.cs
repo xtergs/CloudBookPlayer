@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using UWPAudioBookPlayer.Model;
 using UWPAudioBookPlayer.ModelView;
@@ -38,4 +39,16 @@ namespace UWPAudioBookPlayer.DAL.Model
         event EventHandler<FileChangedStruct> FileChanged;
         event EventHandler<AudioBookSourceCloud> MediaInfoChanged;
     }
+
+    public static class CloudControllerBase
+    {
+        
+        public static readonly string[] ImageExtensions = new[] { ".jpg", ".png" };
+        public static bool IsImage(this ICloudController controller, string fileName)
+        {
+            string ext = Path.GetExtension(fileName);
+            return ImageExtensions.Any(x => x == ext);
+        }
+    }
+
 }

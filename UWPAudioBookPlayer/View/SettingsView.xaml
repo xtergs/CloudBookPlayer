@@ -1,4 +1,4 @@
-﻿<Page x:Class="UWPAudioBookPlayer.View.SettingsView"
+﻿<Page
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -8,216 +8,280 @@
       xmlns:remoteSystems="using:Windows.System.RemoteSystems"
       xmlns:service="using:UWPAudioBookPlayer.Service"
       xmlns:uwpColor="using:UWPColor"
+      xmlns:Interactivity="using:Microsoft.Xaml.Interactivity" xmlns:Core="using:Microsoft.Xaml.Interactions.Core" x:Class="UWPAudioBookPlayer.View.SettingsView"
       x:Name="page"
       d:DataContext="{d:DesignInstance modelView:SettingsModelView}"
-      mc:Ignorable="d">
+      mc:Ignorable="d" SizeChanged="page_SizeChanged">
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup x:Name="VisualStateGroup">
                 <VisualState x:Name="Compact">
-                    <VisualState.StateTriggers>
-                        <AdaptiveTrigger MinWindowHeight="0"/>
-                    </VisualState.StateTriggers>
+                    
                     <VisualState.Setters>
                         <Setter Target="listView.(UIElement.Visibility)" Value="Collapsed"/>
                         <Setter Target="flipView.(UIElement.Visibility)" Value="Visible"/>
+                        <Setter Target="listView1.(UIElement.Visibility)" Value="Visible"/>
+                        <Setter Target="stackPanel.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="scrollViewer.(UIElement.Visibility)" Value="Collapsed"/>
                     </VisualState.Setters>
                 </VisualState>
                 <VisualState x:Name="FullWindow">
-                    <VisualState.StateTriggers>
-                        <AdaptiveTrigger MinWindowWidth="720"/>
-                    </VisualState.StateTriggers>
                     <VisualState.Setters>
                         <Setter Target="listView.(UIElement.Visibility)" Value="Visible"/>
                         <Setter Target="flipView.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="listView1.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="stackPanel.(UIElement.Visibility)" Value="Visible"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="Accounts">
+                    <VisualState.Setters>
+                        <Setter Target="listView1.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="stackPanel.(UIElement.Visibility)" Value="Visible"/>
+                        <Setter Target="scrollViewer.(UIElement.Visibility)" Value="Visible"/>
+                        <Setter Target="SomeSettingsStack.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="CoverStack.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="stackPanel1.(UIElement.Visibility)" Value="Collapsed"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="SomeSettings">
+                    <VisualState.Setters>
+                        <Setter Target="stackPanel.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="stackPanel1.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="listView1.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="SomeSettingsStack.(UIElement.Visibility)" Value="Visible"/>
+                        <Setter Target="CoverStack.(UIElement.Visibility)" Value="Collapsed"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="Development">
+                    <VisualState.Setters>
+                        <Setter Target="listView1.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="stackPanel.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="stackPanel1.(UIElement.Visibility)" Value="Visible"/>
+                        <Setter Target="CoverStack.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="SomeSettingsStack.(UIElement.Visibility)" Value="Collapsed"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="CoverViewState">
+                    <VisualState.Setters>
+                        <Setter Target="SomeSettingsStack.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="listView1.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="stackPanel.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="stackPanel1.(UIElement.Visibility)" Value="Collapsed"/>
+                        <Setter Target="listView.(UIElement.Visibility)" Value="Collapsed"/>
                     </VisualState.Setters>
                 </VisualState>
             </VisualStateGroup>
+            
+                
         </VisualStateManager.VisualStateGroups>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
+        <ListView x:Name="listView1" Header="App settings"  SelectionMode="None" IsItemClickEnabled="True" ItemClick="listView1_ItemClick" >
+            <ListViewItem Content="Accounts" Tag="Accounts"/>
+            <ListViewItem Content="Some settings" Tag="SomeSettings"/>
+            <ListViewItem Content="Development settings" Tag="Development"/>
+            <ListViewItem Content="Cover settings" Tag="CoverViewState"/>
+        </ListView>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" x:Name="scrollViewer" Grid.Row="0" VerticalAlignment="Stretch">
+            <StackPanel Grid.Row="3" Orientation="Vertical">
         <ToggleSwitch Header="Automaticali delete files from DropBox"
                       IsOn="{Binding AutomaticaliDeleteFilesFromDrBox, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                       Visibility="Collapsed" />
-        <ListView Grid.Row="1"
+        <StackPanel x:Name="stackPanel" Grid.Row="1">
+            <TextBlock Text="Cloud Accouonts"/>
+            <TextBlock Visibility="{Binding   MainViewModel.OnlyCloudControoler.Count, Converter={StaticResource IntToNoVisibilityConverter}}" >
+                <Run Text="You don't have any cloud account, "/>
+                <Hyperlink Click="Hyperlink_Click">
+                    <Run Text="Add account"/>
+                </Hyperlink>
+            </TextBlock>
+                    <ListView Grid.Row="1"
+                      Visibility="{Binding MainViewModel.OnlyCloudControolers.Count, Converter={StaticResource IntToVisibilityConverter}}"
                   VerticalAlignment="Stretch"
                   ItemsSource="{Binding Controllers}">
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="50" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <Image Source="{Binding Type, Converter={StaticResource CloudTypetoImiageConverter}}" />
-                        <AppBarButton Grid.Column="2"
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="50" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Image Source="{Binding Type, Converter={StaticResource CloudTypetoImiageConverter}}" />
+                                    <AppBarButton Grid.Column="2"
                                       Command="{Binding DataContext.RemoveCloudController, ElementName=page}"
                                       CommandParameter="{Binding}"
                                       Icon="Remove"
                                       Label="Remove" />
-                        <StackPanel Grid.Column="1">
-                            <TextBlock>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock>
                                     <Run Text="Type: " />
                                     <Run Text="{Binding}" />
-                            </TextBlock>
-                            <TextBlock ToolTipService.ToolTip="{Binding Token}">
+                                        </TextBlock>
+                                        <TextBlock ToolTipService.ToolTip="{Binding Token}">
                                     <Run Text="Token: " />
                                     <Run Text="will not show" />
-                            </TextBlock>
-                            <TextBlock>
+                                        </TextBlock>
+                                        <TextBlock>
                                     <Run Text="CloudStamp: " />
                                     <Run Text="{Binding CloudStamp}" />
-                            </TextBlock>
-                            <TextBlock>
+                                        </TextBlock>
+                                        <TextBlock>
                                     <Run Text="BaseFolder: " />
                                     <Run Text="{Binding BaseFolder}" />
-                            </TextBlock>
-                        </StackPanel>
-                    </Grid>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
-        <Button x:Name="feedbackButton"
-                Grid.Row="1"
-                Grid.Column="0"
-                Margin="0,0,10,0"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top"
-                Click="feedbackButton_Click"
-                Content="&#xE939;"
-                FontFamily="Segoe MDL2 Assets"
-                Visibility="Collapsed" />
-        <AppBarButton Grid.Row="2"
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                    <AppBarButton Grid.Row="2"
                       Icon="Add"
+                          x:Name="AddMoreAcountButton"
+                          Visibility="{Binding MainViewModel.OnlyCloudControolers.Count, Converter={StaticResource IntToVisibilityConverter}}"
                       Label="Add more">
-            <AppBarButton.Flyout>
-                <MenuFlyout>
-                    <MenuFlyoutItem Command="{Binding MainViewModel.AddCloudAccountCommand}" Text="DropBox">
-                        <MenuFlyoutItem.CommandParameter>
-                            <modelView:CloudType>DropBox</modelView:CloudType>
-                        </MenuFlyoutItem.CommandParameter>
-                    </MenuFlyoutItem>
-                    <MenuFlyoutItem Command="{Binding MainViewModel.AddCloudAccountCommand}" Text="OneDrive">
-                        <MenuFlyoutItem.CommandParameter>
-                            <modelView:CloudType>OneDrive</modelView:CloudType>
-                        </MenuFlyoutItem.CommandParameter>
-                    </MenuFlyoutItem>
-                </MenuFlyout>
-            </AppBarButton.Flyout>
-        </AppBarButton>
-        <StackPanel Grid.Row="3" Orientation="Vertical">
-            <ToggleSwitch IsOn="{Binding StartInCompactMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                <AppBarButton.Flyout>
+                    <MenuFlyout>
+                        <MenuFlyoutItem Command="{Binding MainViewModel.AddCloudAccountCommand}" Text="DropBox">
+                            <MenuFlyoutItem.CommandParameter>
+                                <modelView:CloudType>DropBox</modelView:CloudType>
+                            </MenuFlyoutItem.CommandParameter>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Command="{Binding MainViewModel.AddCloudAccountCommand}" Text="OneDrive">
+                            <MenuFlyoutItem.CommandParameter>
+                                <modelView:CloudType>OneDrive</modelView:CloudType>
+                            </MenuFlyoutItem.CommandParameter>
+                        </MenuFlyoutItem>
+                    </MenuFlyout>
+                </AppBarButton.Flyout>
+            </AppBarButton>
+        </StackPanel>
+        <StackPanel x:Name="SomeSettingsStack">
+                <ToggleSwitch IsOn="{Binding StartInCompactMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                           OffContent="Start in normal mode"
                           OnContent="Start in compact mode" />
-            <ToggleSwitch IsOn="{Binding AskBeforeDeletionBook, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                <ToggleSwitch IsOn="{Binding AskBeforeDeletionBook, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                           OffContent="Do not ask before deletion of book"
                           OnContent="Always ask before deletion of book" />
-            <Button Click="ButtonBase_OnClick" Content="Show changlog" />
-            <TextBlock>
+                <Button Click="ButtonBase_OnClick" Content="Show changlog" />
+                <TextBlock>
                 <Run Text="App version: " />
                 <Run Text="{Binding SavedVersion, Mode=OneTime}" />
-            </TextBlock>
-            <TextBlock>
+                </TextBlock>
+                <TextBlock>
                 <Hyperlink Click="feedbackButton_Click">
                     <Run Text="Click to write suggestion or request"/>
 </Hyperlink>
-            </TextBlock>
-            <ComboBox ItemsSource="{Binding AvaliableListDataTemplages, Mode=OneTime}" DisplayMemberPath="HumanValue" SelectedItem="{Binding SelectedListDataTemplate, Mode=TwoWay}" Header="Show list item as:"/>
-            <TextBlock Text="Standart cover:"/>
-            <ListView x:Name="listView" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ItemsSource="{Binding AvaliableStandartCovers, Mode=OneTime}" SelectedItem="{Binding StandartCover, Mode=TwoWay}" SelectionMode="Single">
-                <ListView.ItemContainerStyle>
-                    <Style TargetType="ListViewItem">
-                        <Setter Property="HorizontalAlignment" Value="Stretch"/>
-                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                        <Setter Property="MinWidth" Value="0"/>
-                    </Style>
-                </ListView.ItemContainerStyle>
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <Image HorizontalAlignment="Center" MaxHeight="200" MaxWidth="200" Source="{Binding}"/>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-                <ListView.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <ItemsWrapGrid Orientation="Horizontal"/>
-                    </ItemsPanelTemplate>
-                </ListView.ItemsPanel>
-            </ListView>
-            <FlipView x:Name="flipView" MaxHeight="200" MaxWidth="200" ItemsSource="{Binding AvaliableStandartCovers, Mode=OneTime}" SelectedItem="{Binding StandartCover, Mode=TwoWay}">
-                <FlipView.ItemTemplate>
-                    <DataTemplate>
-                        <Image Source="{Binding}"/>
-                    </DataTemplate>
-                </FlipView.ItemTemplate>
-            </FlipView>
-            <StackPanel Visibility="{Binding IsDevelopMode, Converter={StaticResource BoolToVisibilityConverter}}" Background="Gray">
-                <TextBlock Text="For Development:" FontSize="20"/>
-                <ToggleSwitch IsOn="{Binding IsShowBackgroundImage, Mode=TwoWay}" OnContent="IsShowBackgroundImage" />
-                <ToggleSwitch IsOn="{Binding IsShowPlayingBookImage, Mode=TwoWay}" OnContent="IsShowPlayingBookImage" />
-                <ToggleSwitch IsOn="{Binding IsBlurBackgroundImage, Mode=TwoWay}" OnContent="Is blur background Image" />
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Margin="5" VerticalAlignment="Center">
+                </TextBlock>
+                <ComboBox ItemsSource="{Binding AvaliableListDataTemplages, Mode=OneTime}" DisplayMemberPath="HumanValue" SelectedItem="{Binding SelectedListDataTemplate, Mode=TwoWay}" Header="Show list item as:"/>
+                </StackPanel>
+                <StackPanel x:Name="CoverStack">
+                <TextBlock Text="Standart cover:"/>
+                    <ToggleSwitch x:Name="UseStandartCoverSwitch" OnContent="Use standart cover" IsOn="{Binding UseStandartCover, Mode=TwoWay}" OffContent="Use my own cover"/>
+                    <Grid Visibility="{Binding ElementName=UseStandartCoverSwitch, Path=IsOn, Converter={StaticResource BoolToNotVisiblityConverter}, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Image Source="{Binding StandartCover, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" MaxHeight="200" MaxWidth="200" Stretch="Uniform"></Image>
+                        <ProgressBar Grid.Row="1" x:Name="PickCustomImageRing" IsIndeterminate="True" Visibility="Collapsed" VerticalAlignment="Bottom" HorizontalAlignment="Stretch"/>
+                        <Button Grid.Row="2" Content="Browse" Click="PickUpImageCoverClickAsync"/>
+                    </Grid>
+                    <StackPanel Orientation="Vertical"  Visibility="{Binding ElementName=UseStandartCoverSwitch, Path=IsOn, Converter={StaticResource BoolToVisibilityConverter}, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}">
+                <ListView x:Name="listView" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ItemsSource="{Binding AvaliableStandartCovers, Mode=OneTime}" SelectedItem="{Binding StandartCover, Mode=TwoWay}" SelectionMode="Single">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                            <Setter Property="MinWidth" Value="0"/>
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Image HorizontalAlignment="Center" MaxHeight="200" MaxWidth="200" Source="{Binding}"/>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
+                </ListView>
+                    <FlipView  x:Name="flipView" MaxHeight="200" MaxWidth="200" ItemsSource="{Binding AvaliableStandartCovers, Mode=OneTime}" SelectedItem="{Binding StandartCover, Mode=TwoWay}">
+                    <FlipView.ItemTemplate>
+                        <DataTemplate>
+                            <Image Source="{Binding}"/>
+                        </DataTemplate>
+                    </FlipView.ItemTemplate>
+                </FlipView>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel x:Name="stackPanel1" Background="Gray">
+                    <TextBlock Text="For Development:" FontSize="20"/>
+                    <ToggleSwitch IsOn="{Binding IsShowBackgroundImage, Mode=TwoWay}" OnContent="IsShowBackgroundImage" Visibility="Collapsed" />
+                    <ToggleSwitch IsOn="{Binding IsShowPlayingBookImage, Mode=TwoWay}" OnContent="IsShowPlayingBookImage" Visibility="Collapsed" />
+                    <ToggleSwitch IsOn="{Binding IsBlurBackgroundImage, Mode=TwoWay}" OnContent="Is blur background Image" Visibility="Collapsed" />
+                    <Grid Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Margin="5" VerticalAlignment="Center">
                         <Run Text="Blur: " />
                         <Run Text="{Binding ValueToBlurBackgroundImage, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
-                    </TextBlock>
-                    <Slider Grid.Column="1"
+                        </TextBlock>
+                        <Slider Grid.Column="1"
                             IsEnabled="{Binding IsBlurBackgroundImage, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                             Maximum="50"
                             Minimum="0"
                             StepFrequency="1"
                             Value="{Binding ValueToBlurBackgroundImage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                </Grid>
+                    </Grid>
 
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <TextBlock Margin="5" VerticalAlignment="Center">
+                    <Grid Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Margin="5" VerticalAlignment="Center">
                         <Run Text="Blur user controls: " />
                         <Run Text="{Binding BlurControlPanel, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
-                    </TextBlock>
-                    <Slider Grid.Row="1"
+                        </TextBlock>
+                        <Slider Grid.Row="1"
                             Maximum="50"
                             Minimum="0"
                             StepFrequency="1"
                             Value="{Binding BlurControlPanel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                </Grid>
-                <ToggleSwitch IsOn="{Binding BlurOnlyOverImage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" OnContent="Blur only over background image" />
-                <ToggleSwitch IsOn="{Binding FillBackgroundEntireWindow, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" OnContent="Fill background image entire window" />
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <TextBlock Margin="5" VerticalAlignment="Center">
+                    </Grid>
+                    <ToggleSwitch Visibility="Collapsed" IsOn="{Binding BlurOnlyOverImage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" OnContent="Blur only over background image" />
+                    <ToggleSwitch Visibility="Collapsed" IsOn="{Binding FillBackgroundEntireWindow, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" OnContent="Fill background image entire window" />
+                    <Grid Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Margin="5" VerticalAlignment="Center">
                         <Run Text="Blur user controls: " />
                         <Run Text="{Binding OpacityUserBlur, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
-                    </TextBlock>
-                    <Slider Grid.Row="1"
+                        </TextBlock>
+                        <Slider Grid.Row="1"
                             Maximum="255"
                             Minimum="0"
                             StepFrequency="1"
                             Value="{Binding OpacityUserBlur, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                </Grid>
+                    </Grid>
+                </StackPanel>
             </StackPanel>
-        </StackPanel>
+        </ScrollViewer>
         <Button Grid.Row="4"
                 Click="StartDiscoveryListening"
                 Content="StartListening"
@@ -245,5 +309,15 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
+
+        <Button x:Name="feedbackButton"
+                Grid.Column="0"
+                Margin="0,0,10,0"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Click="feedbackButton_Click"
+                Content="&#xE939;"
+                FontFamily="Segoe MDL2 Assets"
+                Visibility="Collapsed" />
     </Grid>
 </Page>

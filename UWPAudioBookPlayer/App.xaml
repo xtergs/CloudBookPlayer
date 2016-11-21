@@ -14,5 +14,7 @@
         <converter:TimeSpanToSecondsConverter x:Key="TimeSpanToSecondsConverter" />
         <converter:BoolToNotVisiblityConverter x:Key="BoolToNotVisiblityConverter" />
         <converter:BoolToUniformOrFillConverter x:Key="BoolToUniformOrFillConverter" />
+        <converter:IntToVisibilityConverter x:Key="IntToVisibilityConverter"/>
+        <converter:IntToNoVisibilityConverter x:Key="IntToNoVisibilityConverter"/>
     </Application.Resources>
 </Application>

@@ -40,6 +40,7 @@ namespace UWPAudioBookPlayer.Service
         bool IsWrapListItems { get; }
         ListDataTemplateStruct[] AvaliableListDataTemplages { get; }
         string StandartCover { get; set; }
+        bool UseStandartCover { get; set; }
 
         #region Develop
         bool IsDevelopMode { get; set; }

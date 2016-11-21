@@ -17,6 +17,7 @@ using UWPAudioBookPlayer.ModelView;
 using Autofac;
 using UWPAudioBookPlayer.Helper;
 using UWPAudioBookPlayer.Service;
+using Windows.Storage;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=234238
 
@@ -37,15 +38,7 @@ namespace UWPAudioBookPlayer.View
             DataContext = _modelView;
             Windows.UI.Core.SystemNavigationManager.GetForCurrentView().AppViewBackButtonVisibility = AppViewBackButtonVisibility.Visible;
 
-            Windows.UI.Core.SystemNavigationManager.GetForCurrentView().BackRequested += (s, a) =>
-            {
-
-                if (Frame.CanGoBack)
-                {
-                    Frame.GoBack();
-                    a.Handled = true;
-                }
-            };
+            SystemNavigationManager.GetForCurrentView().BackRequested += SettingsView_BackRequested;
 
             if (Microsoft.Services.Store.Engagement.StoreServicesFeedbackLauncher.IsSupported())
             {
@@ -53,11 +46,42 @@ namespace UWPAudioBookPlayer.View
             }
         }
 
+        private void SettingsView_BackRequested(object sender, BackRequestedEventArgs e)
+        {
+
+            if (CompactState != "" && this.ActualWidth < WidthCompactTrashhold)
+            {
+                CompactState = "";
+                e.Handled = true;
+                ChangeVisualState();
+                return;
+            }
+            else
+                if (Frame.CanGoBack)
+                {
+                    SystemNavigationManager.GetForCurrentView().BackRequested -= SettingsView_BackRequested;
+                    Frame.GoBack();
+                    e.Handled = true;
+                }
+        }
+
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
         }
 
+        protected override void OnNavigatedFrom(NavigationEventArgs e)
+        {
+            DataContext = null;
+            _modelView = null;
+            try
+            {
+                m_remoteSystemWatcher?.Stop();
+                m_remoteSystemWatcher = null;
+            }
+            catch { }
+            base.OnNavigatedFrom(e);
+        }
 
         private bool discovering = false;
 
@@ -209,6 +233,74 @@ namespace UWPAudioBookPlayer.View
         private void UIElement_OnPointerPressed(object sender, PointerRoutedEventArgs e)
         {
             
+        }
+
+        private void Hyperlink_Click(Windows.UI.Xaml.Documents.Hyperlink sender, Windows.UI.Xaml.Documents.HyperlinkClickEventArgs args)
+        {
+            AddMoreAcountButton.Flyout.ShowAt(AddMoreAcountButton);
+        }
+
+        public int WidthCompactTrashhold = 720;
+        private string CompactState = "";
+        private void page_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            ChangeVisualState();
+        }
+
+        private void ChangeVisualState()
+        {
+            if (this.ActualWidth >= WidthCompactTrashhold)
+            {
+                VisualStateManager.GoToState(this, FullWindow.Name, true);
+                return;
+            }
+            if (CompactState == "")
+            {
+                VisualStateManager.GoToState(this, Compact.Name, true);
+                return;
+            }
+            else
+                VisualStateManager.GoToState(this, CompactState, true);
+
+        }
+
+        private void listView1_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            var selectedSettings = (e.ClickedItem as string);
+            var listView = (ListView)e.OriginalSource;
+
+            CompactState = (string)listView.Items.OfType<ListViewItem>().First(x=> x.Content as string == selectedSettings).Tag;
+            ChangeVisualState();
+        }
+
+        private async void PickUpImageCoverClickAsync(object sender, RoutedEventArgs e)
+        {
+            PickCustomImageRing.Visibility = Visibility.Visible;
+            try
+            {
+                var picker = new Windows.Storage.Pickers.FileOpenPicker();
+                picker.FileTypeFilter.Add(".png");
+                picker.FileTypeFilter.Add(".jpg");
+
+                picker.ViewMode = Windows.Storage.Pickers.PickerViewMode.Thumbnail;
+
+                picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.PicturesLibrary;
+                var file = await picker.PickSingleFileAsync();
+                var oldName = (_modelView as SettingsModelView).CustomeCoverName;
+                var copied = await file.CopyAsync(ApplicationData.Current.LocalFolder, file.Name, NameCollisionOption.GenerateUniqueName);
+                (_modelView as SettingsModelView).CustomeCoverName = copied.Name;
+                (_modelView as SettingsModelView).NotifyCustomeImageChanged();
+                var oldFile = await ApplicationData.Current.LocalFolder.GetFileAsync(oldName);
+                await oldFile.DeleteAsync();
+            }
+            catch(Exception eee)
+            {
+
+            }
+            finally
+            {
+                PickCustomImageRing.Visibility = Visibility.Collapsed;
+            }
         }
     }
 }

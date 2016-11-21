@@ -24,20 +24,36 @@ namespace UWPAudioBookPlayer.ModelView
         {
             this.helper = helper ?? throw new ArgumentNullException(nameof(helper));
             this.mainViewModel = mainViewModel ?? throw new ArgumentNullException(nameof(mainViewModel));
+            this.mainViewModel.PropertyChanged += MainViewModel_PropertyChanged;
 
             RemoveCloudController = new RelayCommand<ICloudController>((controller) =>
             {
                 if (controller == null)
                     return;
-                this.mainViewModel.CloudControllers.Remove(controller);
+                this.mainViewModel.RemoveCloudAccountCommand.Execute(controller);
                 OnPropertyChanged(nameof(Controllers));
+                OnPropertyChanged(nameof(ControllersCount));
             });
+        }
+
+        private void MainViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+         
+        }
+
+        public void DestroyViewModel()
+        {
+            mainViewModel.PropertyChanged -= MainViewModel_PropertyChanged;
+            mainViewModel = null;
+            helper = null;
         }
 
         public List<ICloudController> Controllers
         {
             get { return mainViewModel.OnlyCloudControolers; }
         }
+
+        public int ControllersCount => Controllers.Count;
 
         public bool AutomaticaliDeleteFilesFromDrBox {
             get { return helper.SimpleGet(false); }
@@ -107,51 +123,56 @@ namespace UWPAudioBookPlayer.ModelView
 
         public bool IsDevelopMode { get; set; } = true;
 
-        public bool IsShowBackgroundImage {
-            get { return helper.SimpleGet(true); }
-            set { helper.SimpleSet(value); }
-        }
+        public bool IsShowBackgroundImage { get; set; } = true;
+        //{
+        //    get { return helper.SimpleGet(true); }
+        //    set { helper.SimpleSet(value); }
+        //}
 
-        public bool IsShowPlayingBookImage {
-            get { return helper.SimpleGet(true); }
-            set { helper.SimpleSet(value); }
-        }
+        public bool IsShowPlayingBookImage { get; set; } = true;
+        //{
+        //    get { return helper.SimpleGet(true); }
+        //    set { helper.SimpleSet(value); }
+        //}
 
-        public bool IsBlurBackgroundImage
-        {
-            get { return helper.SimpleGet(true); }
-            set { helper.SimpleSet(value); }
-        }
+        public bool IsBlurBackgroundImage { get; set; } = true;
+        //{
+        //    get { return helper.SimpleGet(true); }
+        //    set { helper.SimpleSet(value); }
+        //}
 
-        public int ValueToBlurBackgroundImage
-        {
-            get { return helper.SimpleGet(10); }
-            set { helper.SimpleSet(value); }
-        }
+        public int ValueToBlurBackgroundImage { get; set; } = 50;
+        //{
+        //    get { return helper.SimpleGet(10); }
+        //    set { helper.SimpleSet(value); }
+        //}
 
-        public float BlurControlPanel {
-            get { return helper.SimpleGet(10f); }
-            set { helper.SimpleSet(value); }
-        }
-        public bool BlurOnlyOverImage {
-            get { return helper.SimpleGet(false); }
-            set { helper.SimpleSet(value); }
-        }
-        public bool FillBackgroundEntireWindow {
-            get { return helper.SimpleGet(false); }
-            set { helper.SimpleSet(value); }
-        }
+        public float BlurControlPanel { get; set; } = 0;
+        //{
+        //    get { return helper.SimpleGet(10f); }
+        //    set { helper.SimpleSet(value); }
+        //}
+        public bool BlurOnlyOverImage { get; set; } = false;
+        //{
+        //    get { return helper.SimpleGet(false); }
+        //    set { helper.SimpleSet(value); }
+        //}
+        public bool FillBackgroundEntireWindow { get; set; } = false;
+        //{
+        //    get { return helper.SimpleGet(false); }
+        //    set { helper.SimpleSet(value); }
+        //}
 
         public Color ColorOfUserControlBlur {
             get { return Color.FromArgb(64,255,255,255);}
             set { helper.SimpleSet(value.ToInt()); }
         }
 
-        public double OpacityUserBlur
-        {
-            get { return helper.SimpleGet(64.0); }
-            set { helper.SimpleSet(value); }
-        }
+        public double OpacityUserBlur { get; set; } = 100;
+        //{
+        //    get { return helper.SimpleGet(100); }
+        //    set { helper.SimpleSet(value); }
+        //}
 
 
         public string ChangeLogOnce
@@ -186,7 +207,9 @@ namespace UWPAudioBookPlayer.ModelView
             = new[] { new ListDataTemplateStruct() { Value = "TilesDataTemplate", HumanValue = "Tiles", IsWrapItems=true },
                       new ListDataTemplateStruct() { Value =  "DetailDataTemplate", HumanValue = "Details" , IsWrapItems = false} };
 
-        public ListDataTemplateStruct SelectedListDataTemplate { get
+        public ListDataTemplateStruct SelectedListDataTemplate
+        {
+            get
             {
                 return AvaliableListDataTemplages.First(x => x.Value == ListDataTemplate);
             }
@@ -194,18 +217,36 @@ namespace UWPAudioBookPlayer.ModelView
             {
                 ListDataTemplate = value.Value;
             }
-            }
+        }
 
         public bool IsWrapListItems => SelectedListDataTemplate.IsWrapItems;
 
         public string StandartCover
         {
-            get { return helper.SimpleGet("ms-appx:///Image/no-image-available.jpg"); }
+            get {
+                if (!UseStandartCover && CustomeCoverName!= null)
+                {
+                    return "ms-appdata:///local/" + CustomeCoverName;
+                }
+                return helper.SimpleGet("ms-appx:///Image/no-image-available.jpg"); }
             set { helper.SimpleSet(value); }
         }
 
         public string[] AvaliableStandartCovers { get; } = new[] { "no-image-available.jpg", "HDD.png", "DropBoxLogo.png" }.Select(x => "ms-appx:///Image/" + x).ToArray();
 
+        public string CustomeCoverName
+        {
+            get { return helper.SimpleGet<string>(null); }
+            set { helper.SimpleSet(value); }
+        }
+        public bool UseStandartCover {
+            get { return helper.SimpleGet(true); }
+            set { helper.SimpleSet(value); }
+        }
+        public void NotifyCustomeImageChanged()
+        {
+            OnPropertyChanged(nameof(StandartCover));
+        }
 
         public event PropertyChangedEventHandler PropertyChanged;
 

@@ -33,6 +33,7 @@ using Microsoft.Graphics.Canvas.Text;
 using Microsoft.Graphics.Canvas.UI.Composition;
 using Microsoft.Toolkit.Uwp.UI.Controls;
 using UWPAudioBookPlayer.Model;
+using Microsoft.Toolkit.Uwp.UI;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -493,11 +494,21 @@ namespace UWPAudioBookPlayer
                 return;
             string cover = source.GetAnyCover();
             if (cover == null)
+            {
+                SetDefaultImage(img);             
                 return;
+            }
             if (source.IsLink(cover))
             {
-                //image.Source = new Uri(cover);
-                return;
+                try
+                {
+                    var Bitmap = await ImageCache.Instance.GetFromCacheAsync(new Uri(cover, UriKind.Absolute), Guid.NewGuid().ToString(), true);
+                    img.Source = Bitmap;
+                    return;
+                }catch(Exception e)
+                {
+                    SetDefaultImage(img);
+                }
             }
             string cachekey = source.Name + cover;
             try
@@ -521,6 +532,26 @@ namespace UWPAudioBookPlayer
             {
                 
             }
+        }
+
+        private void SetDefaultImage(ImageEx img)
+        {
+            BitmapImage btm;
+            if (fileImageCache.TryGetValue("default", out btm))
+            {
+                img.Source = btm;
+                return;
+            }
+            if (viewModel?.Settings?.StandartCover == null)
+                return;
+            btm = new BitmapImage(new Uri(viewModel.Settings.StandartCover));
+            fileImageCache["defualt"] = btm;
+            img.Source = btm;
+        }
+
+        private void ShowAttachedContextMenuClick(object sender, RoutedEventArgs e)
+        {
+            (sender as FrameworkElement).ContextFlyout.ShowAt(sender as FrameworkElement);
         }
     }
 

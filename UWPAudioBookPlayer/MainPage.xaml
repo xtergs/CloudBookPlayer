@@ -481,13 +481,12 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <controls:ImageEx Grid.Row="0"
-                                  MaxWidth="200" MaxHeight="200"
                                           HorizontalAlignment="Stretch"
                                           VerticalAlignment="Stretch"
                                           DataContextChanged="FrameworkElement_OnDataContextChanged"
                                           IsCacheEnabled="True"
-                                          PlaceholderSource="{Binding ElementName=page, Path=DataContext.Settings.StandartCover, Mode=OneTime}"
-                                          Source="{Binding Cover}"
+                                          PlaceholderSource="{Binding ElementName=page, Path=DataContext.Settings.StandartCover, Mode=OneWay}"
+                                  Source="{Binding Cover}"
                                           Stretch="Uniform" />
                 <ProgressBar Grid.Row="1"
                                      Maximum="{Binding Files.Count}"
@@ -510,8 +509,8 @@
                                           Icon="Play" />
                     <Frame Grid.Row="1"
                                    Background="AliceBlue"
-                                   Opacity="0.7">
-                        <TextBlock Grid.Row="1">
+                                   Opacity="0.8">
+                        <TextBlock Grid.Row="1" Opacity="1" Foreground="Black">
                                     <Run Text="{Binding Name}" />
                                     <LineBreak />
                                     <Run Text="{Binding GetCurrentFile.Chapter}" />
@@ -526,8 +525,7 @@
     </Page.Resources>
     <Grid HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch"
-          Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
-          Padding="5">
+          Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -889,18 +887,36 @@
                                               UpdateSourceTrigger=PropertyChanged}"
                           Label="Cast"
                           ToolTipService.ToolTip="Cast to another device" />
-            <Slider VerticalAlignment="Center"
+            <AppBarButton Icon="Volume" Label="Volum" Click="ShowAttachedContextMenuClick">
+                <AppBarButton.ContextFlyout>
+                    <Flyout >
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition/>
+                            </Grid.RowDefinitions>
+                            <TextBlock HorizontalAlignment="Center" Text="{Binding ElementName=volumSlider, Path=Value,
+                                    Mode=OneWay,
+                                    UpdateSourceTrigger=PropertyChanged}"/>
+                            <Slider Grid.Row="1" Width="100" VerticalAlignment="Center"
                     Header="Volume"
                     IsThumbToolTipEnabled="True"
                     Maximum="1"
                     Minimum="0"
+                                    x:Name="volumSlider"
                     StepFrequency="0.1"
                     Style="{StaticResource CircleSlider}"
                     VariableSizedWrapGrid.ColumnSpan="2"
                     VariableSizedWrapGrid.RowSpan="1"
                     Value="{Binding Player.Volume,
                                     Mode=TwoWay,
-                                    UpdateSourceTrigger=PropertyChanged}" />
+                                    UpdateSourceTrigger=PropertyChanged}" >
+                            </Slider>
+                        </Grid>
+                    </Flyout>
+                </AppBarButton.ContextFlyout>
+            </AppBarButton>
+            
         </VariableSizedWrapGrid>
         <controls:ImageEx x:Name="image"
                           Grid.Row="7"
@@ -908,7 +924,7 @@
                           MinHeight="200"
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"
-                          IsCacheEnabled="True"
+                          
                           PlaceholderSource="{x:Bind viewModel.Settings.StandartCover, Mode=OneTime}"
                           Source="{Binding Image,
                                            Converter={StaticResource IRandomAccessStreamToImageSourceConverter},

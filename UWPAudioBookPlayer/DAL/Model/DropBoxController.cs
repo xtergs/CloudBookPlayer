@@ -240,6 +240,7 @@ namespace UWPAudioBookPlayer.DAL.Model
                 return null;
             }
             AudioBookSourceCloud metaData = null;
+            List<FileMetadata> images = new List<FileMetadata>();
             //string bookFolder = BaseFolder + "/" + bookName + "/";
             foreach (var filesEntry in files.Entries)
             {
@@ -266,6 +267,9 @@ namespace UWPAudioBookPlayer.DAL.Model
                     }
                     continue;
                 }
+                if (this.IsImage(filesEntry.AsFile.Name))
+                    images.Add(filesEntry.AsFile);
+                else
                 book.Files.Add(new AudiBookFile()
                 {
                     Name = filesEntry.AsFile.Name,
@@ -273,6 +277,7 @@ namespace UWPAudioBookPlayer.DAL.Model
                     IsAvalible = true
                 });
             }
+            var links = await Task.WhenAll(images.Select(x => GetLink(bookName, x.Name)));
             if (metaData != null)
             {
                 var diff = metaData.Files.Except(book.Files).ToList();
@@ -289,10 +294,14 @@ namespace UWPAudioBookPlayer.DAL.Model
                     else
                         metaData.Files[i].IsAvalible = false;
                 }
+                metaData.Images = links;
+                metaData.Cover = links.FirstOrDefault();
                 return metaData;
 
             }
             //result.Add(book);
+            book.Images = links;
+            book.Cover = links.FirstOrDefault();
             book.CloudStamp = CloudStamp;
             book.Type = Type;
             return book;

@@ -146,6 +146,7 @@ namespace UWPAudioBookPlayer.DAL.Model
                 throw;
             }
             AudioBookSourceCloud metaData = null;
+            List<Item> images = new List<Item>();
             string bookFolder = BaseFolder + "/" + bookName + "/";
             foreach (var filesEntry in files)
             {
@@ -167,8 +168,14 @@ namespace UWPAudioBookPlayer.DAL.Model
                         continue;
                     metaData.CloudStamp = CloudStamp;
                     metaData.Type = CloudType.OneDrive;
+                    metaData.Cover = null;
                     continue;
                 }
+                if (this.IsImage(filesEntry.Name))
+                {
+                    images.Add(filesEntry);
+                }
+                else
                 book.Files.Add(new AudiBookFile()
                 {
                     Name = filesEntry.Name,
@@ -176,6 +183,7 @@ namespace UWPAudioBookPlayer.DAL.Model
                     IsAvalible = true
                 });
             }
+            var links = await Task.WhenAll(images.Select(x => GetLink(bookName, x.Name)));
             if (metaData != null)
             {
                 var diff = metaData.Files.Except(book.Files).ToList();
@@ -192,10 +200,14 @@ namespace UWPAudioBookPlayer.DAL.Model
                     else
                         metaData.Files[i].IsAvalible = false;
                 }
+                metaData.Images = links;
+                metaData.Cover = links.FirstOrDefault();
                 return metaData;
 
             }
             //result.Add(book);
+            book.Images = links;
+            book.Cover = links.FirstOrDefault();
             book.CloudStamp = CloudStamp;
             book.Type = Type;
             return book;
@@ -238,6 +250,26 @@ namespace UWPAudioBookPlayer.DAL.Model
                 var match = regex.Match(response.Link.WebHtml);
                 if (match.Success)
                     return match.Value.Replace("embed?", "download?");
+                return "";
+            }
+            catch (ServiceException e)
+            {
+                if (e.Error.Code == OneDriveErrors.ItemNotFound)
+                    return null;
+                throw;
+            }
+        }
+
+        public async Task<string> GetEmbededLink(string bookName, string fileName)
+        {
+            try
+            {
+                var link =
+                    (client.Drive.Root.ItemWithPath(BaseFolder + "/" + bookName + "/" + fileName).CreateLink("embed"));
+                var response = await link.Request().PostAsync();
+                var match = regex.Match(response.Link.WebHtml);
+                if (match.Success)
+                    return match.Value;
                 return "";
             }
             catch (ServiceException e)

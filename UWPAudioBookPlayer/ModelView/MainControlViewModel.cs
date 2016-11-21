@@ -184,6 +184,7 @@ namespace UWPAudioBookPlayer.ModelView
         public RelayCommand<int> MoveSecsCommand { get; private set; }
         public RelayCommand<AudioBookSource> RemoveAudioBookSource { get; private set; }
         public RelayCommand<CloudType> AddCloudAccountCommand { get; private set; }
+        public RelayCommand<ICloudController> RemoveCloudAccountCommand { get; private set; }
         //public RelayCommand UploadBookToDrBoxCommand { get; private set; }
         public RelayCommand<ICloudController> UploadBookToCloudCommand { get; private set; }
         public RelayCommand<Guid> CancelOperationCommand { get; private set; }
@@ -215,7 +216,7 @@ namespace UWPAudioBookPlayer.ModelView
             get { return cloudControllers; }
         }
 
-        public List<ICloudController> OnlyCloudControolers => cloudControllers.Where(x => x.IsCloud).ToList();
+        public List<ICloudController> OnlyCloudControolers => CloudControllers.Where(x => x.IsCloud).ToList();
 
         public ISettingsService Settings
         {
@@ -320,6 +321,7 @@ namespace UWPAudioBookPlayer.ModelView
             MoveSecsCommand = new RelayCommand<int>(MoveSecs, (c) => PlayingSource != null);
             RemoveAudioBookSource = new RelayCommand<AudioBookSource>(RemoveSource);
             AddCloudAccountCommand = new RelayCommand<CloudType>(AddDropBoxAccount);
+            RemoveCloudAccountCommand = new RelayCommand<ICloudController>(RemoveCloudAccountAsync);
             //UploadBookToDrBoxCommand = new RelayCommand(UploadBookToDrBox, () => drbController.IsAutorized && !string.IsNullOrWhiteSpace( SelectedFolder?.AccessToken));
             UploadBookToCloudCommand = new RelayCommand<ICloudController>(UploadBookToCloud, controller => controller != null && controller.IsAutorized && !string.IsNullOrWhiteSpace(SelectedFolder?.AccessToken));
             //DownloadBookFromDrBoxCommand = new RelayCommand(DownloadBookFromDrBok, () => drbController.IsAutorized);
@@ -1656,7 +1658,16 @@ namespace UWPAudioBookPlayer.ModelView
 
         public BookMark[] BookMarksForSelectedPlayingBook => repository.BookMarks(PlayingSource);
 
-        public IRandomAccessStream Image { get; set; }
+        private object _image;
+        public object Image { get
+            {
+                if (_image != null && (_image as IRandomAccessStream)?.Size > 0)
+                    return _image;
+                return Settings.StandartCover;
+            }
+            set {
+                _image = value;
+            } }
         public RelayCommand<RemoteSystem> StreamToDeviceCommand { get; private set; }
 
         public INotification Notificator
@@ -1926,6 +1937,14 @@ namespace UWPAudioBookPlayer.ModelView
             ControlStateChanged();
         }
 
+        private async void RemoveCloudAccountAsync(ICloudController obj)
+        {
+            CloudControllers.Remove(obj);
+            await SaveData();
+            OnPropertyChanged(nameof(CloudControllers));
+            OnPropertyChanged(nameof(OnlyCloudControolers));
+        }
+
         public async void AddDropBoxAccount(CloudType type)
         {
             if (CloudControllers.Any(x => x.Type == type))
@@ -1951,6 +1970,8 @@ namespace UWPAudioBookPlayer.ModelView
                     return;
                 }
                 CloudControllers.Add(cloudService);
+                OnPropertyChanged(nameof(CloudControllers));
+                OnPropertyChanged(nameof(OnlyCloudControolers));
                 await SaveData();
                 await RefreshCloudData(cloudService);
             };
