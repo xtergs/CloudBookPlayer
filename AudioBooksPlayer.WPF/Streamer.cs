@@ -17,7 +17,7 @@ namespace AudioBooksPlayer.WPF
 		public int transferePerMs { get; set; } = 50;
 		public byte VersionProtocol { get; set; } = 1;
 		public int HeaderLength { get; } = 100;
-		public virtual int BufferLength { get; set; } = 1024*4*4;
+		public virtual int BufferLength { get; set; } = 1024*4*4*4;
 
 		protected static void FillHeader(byte[] buffer, int version, long order, Guid id, int len)
 		{

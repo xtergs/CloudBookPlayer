@@ -74,10 +74,10 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
         }
 
             ReadFullyStream readFullyStream;
-        private void StreamMp3(Stream stream)
+        private async void StreamMp3(Stream stream)
         {
             fullyDownloaded = false;
-            var buffer = new byte[16384 * 4]; // needs to be big enough to hold a decompressed frame
+            var buffer = new byte[16384 * 4*4]; // needs to be big enough to hold a decompressed frame
 
             IMp3FrameDecompressor decompressor = null;
 	        try
@@ -88,7 +88,8 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
 			        if (IsBufferNearlyFull)
 			        {
 				        Debug.WriteLine("Buffer getting full, taking a break");
-				        Thread.Sleep(500);
+			            //Thread.Sleep(5000);
+			            await Task.Delay(250);
 				        continue;
 			        }
 			        else
@@ -216,40 +217,45 @@ namespace RemoteAudioBooksPlayer.WPF.Logic
             }
         }
 
+
+        object timeLock = new object();
         private void timer1_Tick(object sender, EventArgs e)
         {
-            if (playbackState != StreamingPlaybackState.Stopped)
+            lock (timeLock)
             {
-                if (waveOut == null && bufferedWaveProvider != null)
+                if (playbackState != StreamingPlaybackState.Stopped)
                 {
-                    Debug.WriteLine("Creating WaveOut Device");
-                    waveOut = CreateWaveOut();
-                    //waveOut.PlaybackStopped += OnPlaybackStopped;
-                    volumeProvider = new VolumeWaveProvider16(bufferedWaveProvider);
-                    //volumeProvider.Volume = volumeSlider1.Volume;
-                    waveOut.Init(volumeProvider);
-                    //progressBarBuffer.Maximum = (int)bufferedWaveProvider.BufferDuration.TotalMilliseconds;
-                }
-                else if (bufferedWaveProvider != null)
-                {
-                    var bufferedSeconds = bufferedWaveProvider.BufferedDuration.TotalSeconds;
-                    //ShowBufferState(bufferedSeconds);
-                    // make it stutter less if we buffer up a decent amount before playing
-                    if (bufferedSeconds < 0.5 && playbackState == StreamingPlaybackState.Playing && !fullyDownloaded)
+                    if (waveOut == null && bufferedWaveProvider != null)
                     {
-                        Pause();
+                        Debug.WriteLine("Creating WaveOut Device");
+                        waveOut = CreateWaveOut();
+                        //waveOut.PlaybackStopped += OnPlaybackStopped;
+                        volumeProvider = new VolumeWaveProvider16(bufferedWaveProvider);
+                        //volumeProvider.Volume = volumeSlider1.Volume;
+                        waveOut.Init(volumeProvider);
+                        //progressBarBuffer.Maximum = (int)bufferedWaveProvider.BufferDuration.TotalMilliseconds;
                     }
-                    else if (bufferedSeconds > 4 && playbackState == StreamingPlaybackState.Buffering)
+                    else if (bufferedWaveProvider != null)
                     {
-                        Play();
+                        var bufferedSeconds = bufferedWaveProvider.BufferedDuration.TotalSeconds;
+                        //ShowBufferState(bufferedSeconds);
+                        // make it stutter less if we buffer up a decent amount before playing
+                        if (bufferedSeconds < 0.5 && playbackState == StreamingPlaybackState.Playing && !fullyDownloaded)
+                        {
+                            Pause();
+                        }
+                        else if (bufferedSeconds > 4 && playbackState == StreamingPlaybackState.Buffering)
+                        {
+                            Play();
+                        }
+                        else if (fullyDownloaded && bufferedSeconds == 0)
+                        {
+                            Debug.WriteLine("Reached end of stream");
+                            StopPlayback();
+                        }
                     }
-                    else if (fullyDownloaded && bufferedSeconds == 0)
-                    {
-                        Debug.WriteLine("Reached end of stream");
-                        StopPlayback();
-                    }
-                }
 
+                }
             }
         }
 

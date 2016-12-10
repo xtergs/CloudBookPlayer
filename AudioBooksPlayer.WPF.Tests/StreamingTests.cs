@@ -32,7 +32,7 @@ namespace AudioBooksPlayer.WPF.Tests
             Thread.Sleep(1000);
             var rstream = File.Open(
                 @"TestData\The War of the Worlds\H.G. Wells - The War Of The Worlds - 01-01.mp3", FileMode.Open);
-                tasks.Add(udp.StartSendStream( Guid.Empty,rstream, "", new IPEndPoint(IPAddress.Parse("255.255.255.255"), 23230), new Progress<StreamProgress>(Handler)).ContinueWith((state)=>rstream.Close()));
+                tasks.Add(udp.StartSendStream( Guid.Empty,rstream,new BookStreamer.CommandData() {}, new IPEndPoint(IPAddress.Parse("255.255.255.255"), 23230), new Progress<StreamProgress>(Handler)).ContinueWith((state)=>rstream.Close()));
 
             try
             {

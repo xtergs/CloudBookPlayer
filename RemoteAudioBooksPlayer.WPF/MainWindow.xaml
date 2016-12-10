@@ -35,7 +35,7 @@
                               SelectedItemChanged="TreeView_OnSelectedItemChanged">
                         <TreeView.Resources>
                             <HierarchicalDataTemplate DataType="{x:Type streaming:AudioBooksInfoRemote}" ItemsSource="{Binding Books}">
-                                <TextBlock Text="{Binding IpAddress}" />
+                                <TextBlock Text="{Binding Name}" />
                             </HierarchicalDataTemplate>
                             <DataTemplate DataType="{x:Type streaming:AudioBookInfoRemote}">
                                 <TextBlock Text="{Binding Book.BookName}" />
@@ -45,20 +45,51 @@
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <Label Content="{Binding CurrentPosition, Mode=OneWay}" />
-                        <Slider Grid.Column="1"
+                        <StackPanel>
+                            <TextBlock>
+                                <Run Text="Curren playing: " />
+                                <Run Text="{Binding CurrentlyPlayingBook.Book.BookName}" />
+                                <LineBreak />
+                                <Run Text="IpAdress: " />
+                                <Run Text="{Binding CurrentlyPlayingBook.IpAddress}" />
+                                <Run Text=", TCP port: " />
+                                <Run Text="{Binding CurrentlyPlayingBook.TcpPort}" />
+                            </TextBlock>
+                            <TextBlock>
+                                <Run Text="File: " />
+                                <Run Text="{Binding PlayingFileInfo.FileName}" />
+                                <LineBreak />
+                                <Run Text="Author: " />
+                                <Run Text="{Binding PlayingFileInfo.Author}" />
+                                <Run Text=", Bitrate: " />
+                                <Run Text="{Binding PlayingFileInfo.Bitrate}" />
+                                <Run Text=", Frequency: " />
+                                <Run Text="{Binding PlayingFileInfo.Frequesncy}" />
+                                <Run Text=", Size: " />
+                                <Run Text="{Binding PlayingFileInfo.Size}" />
+                                <Run Text=", Genre: " />
+                                <Run Text="{Binding PlayingFileInfo.Genre}" />
+                            </TextBlock>
+                        </StackPanel>
+                        <Label Grid.Row="1" Content="{Binding CurrentPosition, Mode=OneWay}" />
+                        <Slider Grid.Row="1"
+                                Grid.Column="1"
                                 Maximum="{Binding TotalLengthPlayingFile.TotalSeconds,
                                                   Mode=OneWay}"
                                 Minimum="0"
                                 Value="{Binding CurrentPosition.TotalSeconds,
                                                 Mode=OneWay}" />
-                        <Label Grid.Column="2" Content="{Binding TotalLengthPlayingFile, Mode=OneWay}" />
+                        <Label Grid.Row="1"
+                               Grid.Column="2"
+                               Content="{Binding TotalLengthPlayingFile,
+                                                 Mode=OneWay}" />
                     </Grid>
                     <Grid>
                         <Grid.ColumnDefinitions>

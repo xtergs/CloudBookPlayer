@@ -18,6 +18,13 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
         public long ReadPosition => readPosition;
         public long WritePosition => writePosition;
 
+        public bool IsClosed { get; private set; } = false;
+
+        public void CloseStream()
+        {
+            IsClosed = true;
+        }
+
         public long LeftToWrite
         {
             get
@@ -78,6 +85,10 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
 
         public override int Read(byte[] buf, int offset, int count)
         {
+            if (IsClosed && LeftToRead == 0 )
+            {
+                return -1;
+            }
             if (LeftToRead == 0)
                 return 0;
             int maxLen;
@@ -121,6 +132,11 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
         {
             writePosition = 0;
             readPosition = 0;
+        }
+
+        public override void Flush()
+        {
+            IsClosed = true;
         }
     }
 }

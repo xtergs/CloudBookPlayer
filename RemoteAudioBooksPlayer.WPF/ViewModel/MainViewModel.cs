@@ -4,10 +4,10 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using AudioBooksPlayer.WPF.Model;
 using AudioBooksPlayer.WPF.Streaming;
 using GalaSoft.MvvmLight.CommandWpf;
 using RemoteAudioBooksPlayer.WPF.Annotations;
@@ -62,7 +62,9 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
 
         public MainViewModel(StreamPlayer player, bool startupDiscoveryListener = false)
         {
-            this.player = player ?? throw new ArgumentNullException(nameof(player));
+            if (player == null)
+                throw new ArgumentNullException(nameof(player));
+            this.player = player;
             streamerUdp = new StreamingUDP();
             discoverModule = new DiscoverModule();
             bookStreamer = new BookStreamer(streamerUdp);
@@ -99,6 +101,8 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
         {
             player.Stop();
             bookStreamer.StopStream();
+            CurrentlyPlayingBook = null;
+            PlayingFileInfo = null;
             isPaused = false;
         }
 
@@ -166,6 +170,9 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
 		    }
 	    }
 
+        public AudioBookInfoRemote CurrentlyPlayingBook { get; private set; }
+        public AudioFileInfo PlayingFileInfo { get; private set; }
+        public string Statatus { get; set; }
 
 	    private async void TestStreamListenExecute()
         {
@@ -176,6 +183,8 @@ namespace RemoteAudioBooksPlayer.WPF.ViewModel
             var stream = await bookStreamer.GetStreamingBook(SelectedBroadcastAudioBook,
                new Progress<ReceivmentProgress>(Handler));
             player.PlayStream(stream);
+	        CurrentlyPlayingBook = SelectedBroadcastAudioBook;
+	        PlayingFileInfo = SelectedBroadcastAudioBook.Book.CurrentFileInfo;
         }
 
         private void Handler(ReceivmentProgress receivmentProgress)

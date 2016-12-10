@@ -24,6 +24,7 @@ namespace AudioBooksPlayer.WPF.Streaming
         public bool IsListening => isListen;
 
         public int TcpPort { get; set; }
+        public string Name { get; set; }
 
         public int Port
         {

@@ -12,14 +12,15 @@ namespace StreamingLoadTest
 {
     class Program
     {
-        private static int maxCount = 10000;
-        private static int batchCount = 50;
+        private static int maxCount = 1;
+        private static int batchCount = 1;
         private static List<BookStreamer> streamers = new List<BookStreamer>();
 	    private static Timer timer;
          
         static void Main(string[] args)
         {
 	        batchCount = int.Parse(System.Configuration.ConfigurationManager.AppSettings.Get("countToAdd"));
+            batchCount = 1;
 			Task.Delay(10000).Wait();
 	        timer = new Timer(Callback, null, 1000, 10000);
             DiscoverModule discover = new DiscoverModule();
@@ -44,16 +45,15 @@ namespace StreamingLoadTest
 
 	    private static void DiscoverOnDiscoveredNewSource(object sender, AudioBooksInfoBroadcast audioBooksInfoBroadcast)
         {
-            if (streamers.Count >= maxCount)
-                return;
-            for (int i = 0; i < batchCount; i++)
+            Parallel.For(0, batchCount, (i) =>
             {
                 BookStreamer streamer = new BookStreamer(null);
                 streamer.GetStreamingBook(
                     new AudioBookInfoRemote(audioBooksInfoBroadcast.Books.First(), audioBooksInfoBroadcast.IpAddress, audioBooksInfoBroadcast.TcpCommandsPort),
                     new Progress<ReceivmentProgress>());
                 streamers.Add(streamer);
-            }
+            });
+            
         }
     }
 }

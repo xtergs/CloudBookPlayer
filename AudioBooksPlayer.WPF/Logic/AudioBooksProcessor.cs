@@ -59,7 +59,9 @@ namespace AudioBooksPlayer.WPF.Logic
                 {
                     int order = 0;
 		                Id3Tag[] tags;
-	                try
+                    var returnVal = new AudioFileInfo();
+
+                    try
 	                {
 		                tags = audioTags.GetAllTags();
 	                }
@@ -72,23 +74,33 @@ namespace AudioBooksPlayer.WPF.Logic
                         var asInt = audioTags.GetAllTags()[0].Track.AsInt;
                         if (asInt != null)
                             order = asInt.Value;
+                        if (tags[0].Title.IsAssigned)
+                            returnVal.Title = tags[0].Title.Value;
+                        if (tags[0].Genre.IsAssigned)
+                            returnVal.Genre = tags[0].Genre.Value;
+                        if (tags[0].Artists.IsAssigned)
+                            returnVal.Artists = tags[0].Artists.Values;
+
+                        //tags[0].Lyrics.Select(x=> x.Language.ToString());
+                        if (tags[0].Year.IsAssigned)
+                            returnVal.Year = tags[0].Year.AsDateTime;
                     }
 
-                    return new AudioFileInfo()
-                    {
-                        FileName = Path.GetFileName(x),
-                        FilePath = x,
-                        Order = order,
-                        Size = new FileInfo(x).Length,
-                        Duration = audioTags.Audio.Duration
-                    };
+                    returnVal.FileName = Path.GetFileName(x);
+                    returnVal.FilePath = x;
+                    returnVal.Order = order;
+                    returnVal.Size = new FileInfo(x).Length;
+                    returnVal.Duration = audioTags.Audio.Duration;
+                    returnVal.Bitrate = audioTags.Audio.Bitrate;
+                    returnVal.Frequesncy = audioTags.Audio.Frequency;
+                    return returnVal;
                 }
             }).ToArray();
 			if (files.Length == 0 || files.Any(x=> x == null))
 				return null;
             return new AudioBooksInfo()
             {
-                BookName = Path.GetDirectoryName(folder),
+                BookName = Path.GetFileName(folder),
                 FolderPath = folder,
                 Files = files,
                 TotalDuration = files.Select(x=> x.Duration).Aggregate((x,y)=> y + x),

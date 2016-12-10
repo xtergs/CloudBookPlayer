@@ -22,8 +22,12 @@ namespace UWPAudioBookPlayer.ModelView
         private MainControlViewModel mainViewModel;
         public SettingsModelView(IApplicationSettingsHelper helper, MainControlViewModel mainViewModel)
         {
-            this.helper = helper ?? throw new ArgumentNullException(nameof(helper));
-            this.mainViewModel = mainViewModel ?? throw new ArgumentNullException(nameof(mainViewModel));
+            if (helper == null)
+                throw new ArgumentNullException(nameof(helper));
+            this.helper = helper;
+            if (mainViewModel == null)
+                throw new ArgumentNullException(nameof(mainViewModel));
+            this.mainViewModel = mainViewModel;
             this.mainViewModel.PropertyChanged += MainViewModel_PropertyChanged;
 
             RemoveCloudController = new RelayCommand<ICloudController>((controller) =>

@@ -62,51 +62,53 @@ namespace AudioBooksPlayer.WPF.Streaming
                 bool isContinue = true;
                 try
                 {
-                    await Task.Run( async () =>
+                    await Task.Run(async () =>
                     {
-                        
+
 #pragma warning disable 1998
-							await client.StartReceiveStream(connectionInfo, endPoint, reporter, async (frame, rp) => 
+                        await client.StartReceiveStream(connectionInfo, endPoint, reporter, async (frame, rp) =>
 #pragma warning restore 1998
+                        {
+                            if (totalMissed > 0)
                             {
-	                            if (totalMissed > 0)
+                                recProg.PackageReceivmetns = totalMissed/(double) totalReceeive;
+                                reporter.Report(recProg);
+                            }
+                            totalReceeive++;
+
+                            if (frame.Length == 0)
+                            {
+                                isContinue = false;
+                                receivmentTable.Remove(frame.id);
+                                return;
+                            }
+                            if (receivmentTable.ContainsKey(frame.id))
+                                if (receivmentTable[frame.id] > frame.Order)
+                                    return;
+                                else
                                 {
-                                    recProg.PackageReceivmetns = totalMissed/(double) totalReceeive;
-                                    reporter.Report(recProg);
-                                }
-                                totalReceeive++;
-	                            
-								if (frame.Length == 0)
-                                {
-                                    isContinue = false;
-	                                receivmentTable.Remove(frame.id);
+                                    totalMissed += frame.Order - receivmentTable[frame.id];
+                                    receivmentTable[frame.id] = (int) ++frame.Order;
+                                    lock (o)
+                                    {
+                                        stream.Write(frame.buffer, frame.Offsset, frame.Length);
+                                    }
                                     return;
                                 }
-                                if (receivmentTable.ContainsKey(frame.id))
-                                    if (receivmentTable[frame.id] > frame.Order)
-                                        return;
-                                    else
-                                    {
-                                        totalMissed += frame.Order - receivmentTable[frame.id];
-                                        receivmentTable[frame.id] = (int)++frame.Order;
-                                        lock (o)
-                                        {
-                                            stream.Write(frame.buffer, frame.Offsset, frame.Length);
-                                        }
-                                        return;
-                                    }
-                                receivmentTable.Add(frame.id, (int)++frame.Order);
-                                lock (o)
-									stream.Write(frame.buffer, frame.Offsset, frame.Length);
-							});
-                    });
-                    OnFileStreamingComplited();
+                            receivmentTable.Add(frame.id, (int) ++frame.Order);
+                            lock (o)
+                                stream.Write(frame.buffer, frame.Offsset, frame.Length);
+                        });
+                    }).ConfigureAwait(false);
+                stream.Flush();
+                OnFileStreamingComplited();
                 }
                 catch (TimeoutException e)
                 {
                     if (!isContinue)
                     {
-                        OnFileStreamingComplited();
+                    stream.Flush();
+                    OnFileStreamingComplited();
                         return;
                     }
                     throw;
@@ -156,16 +158,16 @@ namespace AudioBooksPlayer.WPF.Streaming
 	                switch (commandFrame.Type)
                     {
                         case CommandEnum.StreamFileUdp:
-		                    data = commandFrame.Book;
-                            commandFrame = EstablishUdpChanel(stream, commandFrame);
-                            commandFrame.Type = CommandEnum.StreamFileUdp;
-		                    commandFrame.Book = data;
-                            break;
 						case CommandEnum.StreamFilePipe:
+		                    //data = commandFrame.Book;
+                      //      commandFrame = EstablishUdpChanel(stream, commandFrame);
+                      //      commandFrame.Type = CommandEnum.StreamFileUdp;
+		                    //commandFrame.Book = data;
+                      //      break;
 							data = commandFrame.Command;
 							commandFrame = EstablishUdpChanel(stream, commandFrame);
 		                    commandFrame.Command = data;
-		                    commandFrame.Type = CommandEnum.StreamFilePipe;
+		                    commandFrame.Type = commandFrame.Type;
 							break;
                         case CommandEnum.PauseStreaming:
 	                    {

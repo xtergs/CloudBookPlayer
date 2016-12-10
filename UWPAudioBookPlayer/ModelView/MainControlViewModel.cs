@@ -367,6 +367,7 @@ namespace UWPAudioBookPlayer.ModelView
             return PlayingSource != null && PlayingFile != null;
         }
 
+        public bool IsCanPlay => PlayingSource != null || SelectedFolder != null;
         private bool CanPlay()
         {
             return PlayingSource != null || SelectedFolder != null;

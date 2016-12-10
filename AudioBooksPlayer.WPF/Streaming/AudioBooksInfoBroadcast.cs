@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Net;
 using AudioBooksPlayer.WPF.Model;
-using Newtonsoft.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace AudioBooksPlayer.WPF.Streaming
 {
@@ -10,6 +10,7 @@ namespace AudioBooksPlayer.WPF.Streaming
     {
         public AudioBooksInfo[] Books { get; set; }
         public int TcpCommandPort { get; set; }
+        public string Name { get; set; }
     }
 
 	public class RemoteBookInfo
@@ -38,6 +39,7 @@ namespace AudioBooksPlayer.WPF.Streaming
             TcpCommandsPort = broadcast.TcpCommandPort;
             LastDiscoveryUtcTime = DateTime.UtcNow;
             IpAddress = addrss;
+            Name = broadcast.Name;
         }
 
         public AudioBooksInfoBroadcast() { }
@@ -45,6 +47,10 @@ namespace AudioBooksPlayer.WPF.Streaming
         public AudioBooksInfo[] Books { get; set; }
         public IPAddress IpAddress { get; set; }
         public int TcpCommandsPort { get; set; }
+        public string Name { get; set; }
+
+        [JsonIgnore]
+        public bool IsNameSet => !string.IsNullOrWhiteSpace(Name);
     }
 
     public class AudioBookInfoRemote
@@ -66,10 +72,15 @@ namespace AudioBooksPlayer.WPF.Streaming
         {
             LastDiscoveryUtcTime = copy.LastDiscoveryUtcTime;
             IpAddress = copy.IpAddress;
+            if (copy.IsNameSet)
+                Name = copy.Name;
+            else
+                Name = IpAddress.ToString();
             Books = copy.Books.Select(x => new AudioBookInfoRemote(x, copy.IpAddress, copy.TcpCommandsPort)).ToArray();
         }
         public DateTime LastDiscoveryUtcTime { get; set; }
         public AudioBookInfoRemote[] Books { get; set; }
         public IPAddress IpAddress { get; set; }
+        public string Name { get; set; }
     }
 }

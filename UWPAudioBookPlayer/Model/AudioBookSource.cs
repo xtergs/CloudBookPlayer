@@ -12,11 +12,13 @@ using System.Text;
 using System.Threading.Tasks;
 using Windows.Storage;
 using Windows.Storage.AccessCache;
+using Windows.Storage.FileProperties;
 using Windows.Storage.Streams;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using PropertyChanged;
 using SQLite.Net.Attributes;
+using UWPAudioBookPlayer.Converter;
 using UWPAudioBookPlayer.DAL.Model;
 using UWPAudioBookPlayer.Model;
 using UWPAudioBookPlayer.ModelView;
@@ -82,6 +84,17 @@ namespace UWPAudioBookPlayer.Model
         
     }
 
+
+    public static class AudioBookSourceWithCloudsLocalExtension
+    {
+        public static async Task<StorageFile> GetFile(this AudioBookSourceWithClouds book, string fileName)
+        {
+            if (book.AccessToken == null || !StorageApplicationPermissions.FutureAccessList.ContainsItem(book.AccessToken))
+                return null;
+            var dir = await StorageApplicationPermissions.FutureAccessList.GetFolderAsync(book.AccessToken);
+            return await dir.GetFileAsync(fileName);
+        }
+    }
 
 
     [ImplementPropertyChanged]

@@ -10,6 +10,7 @@ using Windows.Graphics.DirectX;
 using Windows.Graphics.Effects;
 using Windows.Media.DialProtocol;
 using Windows.Storage.AccessCache;
+using Windows.Storage.FileProperties;
 using Windows.Storage.Pickers;
 using Windows.UI;
 using Windows.UI.Composition;
@@ -34,6 +35,7 @@ using Microsoft.Graphics.Canvas.UI.Composition;
 using Microsoft.Toolkit.Uwp.UI.Controls;
 using UWPAudioBookPlayer.Model;
 using Microsoft.Toolkit.Uwp.UI;
+using Microsoft.Toolkit.Uwp.UI.Animations;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -92,7 +94,20 @@ namespace UWPAudioBookPlayer
 
             this.Loaded += OnLoaded;
             this.Unloaded += OnUnloaded;
+            this.SizeChanged += OnSizeChanged;
             Rectagle.SizeChanged += RectagleOnSizeChanged;
+            BottomRectagle.SizeChanged += BottomRectagleOnSizeChanged;
+        }
+
+        private void OnSizeChanged(object sender, SizeChangedEventArgs sizeChangedEventArgs)
+        {
+            ResizeBookListDependWindowSize();
+        }
+
+        private void BottomRectagleOnSizeChanged(object sender, SizeChangedEventArgs sizeChangedEventArgs)
+        {
+            if (BottomVisual != null)
+                BottomVisual.Size = new Vector2((float)BottomRectagle.ActualWidth, (float)BottomRectagle.ActualHeight);
         }
 
         void SetDataTemplateForList()
@@ -111,13 +126,11 @@ namespace UWPAudioBookPlayer
         {
             if (visual == null)
                 return;
-            if (viewModel.Settings.BlurOnlyOverImage)
-                visual.Size = new Vector2((float)Rectagle.ActualWidth, (float)Rectagle.ActualHeight);
-            else
-                visual.Size = new Vector2((float)BackgroundImage.ActualWidth, (float)Rectagle.ActualHeight);
+            visual.Size = new Vector2((float)Rectagle.ActualWidth, (float)Rectagle.ActualHeight);
         }
 
         SpriteVisual visual;
+        SpriteVisual BottomVisual;
         GaussianBlurEffect blurEffect;
 
         public float BlurAmount
@@ -131,10 +144,10 @@ namespace UWPAudioBookPlayer
             var compositor = ElementCompositionPreview.GetElementVisual(Rectagle).Compositor;
             
             visual = compositor.CreateSpriteVisual();
+            BottomVisual = compositor.CreateSpriteVisual();
 
-            
 
-            
+
             blurEffect = new GaussianBlurEffect()
             {
                 Name = "Blur",
@@ -157,9 +170,10 @@ namespace UWPAudioBookPlayer
             effectBrush.SetSourceParameter("source", compositor.CreateBackdropBrush());
             visual.Brush = effectBrush;
             
-            visual.Brush = effectBrush;
+            BottomVisual.Brush = effectBrush;
 
             ElementCompositionPreview.SetElementChildVisual(Rectagle, visual);
+            ElementCompositionPreview.SetElementChildVisual(BottomRectagle, BottomVisual);
         }
 
     private void OnUnloaded(object sender, RoutedEventArgs routedEventArgs)
@@ -193,7 +207,44 @@ namespace UWPAudioBookPlayer
                         ApplicationView.PreferredLaunchWindowingMode = ApplicationViewWindowingMode.Auto;
                     }
                     break;
+                case nameof(viewModel.Settings.ShowBooksList):
+                    if (viewModel.Settings.ShowBooksList)
+                    {
+                        ResizeBookListDependWindowSize();
+                    }
+                    break;
             }
+        }
+
+
+        private int defaultBookListRow = -1;
+        private void ResizeBookListDependWindowSize()
+        {
+
+            if (defaultBookListRow == -1)
+                defaultBookListRow = Grid.GetRow(bookListView);
+            if (this.ActualHeight < 720)
+            {
+                Grid.SetRow(bookListView, 0);
+                Grid.SetRowSpan(bookListView, 9);
+                SystemNavigationManager.GetForCurrentView().BackRequested += OnBackRequestedBooksListShown;
+            }
+            else
+            {
+                Grid.SetRow(bookListView, defaultBookListRow);
+                Grid.SetRowSpan(bookListView, 1);
+            }
+        }
+
+        private void OnBackRequestedBooksListShown(object sender, BackRequestedEventArgs backRequestedEventArgs)
+        {
+            backRequestedEventArgs.Handled = false;
+            if (viewModel.Settings.ShowBooksList)
+            {
+                viewModel.Settings.ShowBooksList = false;
+                backRequestedEventArgs.Handled = true;
+            }
+
         }
 
         private void OnLoaded(object sender, RoutedEventArgs routedEventArgs)
@@ -484,6 +535,21 @@ namespace UWPAudioBookPlayer
         private Dictionary<string, BitmapImage> fileImageCache = new Dictionary<string, BitmapImage>();
         private float _blurAmount;
 
+        private void SetDefaultImage(ImageEx img)
+        {
+            BitmapImage btm;
+            if (fileImageCache.TryGetValue("default", out btm))
+            {
+                img.Source = btm;
+                return;
+            }
+            if (viewModel?.Settings?.StandartCover == null)
+                return;
+            btm = new BitmapImage(new Uri(viewModel.Settings.StandartCover));
+            fileImageCache["defualt"] = btm;
+            img.Source = btm;
+        }
+
         private async void FrameworkElement_OnDataContextChanged(FrameworkElement sender, DataContextChangedEventArgs args)
         {
             var source = args.NewValue as AudioBookSourceWithClouds;
@@ -495,7 +561,21 @@ namespace UWPAudioBookPlayer
             string cover = source.GetAnyCover();
             if (cover == null)
             {
-                SetDefaultImage(img);             
+                var mediaFile = await source.GetFile(source.GetCurrentFile.Name);
+                if (mediaFile != null)
+                using (StorageItemThumbnail thumbnail = await mediaFile.GetThumbnailAsync(ThumbnailMode.MusicView, 1080))
+                {
+                    if (thumbnail != null && thumbnail.Type == ThumbnailType.Image)
+                    {
+                        var bitmapImage = new BitmapImage();
+                        bitmapImage.SetSource(thumbnail);
+                        img.Source = bitmapImage;
+                    }
+                    else
+                        SetDefaultImage(img);
+                }           
+                else
+                    SetDefaultImage(img);
                 return;
             }
             if (source.IsLink(cover))
@@ -534,24 +614,20 @@ namespace UWPAudioBookPlayer
             }
         }
 
-        private void SetDefaultImage(ImageEx img)
-        {
-            BitmapImage btm;
-            if (fileImageCache.TryGetValue("default", out btm))
-            {
-                img.Source = btm;
-                return;
-            }
-            if (viewModel?.Settings?.StandartCover == null)
-                return;
-            btm = new BitmapImage(new Uri(viewModel.Settings.StandartCover));
-            fileImageCache["defualt"] = btm;
-            img.Source = btm;
-        }
-
         private void ShowAttachedContextMenuClick(object sender, RoutedEventArgs e)
         {
             (sender as FrameworkElement).ContextFlyout.ShowAt(sender as FrameworkElement);
+        }
+
+        private async void ShowBooks_OnChecked(object sender, RoutedEventArgs e)
+        {
+            //await bookListView.Offset(0, (float) bookListView.ActualHeight, 1000).StartAsync();
+            //ExitStoryboard.Begin();
+        }
+
+        private async void ShowBooks_OnUnchecked(object sender, RoutedEventArgs e)
+        {
+            //await bookListView.Offset(0, -(float)bookListView.ActualHeight, 1000).StartAsync();
         }
     }
 
