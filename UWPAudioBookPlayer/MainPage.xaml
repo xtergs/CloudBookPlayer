@@ -971,6 +971,7 @@
             <controls:PullToRefreshListView.Transitions>
                 <TransitionCollection>
                     <RepositionThemeTransition />
+                    <EdgeUIThemeTransition />
                 </TransitionCollection>
             </controls:PullToRefreshListView.Transitions>
             <controls:PullToRefreshListView.ItemContainerStyle>
@@ -1037,7 +1038,7 @@
         <CommandBar Grid.Row="8" Visibility="{Binding ElementName=showBooks, Path=IsChecked, Converter={StaticResource BoolToVisibilityConverter}}">
             <CommandBar.Transitions>
                 <TransitionCollection>
-                    <RepositionThemeTransition/>
+                    <RepositionThemeTransition />
                 </TransitionCollection>
             </CommandBar.Transitions>
 

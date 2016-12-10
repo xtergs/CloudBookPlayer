@@ -80,7 +80,7 @@ namespace UWPAudioBookPlayer.ModelView
                                    $"1) Responsive settings view{Environment.NewLine}" +
                                    $"2) Choose from standart covers or set your own{Environment.NewLine}" +
                                    $"3) Volum bar hided in contextFlyout{Environment.NewLine}" +
-
+                                   $"4) Show list with books with respect to window height{Environment.NewLine}" +   
                                    $"4) Cast -> возможность воспроизводить книги на устройствах поддерживающих DLNA, Miracast, bluetooth{Environment.NewLine}" +
                                    $"5) Continue -> возможность открыть приложение на другом устройтсве(тотже аккаунт) и продолжить прослушивание на нем{Environment.NewLine}" +
                                    $"6) Слежение за изменениями в DropBox -> можено практически мгновенно переключаться между устройтсвами, тот же аккаунт не требуеться";

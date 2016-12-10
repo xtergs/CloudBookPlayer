@@ -228,9 +228,13 @@ namespace UWPAudioBookPlayer
                 Grid.SetRow(bookListView, 0);
                 Grid.SetRowSpan(bookListView, 9);
                 SystemNavigationManager.GetForCurrentView().BackRequested += OnBackRequestedBooksListShown;
+                SystemNavigationManager.GetForCurrentView().AppViewBackButtonVisibility = AppViewBackButtonVisibility.Visible;
             }
             else
             {
+                SystemNavigationManager.GetForCurrentView().AppViewBackButtonVisibility =
+                    AppViewBackButtonVisibility.Collapsed;
+                SystemNavigationManager.GetForCurrentView().BackRequested -= OnBackRequestedBooksListShown;
                 Grid.SetRow(bookListView, defaultBookListRow);
                 Grid.SetRowSpan(bookListView, 1);
             }
