@@ -762,6 +762,7 @@
 
         <StackPanel Grid.Row="5"
                     HorizontalAlignment="Center"
+                    SizeChanged="AdditionalControlButtonSizeChanged"
                     Orientation="Vertical">
             <VariableSizedWrapGrid x:Name="ControlPanel"
                                    Grid.Row="5"

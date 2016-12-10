@@ -122,11 +122,30 @@ namespace UWPAudioBookPlayer
             }
         }
 
+        private double defaultWidthOfPlayButtons = -1;
         private void RectagleOnSizeChanged(object sender, SizeChangedEventArgs sizeChangedEventArgs)
         {
             if (visual == null)
                 return;
             visual.Size = new Vector2((float)Rectagle.ActualWidth, (float)Rectagle.ActualHeight);
+
+            if (defaultWidthOfPlayButtons == -1)
+            {
+                defaultWidthOfPlayButtons = (playGrid.Children[0] as AppBarButton).ActualWidth;
+            }
+            double totalWidth = playGrid.Children.Count *
+                                (playGrid.Children[0] as AppBarButton).ActualWidth;
+            foreach (var result in playGrid.Children.OfType<AppBarButton>())
+            {
+                if (totalWidth >= Rectagle.ActualWidth)
+                {
+                    result.Width = Rectagle.ActualWidth/playGrid.Children.Count;
+                }
+                else
+                {
+                    result.Width = defaultWidthOfPlayButtons;
+                }
+            }
         }
 
         SpriteVisual visual;
@@ -632,6 +651,24 @@ namespace UWPAudioBookPlayer
         private async void ShowBooks_OnUnchecked(object sender, RoutedEventArgs e)
         {
             //await bookListView.Offset(0, -(float)bookListView.ActualHeight, 1000).StartAsync();
+        }
+
+        private void AdditionalControlButtonSizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            double totalWidth = ControlPanel.Children.Count *
+                               (ControlPanel.Children[0] as AppBarButton).ActualWidth;
+            foreach (var result in ControlPanel.Children.OfType<AppBarButton>())
+            {
+                if (totalWidth >= Rectagle.ActualWidth)
+                {
+                    result.Width = Rectagle.ActualWidth / ControlPanel.Children.Count;
+                }
+                else
+                {
+                    if (defaultWidthOfPlayButtons != -1)
+                        result.Width = defaultWidthOfPlayButtons;
+                }
+            }
         }
     }
 
