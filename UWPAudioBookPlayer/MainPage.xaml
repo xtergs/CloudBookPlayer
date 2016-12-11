@@ -527,650 +527,671 @@
             <ItemsWrapGrid Orientation="Horizontal" />
         </ItemsPanelTemplate>
     </Page.Resources>
-    <Grid HorizontalAlignment="Stretch"
-          VerticalAlignment="Stretch"
-          Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-        <Grid.Resources>
-            <Storyboard x:Name="EnterStoryboard">
-                <FadeOutThemeAnimation Storyboard.TargetName="bookListView" />
-            </Storyboard>
-            <Storyboard x:Name="ExitStoryboard">
-                <DoubleAnimation Storyboard.TargetName="bookListView" To="0" />
-            </Storyboard>
-        </Grid.Resources>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition />
-            <ColumnDefinition Width="Auto" />
-        </Grid.ColumnDefinitions>
+    <SplitView DisplayMode="Overlay"
+                OpenPaneLength="500"
+               IsPaneOpen="{Binding IsChecked,
+                                    ElementName=showSourceList}"
+               PanePlacement="Right">
+        <SplitView.Pane>
+            <ListView x:Name="operationsList"
+                      Grid.Row="0"
+                      Grid.RowSpan="10"
+                      Grid.Column="1"
+                      VerticalAlignment="Bottom"
+                      ItemsSource="{Binding UploadOperations}">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Image MaxHeight="50"
+                                   CacheMode="BitmapCache"
+                                   Source="{Binding Type,
+                                                    Converter={StaticResource CloudTypeToImageConverter}}" />
+                            <StackPanel Grid.Column="1" Orientation="Vertical">
+                                <TextBlock Text="{Binding Status}" />
+                                <TextBlock Text="{Binding BookName}" />
+                                <ProgressBar Maximum="{Binding MaximumValue}" Value="{Binding Value}" />
+                                <TextBlock>
+                                    <Run Text="{Binding Value}" />
+                                    <Run Text=" from " />
+                                    <Run Text="{Binding MaximumValue}" />
+                                </TextBlock>
+                            </StackPanel>
+                            <VariableSizedWrapGrid Grid.Column="2"
+                                                   MaximumRowsOrColumns="3"
+                                                   Orientation="Horizontal">
+                                <AppBarButton Command="{Binding DataContext.PauseOperationCommand,
+                                                                ElementName=operationsList}"
+                                              CommandParameter="{Binding OperationId}"
+                                              Icon="Pause"
+                                              IsCompact="True"
+                                              IsEnabled="{Binding IsPaused,
+                                                                  Converter={StaticResource NoConverter},
+                                                                  Mode=OneWay,
+                                                                  UpdateSourceTrigger=PropertyChanged}" />
+                                <AppBarButton Command="{Binding DataContext.ResumeOperationCommand,
+                                                                ElementName=operationsList}"
+                                              CommandParameter="{Binding OperationId}"
+                                              Icon="Play"
+                                              IsCompact="True"
+                                              IsEnabled="{Binding IsPaused,
+                                                                  Mode=OneWay,
+                                                                  UpdateSourceTrigger=PropertyChanged}" />
+                                <AppBarButton Command="{Binding DataContext.CancelOperationCommand,
+                                                                ElementName=operationsList}"
+                                              CommandParameter="{Binding OperationId}"
+                                              Icon="Clear"
+                                              Visibility="Visible" />
+                            </VariableSizedWrapGrid>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </SplitView.Pane>
+        <SplitView.Content>
+            <Grid HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch"
+                  Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+                <Grid.Resources>
+                    <Storyboard x:Name="EnterStoryboard">
+                        <FadeOutThemeAnimation Storyboard.TargetName="bookListView" />
+                    </Storyboard>
+                    <Storyboard x:Name="ExitStoryboard">
+                        <DoubleAnimation Storyboard.TargetName="bookListView" To="0" />
+                    </Storyboard>
+                </Grid.Resources>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-        <controls:ImageEx x:Name="BackgroundImage"
-                          Grid.Row="0"
-                          Grid.RowSpan="11"
-                          MinWidth="200"
-                          MinHeight="200"
-                          HorizontalAlignment="Stretch"
-                          VerticalAlignment="Stretch"
-                          DataContext="{Binding PlayingSource,
-                                                Mode=OneWay,
-                                                UpdateSourceTrigger=PropertyChanged}"
-                          DataContextChanged="FrameworkElement_OnDataContextChanged"
-                          IsCacheEnabled="True"
-                          PlaceholderSource="{x:Bind viewModel.Settings.StandartCover, Mode=OneTime}"
-                          Source="{Binding Cover,
-                                           Mode=OneWay,
-                                           UpdateSourceTrigger=PropertyChanged}"
-                          Stretch="{x:Bind viewModel.Settings.FillBackgroundEntireWindow, Converter={StaticResource BoolToUniformOrFillConverter}, Mode=OneTime}"
-                          Visibility="{x:Bind viewModel.Settings.IsShowBackgroundImage, Converter={StaticResource BoolToVisiblityConverter}, Mode=OneWay}">
-            <controls:ImageEx.ContextFlyout>
-                <MenuFlyout>
-                    <MenuFlyoutItem Text="Details" />
-                    <MenuFlyoutItem Text="Add bookmark" />
-                </MenuFlyout>
-            </controls:ImageEx.ContextFlyout>
-            <interactivity:Interaction.Behaviors>
-                <behaviors:Blur x:Name="BlurBehavior"
-                                AutomaticallyStart="{x:Bind viewModel.Settings.IsBlurBackgroundImage}"
-                                Delay="0"
-                                Value="{x:Bind viewModel.Settings.ValueToBlurBackgroundImage}" />
-            </interactivity:Interaction.Behaviors>
-        </controls:ImageEx>
-        <Rectangle x:Name="Rectagle"
-                   Grid.Row="0"
-                   Grid.RowSpan="6" />
-        <StackPanel Orientation="Vertical">
-            <StackPanel BorderBrush="Silver"
-                        BorderThickness="0,0,0,0"
-                        Orientation="Horizontal">
-
-                <AppBarToggleButton x:Name="showBooks"
-                                    Checked="ShowBooks_OnChecked"
-                                    Icon="List"
-                                    IsChecked="{Binding Settings.ShowBooksList,
-                                                        Mode=TwoWay,
+                <controls:ImageEx x:Name="BackgroundImage"
+                                  Grid.Row="0"
+                                  Grid.RowSpan="11"
+                                  MinWidth="200"
+                                  MinHeight="200"
+                                  HorizontalAlignment="Stretch"
+                                  VerticalAlignment="Stretch"
+                                  DataContext="{Binding PlayingSource,
+                                                        Mode=OneWay,
                                                         UpdateSourceTrigger=PropertyChanged}"
-                                    Label="Books" />
-                <AppBarButton Click="OpenSettingsClick"
-                              Icon="Setting"
-                              Label="Settings" />
-                <AppBarToggleButton x:Name="showSourceList"
-                                    Icon="List"
-                                    Label="Operations" />
-                <AppBarButton Icon="Play"
-                              IsEnabled="{Binding RemoteSystems,
-                                                  Mode=OneWay,
-                                                  UpdateSourceTrigger=PropertyChanged}"
-                              Label="Continue">
-                    <AppBarButton.Flyout>
-                        <ListPickerFlyout ItemsPicked="RemoteDevicesPicked"
-                                          ItemsSource="{Binding RemoteSystems,
-                                                                Mode=OneWay,
+                                  DataContextChanged="FrameworkElement_OnDataContextChanged"
+                                  IsCacheEnabled="True"
+                                  PlaceholderSource="{x:Bind viewModel.Settings.StandartCover, Mode=OneTime}"
+                                  Source="{Binding Cover,
+                                                   Mode=OneWay,
+                                                   UpdateSourceTrigger=PropertyChanged}"
+                                  Stretch="{x:Bind viewModel.Settings.FillBackgroundEntireWindow, Converter={StaticResource BoolToUniformOrFillConverter}, Mode=OneTime}"
+                                  Visibility="{x:Bind viewModel.Settings.IsShowBackgroundImage, Converter={StaticResource BoolToVisiblityConverter}, Mode=OneWay}">
+                    <controls:ImageEx.ContextFlyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Text="Details" />
+                            <MenuFlyoutItem Text="Add bookmark" />
+                        </MenuFlyout>
+                    </controls:ImageEx.ContextFlyout>
+                    <interactivity:Interaction.Behaviors>
+                        <behaviors:Blur x:Name="BlurBehavior"
+                                        AutomaticallyStart="{x:Bind viewModel.Settings.IsBlurBackgroundImage}"
+                                        Delay="0"
+                                        Value="{x:Bind viewModel.Settings.ValueToBlurBackgroundImage}" />
+                    </interactivity:Interaction.Behaviors>
+                </controls:ImageEx>
+                <Rectangle x:Name="Rectagle"
+                           Grid.Row="0"
+                           Grid.RowSpan="6" />
+                <StackPanel Orientation="Vertical">
+                    <StackPanel BorderBrush="Silver"
+                                BorderThickness="0,0,0,0"
+                                Orientation="Horizontal">
+
+                        <AppBarToggleButton x:Name="showBooks"
+                                            Checked="ShowBooks_OnChecked"
+                                            Icon="List"
+                                            IsChecked="{Binding Settings.ShowBooksList,
+                                                                Mode=TwoWay,
                                                                 UpdateSourceTrigger=PropertyChanged}"
-                                          PickerFlyoutBase.Title="Choose where to continue (tip: you need sign in on all you devices with single microsoft account)"
-                                          SelectionMode="Single">
-                            <ListPickerFlyout.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel>
-                                        <TextBlock>
-                                            <Run Text="Name: " />
-                                            <Run Text="{Binding DisplayName}" />
-                                        </TextBlock>
-                                        <TextBlock>
-                                            <Run Text="IsAvailableByProximity: " />
-                                            <Run Text="{Binding IsAvailableByProximity}" />
-                                        </TextBlock>
-                                        <TextBlock>
-                                            <Run Text="Kind: " />
-                                            <Run Text="{Binding Kind}" />
-                                        </TextBlock>
-                                        <TextBlock>
-                                            <Run Text="Status: " />
-                                            <Run Text="{Binding Status}" />
-                                        </TextBlock>
+                                            Label="Books" />
+                        <AppBarButton Click="OpenSettingsClick"
+                                      Icon="Setting"
+                                      Label="Settings" />
+                        <Grid Visibility="{Binding UploadOperations.Count, Converter={StaticResource IntToVisibilityConverter}}">
+                            <AppBarToggleButton x:Name="showSourceList"
+                                                Icon="List"
+                                                Label="Operations" />
+                            <Ellipse Width="23"
+                                     Height="23"
+                                     Margin="0,5,0,5"
+                                     HorizontalAlignment="Right"
+                                     VerticalAlignment="Top"
+                                     Fill="{ThemeResource SystemControlBackgroundAccentBrush}" />
+                            <TextBlock Margin="5"
+                                       HorizontalAlignment="Right"
+                                       Foreground="White"
+                                       IsColorFontEnabled="True"
+                                       Text="{Binding UploadOperations.Count,
+                                                      Mode=OneWay,
+                                                      UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+                        <AppBarButton Icon="Play"
+                                      IsEnabled="{Binding RemoteSystems,
+                                                          Mode=OneWay,
+                                                          UpdateSourceTrigger=PropertyChanged}"
+                                      Label="Continue">
+                            <AppBarButton.Flyout>
+                                <ListPickerFlyout ItemsPicked="RemoteDevicesPicked"
+                                                  ItemsSource="{Binding RemoteSystems,
+                                                                        Mode=OneWay,
+                                                                        UpdateSourceTrigger=PropertyChanged}"
+                                                  PickerFlyoutBase.Title="Choose where to continue (tip: you need sign in on all you devices with single microsoft account)"
+                                                  SelectionMode="Single">
+                                    <ListPickerFlyout.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel>
+                                                <TextBlock>
+                                                    <Run Text="Name: " />
+                                                    <Run Text="{Binding DisplayName}" />
+                                                </TextBlock>
+                                                <TextBlock>
+                                                    <Run Text="IsAvailableByProximity: " />
+                                                    <Run Text="{Binding IsAvailableByProximity}" />
+                                                </TextBlock>
+                                                <TextBlock>
+                                                    <Run Text="Kind: " />
+                                                    <Run Text="{Binding Kind}" />
+                                                </TextBlock>
+                                                <TextBlock>
+                                                    <Run Text="Status: " />
+                                                    <Run Text="{Binding Status}" />
+                                                </TextBlock>
 
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ListPickerFlyout.ItemTemplate>
-                        </ListPickerFlyout>
-                    </AppBarButton.Flyout>
-                </AppBarButton>
-                <AppBarButton Click="DeviceCastClick"
-                              Icon="Play"
-                              IsEnabled="{Binding PlayingSource,
-                                                  Converter={StaticResource NullToBoolConverter},
-                                                  Mode=OneWay,
-                                                  UpdateSourceTrigger=PropertyChanged}"
-                              Label="Cast"
-                              ToolTipService.ToolTip="Cast to another device" />
-            </StackPanel>
-            <ProgressBar Maximum="{Binding PlayingSource.Files.Count}"
-                         Minimum="0"
-                         Value="{Binding PlayingSource.CurrentFile,
-                                         Mode=OneWay,
-                                         UpdateSourceTrigger=PropertyChanged}" />
-        </StackPanel>
-        <ListView x:Name="operationsList"
-                  Grid.Row="0"
-                  Grid.RowSpan="10"
-                  Grid.Column="1"
-                  VerticalAlignment="Bottom"
-                  ItemsSource="{Binding UploadOperations}"
-                  Visibility="{Binding IsChecked,
-                                       Converter={StaticResource BoolToVisiblityConverter},
-                                       ElementName=showSourceList}">
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <Image MaxHeight="50"
-                               CacheMode="BitmapCache"
-                               Source="{Binding Type,
-                                                Converter={StaticResource CloudTypeToImageConverter}}" />
-                        <StackPanel Grid.Column="1" Orientation="Vertical">
-                            <TextBlock Text="{Binding Status}" />
-                            <TextBlock Text="{Binding BookName}" />
-                            <ProgressBar Maximum="{Binding MaximumValue}" Value="{Binding Value}" />
-                            <TextBlock>
-                                <Run Text="{Binding Value}" />
-                                <Run Text=" from " />
-                                <Run Text="{Binding MaximumValue}" />
-                            </TextBlock>
-                        </StackPanel>
-                        <VariableSizedWrapGrid Grid.Column="2"
-                                               MaximumRowsOrColumns="3"
-                                               Orientation="Horizontal">
-                            <AppBarButton Command="{Binding DataContext.PauseOperationCommand,
-                                                            ElementName=operationsList}"
-                                          CommandParameter="{Binding OperationId}"
-                                          Icon="Pause"
-                                          IsCompact="True"
-                                          IsEnabled="{Binding IsPaused,
-                                                              Converter={StaticResource NoConverter},
-                                                              Mode=OneWay,
-                                                              UpdateSourceTrigger=PropertyChanged}" />
-                            <AppBarButton Command="{Binding DataContext.ResumeOperationCommand,
-                                                            ElementName=operationsList}"
-                                          CommandParameter="{Binding OperationId}"
-                                          Icon="Play"
-                                          IsCompact="True"
-                                          IsEnabled="{Binding IsPaused,
-                                                              Mode=OneWay,
-                                                              UpdateSourceTrigger=PropertyChanged}" />
-                            <AppBarButton Command="{Binding DataContext.CancelOperationCommand,
-                                                            ElementName=operationsList}"
-                                          CommandParameter="{Binding OperationId}"
-                                          Icon="Clear"
-                                          Visibility="Visible" />
-                        </VariableSizedWrapGrid>
-                    </Grid>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
-
-        <TextBlock Grid.Row="1"
-                   HorizontalAlignment="Center"
-                   FontSize="20"
-                   Text="{Binding CurrentState.BookName}"
-                   TextTrimming="CharacterEllipsis" />
-        <TextBlock Grid.Row="2"
-                   HorizontalAlignment="Center"
-                   Text="{Binding PlayingFile.Name}"
-                   TextTrimming="CharacterEllipsis" />
-        <StackPanel Grid.Row="3" Margin="10,0,10,0">
-            <Slider Grid.Row="3"
-                    Maximum="{Binding FileDuration.TotalSeconds,
-                                      UpdateSourceTrigger=PropertyChanged}"
-                    Minimum="0"
-                    Style="{StaticResource SliderStyle1}"
-                    ThumbToolTipValueConverter="{StaticResource SecondsToTimeSpanConverter}"
-                    Value="{Binding CurrentPosition,
-                                    Converter={StaticResource TimeSpanToSecondsConverter},
-                                    Mode=TwoWay,
-                                    UpdateSourceTrigger=PropertyChanged}" />
-            <TextBlock Text="Downloading progress:" Visibility="Collapsed" />
-            <ProgressBar Height="10"
-                         Maximum="1"
-                         Minimum="0"
-                         Visibility="Collapsed"
-                         Value="{Binding DownloadingProgresss,
-                                         Mode=OneWay,
-                                         UpdateSourceTrigger=PropertyChanged}" />
-        </StackPanel>
-        <Grid Grid.Row="4" Margin="10,0,10,0">
-            <TextBlock HorizontalAlignment="Left" Text="{Binding CurrentPosition.TotalSeconds, Converter={StaticResource SecondsToTimeSpanConverter}, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
-            <TextBlock HorizontalAlignment="Center">
-                <Run Text="{Binding PlayingSource.CurrentFile}" />
-                <Run Text=" from " />
-                <Run Text="{Binding PlayingSource.Files.Count}" />
-            </TextBlock>
-            <TextBlock HorizontalAlignment="Right" Text="{Binding FileDuration.TotalSeconds, Converter={StaticResource SecondsToTimeSpanConverter}, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
-        </Grid>
-
-        <StackPanel Grid.Row="5"
-                    HorizontalAlignment="Center"
-                    Orientation="Vertical"
-                    SizeChanged="AdditionalControlButtonSizeChanged">
-            <VariableSizedWrapGrid x:Name="ControlPanel"
-                                   Grid.Row="5"
-                                   HorizontalAlignment="Center"
-                                   Orientation="Horizontal">
-
-                <AppBarButton Icon="Audio"
-                              IsEnabled="{Binding PlayingSource,
-                                                  Converter={StaticResource NullToBoolConverter},
-                                                  Mode=OneWay,
-                                                  UpdateSourceTrigger=PropertyChanged}"
-                              Label="{Binding PlayBackRate,
-                                              Mode=OneWay,
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListPickerFlyout.ItemTemplate>
+                                </ListPickerFlyout>
+                            </AppBarButton.Flyout>
+                        </AppBarButton>
+                        <AppBarButton Click="DeviceCastClick"
+                                      Icon="Play"
+                                      IsEnabled="{Binding PlayingSource,
+                                                          Converter={StaticResource NullToBoolConverter},
+                                                          Mode=OneWay,
+                                                          UpdateSourceTrigger=PropertyChanged}"
+                                      Label="Cast"
+                                      ToolTipService.ToolTip="Cast to another device" />
+                    </StackPanel>
+                    <ProgressBar Maximum="{Binding PlayingSource.Files.Count}"
+                                 Minimum="0"
+                                 Value="{Binding PlayingSource.CurrentFile,
+                                                 Mode=OneWay,
+                                                 UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+                <TextBlock Grid.Row="1"
+                           HorizontalAlignment="Center"
+                           FontSize="20"
+                           Text="{Binding CurrentState.BookName}"
+                           TextTrimming="CharacterEllipsis" />
+                <TextBlock Grid.Row="2"
+                           HorizontalAlignment="Center"
+                           Text="{Binding PlayingFile.Name}"
+                           TextTrimming="CharacterEllipsis" />
+                <StackPanel Grid.Row="3" Margin="10,0,10,0">
+                    <Slider Grid.Row="3"
+                            Maximum="{Binding FileDuration.TotalSeconds,
                                               UpdateSourceTrigger=PropertyChanged}"
-                              ToolTipService.ToolTip="Speed">
+                            Minimum="0"
+                            Style="{StaticResource SliderStyle1}"
+                            ThumbToolTipValueConverter="{StaticResource SecondsToTimeSpanConverter}"
+                            Value="{Binding CurrentPosition,
+                                            Converter={StaticResource TimeSpanToSecondsConverter},
+                                            Mode=TwoWay,
+                                            UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="Downloading progress:" Visibility="Collapsed" />
+                    <ProgressBar Height="10"
+                                 Maximum="1"
+                                 Minimum="0"
+                                 Visibility="Collapsed"
+                                 Value="{Binding DownloadingProgresss,
+                                                 Mode=OneWay,
+                                                 UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+                <Grid Grid.Row="4" Margin="10,0,10,0">
+                    <TextBlock HorizontalAlignment="Left" Text="{Binding CurrentPosition.TotalSeconds, Converter={StaticResource SecondsToTimeSpanConverter}, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock HorizontalAlignment="Center">
+                        <Run Text="{Binding PlayingSource.CurrentFile}" />
+                        <Run Text=" from " />
+                        <Run Text="{Binding PlayingSource.Files.Count}" />
+                    </TextBlock>
+                    <TextBlock HorizontalAlignment="Right" Text="{Binding FileDuration.TotalSeconds, Converter={StaticResource SecondsToTimeSpanConverter}, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
 
-                    <AppBarButton.Flyout>
-                        <ListPickerFlyout ItemsSource="{Binding AvaliblePlayBackSpeed,
-                                                                Mode=OneTime}"
-                                          PickerFlyoutBase.Title="Playback speed"
-                                          Placement="Top"
-                                          SelectedItem="{Binding Player.PlaybackSession.PlaybackRate,
-                                                                 Mode=TwoWay}"
-                                          SelectionMode="Single" />
-                    </AppBarButton.Flyout>
-                </AppBarButton>
-                <AppBarButton Click="GoToAddBookMark"
-                              Holding="GoToViewBookMarks"
-                              Icon="Flag"
-                              IsEnabled="{Binding PlayingSource,
-                                                  Converter={StaticResource NullToBoolConverter},
-                                                  Mode=OneWay,
-                                                  UpdateSourceTrigger=PropertyChanged}"
-                              Label="Bookmark"
-                              RightTapped="ShowBookmarksMenu"
-                              ToolTipService.ToolTip="Bookmark for current position">
-                    <!--                <AppBarButton.Flyout>-->
-                    <!--                    <Flyout Placement="Top" Closing="FlyoutBase_OnClosing">-->
-                    <!--  <view:AddBookMark Position="{Binding PlayingSource.Position}"  -->
-                    <!--  SaveCommand="{Binding AddBookMarkCommand,  -->
-                    <!--  Mode=OneWay,  -->
-                    <!--  UpdateSourceTrigger=PropertyChanged}"  -->
-                    <!--  Source="{Binding PlayingSource,  -->
-                    <!--  Mode=OneWay,  -->
-                    <!--  UpdateSourceTrigger=PropertyChanged}" />  -->
-                    <!--                    </Flyout>-->
-                    <!--                </AppBarButton.Flyout>-->
+                <StackPanel Grid.Row="5"
+                            HorizontalAlignment="Center"
+                            Orientation="Vertical"
+                            SizeChanged="AdditionalControlButtonSizeChanged">
+                    <VariableSizedWrapGrid x:Name="ControlPanel"
+                                           Grid.Row="5"
+                                           HorizontalAlignment="Center"
+                                           Orientation="Horizontal">
 
-                </AppBarButton>
-                <AppBarButton Icon="Bullets"
-                              IsEnabled="{Binding PlayingSource,
-                                                  Converter={StaticResource NullToBoolConverter},
-                                                  Mode=OneWay,
-                                                  UpdateSourceTrigger=PropertyChanged}"
-                              Label="History"
-                              ToolTipService.ToolTip="History of playing book">
-                    <AppBarButton.Flyout>
-                        <ListPickerFlyout ItemsPicked="ListPickerFlyout_OnItemsPicked"
-                                          ItemsSource="{Binding PlayingSource.OrderedHistory}"
-                                          PickerFlyoutBase.Title="History"
-                                          Placement="Top"
-                                          SelectionMode="Single">
-                            <ListPickerFlyout.ItemTemplate>
-                                <DataTemplate>
+                        <AppBarButton Icon="Audio"
+                                      IsEnabled="{Binding PlayingSource,
+                                                          Converter={StaticResource NullToBoolConverter},
+                                                          Mode=OneWay,
+                                                          UpdateSourceTrigger=PropertyChanged}"
+                                      Label="{Binding PlayBackRate,
+                                                      Mode=OneWay,
+                                                      UpdateSourceTrigger=PropertyChanged}"
+                                      ToolTipService.ToolTip="Speed">
+
+                            <AppBarButton.Flyout>
+                                <ListPickerFlyout ItemsSource="{Binding AvaliblePlayBackSpeed,
+                                                                        Mode=OneTime}"
+                                                  PickerFlyoutBase.Title="Playback speed"
+                                                  Placement="Top"
+                                                  SelectedItem="{Binding Player.PlaybackSession.PlaybackRate,
+                                                                         Mode=TwoWay}"
+                                                  SelectionMode="Single" />
+                            </AppBarButton.Flyout>
+                        </AppBarButton>
+                        <AppBarButton Click="GoToAddBookMark"
+                                      Holding="GoToViewBookMarks"
+                                      Icon="Flag"
+                                      IsEnabled="{Binding PlayingSource,
+                                                          Converter={StaticResource NullToBoolConverter},
+                                                          Mode=OneWay,
+                                                          UpdateSourceTrigger=PropertyChanged}"
+                                      Label="Bookmark"
+                                      RightTapped="ShowBookmarksMenu"
+                                      ToolTipService.ToolTip="Bookmark for current position">
+                            <!--                <AppBarButton.Flyout>-->
+                            <!--                    <Flyout Placement="Top" Closing="FlyoutBase_OnClosing">-->
+                            <!--  <view:AddBookMark Position="{Binding PlayingSource.Position}"  -->
+                            <!--  SaveCommand="{Binding AddBookMarkCommand,  -->
+                            <!--  Mode=OneWay,  -->
+                            <!--  UpdateSourceTrigger=PropertyChanged}"  -->
+                            <!--  Source="{Binding PlayingSource,  -->
+                            <!--  Mode=OneWay,  -->
+                            <!--  UpdateSourceTrigger=PropertyChanged}" />  -->
+                            <!--                    </Flyout>-->
+                            <!--                </AppBarButton.Flyout>-->
+
+                        </AppBarButton>
+                        <AppBarButton Icon="Bullets"
+                                      IsEnabled="{Binding PlayingSource,
+                                                          Converter={StaticResource NullToBoolConverter},
+                                                          Mode=OneWay,
+                                                          UpdateSourceTrigger=PropertyChanged}"
+                                      Label="History"
+                                      ToolTipService.ToolTip="History of playing book">
+                            <AppBarButton.Flyout>
+                                <ListPickerFlyout ItemsPicked="ListPickerFlyout_OnItemsPicked"
+                                                  ItemsSource="{Binding PlayingSource.OrderedHistory}"
+                                                  PickerFlyoutBase.Title="History"
+                                                  Placement="Top"
+                                                  SelectionMode="Single">
+                                    <ListPickerFlyout.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                </Grid.RowDefinitions>
+                                                <TextBlock FontSize="18">
+                                                    <Run Text="{Binding Type}" />
+                                                    <Run Text=" at " />
+                                                    <Run Text="{Binding Position.TotalSeconds, Converter={StaticResource SecondsToTimeSpanConverter}}" />
+                                                </TextBlock>
+                                                <TextBlock Grid.Row="1"
+                                                           FontSize="15"
+                                                           Text="{Binding FileName}" />
+                                                <TextBlock Grid.Row="2"
+                                                           FontSize="12"
+                                                           Text="{Binding TimeStampLocal}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListPickerFlyout.ItemTemplate>
+                                </ListPickerFlyout>
+                            </AppBarButton.Flyout>
+                        </AppBarButton>
+                        <AppBarButton Command="{Binding ChangeTimerStateCommand}"
+                                      Icon="Clock"
+                                      IsEnabled="{Binding PlayingSource,
+                                                          Converter={StaticResource NullToBoolConverter},
+                                                          Mode=OneWay,
+                                                          UpdateSourceTrigger=PropertyChanged}"
+                                      Label="{Binding LeftSleepTimer,
+                                                      Mode=OneWay,
+                                                      UpdateSourceTrigger=PropertyChanged}"
+                                      ToolTipService.ToolTip="Set sleep timer" />
+                        <AppBarButton Click="ShowAttachedContextMenuClick"
+                                      Icon="Volume"
+                                      Label="Volum">
+                            <AppBarButton.ContextFlyout>
+                                <Flyout>
                                     <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition />
                                         </Grid.RowDefinitions>
-                                        <TextBlock FontSize="18">
-                                            <Run Text="{Binding Type}" />
-                                            <Run Text=" at " />
-                                            <Run Text="{Binding Position.TotalSeconds, Converter={StaticResource SecondsToTimeSpanConverter}}" />
-                                        </TextBlock>
-                                        <TextBlock Grid.Row="1"
-                                                   FontSize="15"
-                                                   Text="{Binding FileName}" />
-                                        <TextBlock Grid.Row="2"
-                                                   FontSize="12"
-                                                   Text="{Binding TimeStampLocal}" />
+                                        <TextBlock HorizontalAlignment="Center" Text="{Binding ElementName=volumSlider, Path=Value, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
+                                        <Slider x:Name="volumSlider"
+                                                Grid.Row="1"
+                                                Width="100"
+                                                VerticalAlignment="Center"
+                                                Header="Volume"
+                                                IsThumbToolTipEnabled="True"
+                                                Maximum="1"
+                                                Minimum="0"
+                                                StepFrequency="0.1"
+                                                Style="{StaticResource CircleSlider}"
+                                                VariableSizedWrapGrid.ColumnSpan="2"
+                                                VariableSizedWrapGrid.RowSpan="1"
+                                                Value="{Binding Player.Volume,
+                                                                Mode=TwoWay,
+                                                                UpdateSourceTrigger=PropertyChanged}" />
                                     </Grid>
-                                </DataTemplate>
-                            </ListPickerFlyout.ItemTemplate>
-                        </ListPickerFlyout>
-                    </AppBarButton.Flyout>
-                </AppBarButton>
-                <AppBarButton Command="{Binding ChangeTimerStateCommand}"
-                              Icon="Clock"
-                              IsEnabled="{Binding PlayingSource,
-                                                  Converter={StaticResource NullToBoolConverter},
-                                                  Mode=OneWay,
-                                                  UpdateSourceTrigger=PropertyChanged}"
-                              Label="{Binding LeftSleepTimer,
-                                              Mode=OneWay,
-                                              UpdateSourceTrigger=PropertyChanged}"
-                              ToolTipService.ToolTip="Set sleep timer" />
-                <AppBarButton Click="ShowAttachedContextMenuClick"
-                              Icon="Volume"
-                              Label="Volum">
-                    <AppBarButton.ContextFlyout>
-                        <Flyout>
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition />
-                                </Grid.RowDefinitions>
-                                <TextBlock HorizontalAlignment="Center" Text="{Binding ElementName=volumSlider, Path=Value, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
-                                <Slider x:Name="volumSlider"
-                                        Grid.Row="1"
-                                        Width="100"
-                                        VerticalAlignment="Center"
-                                        Header="Volume"
-                                        IsThumbToolTipEnabled="True"
-                                        Maximum="1"
-                                        Minimum="0"
-                                        StepFrequency="0.1"
-                                        Style="{StaticResource CircleSlider}"
-                                        VariableSizedWrapGrid.ColumnSpan="2"
-                                        VariableSizedWrapGrid.RowSpan="1"
-                                        Value="{Binding Player.Volume,
-                                                        Mode=TwoWay,
-                                                        UpdateSourceTrigger=PropertyChanged}" />
-                            </Grid>
-                        </Flyout>
-                    </AppBarButton.ContextFlyout>
-                </AppBarButton>
+                                </Flyout>
+                            </AppBarButton.ContextFlyout>
+                        </AppBarButton>
 
-            </VariableSizedWrapGrid>
-        </StackPanel>
-        <Grid Grid.Row="7">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition />
-            </Grid.ColumnDefinitions>
-            <controls:ImageEx x:Name="image"
-                              Grid.ColumnSpan="4"
-                              MinWidth="200"
-                              MinHeight="200"
-                              HorizontalAlignment="Stretch"
-                              VerticalAlignment="Stretch"
-                              DataContext="{Binding PlayingSource,
-                                                    Mode=OneWay,
-                                                    UpdateSourceTrigger=PropertyChanged}"
-                              DataContextChanged="FrameworkElement_OnDataContextChanged"
-                              IsCacheEnabled="True"
-                              PlaceholderSource="{x:Bind viewModel.Settings.StandartCover, Mode=OneTime}"
-                              Source="{Binding Cover,
-                                               Mode=OneWay,
-                                               UpdateSourceTrigger=PropertyChanged}"
-                              Stretch="Uniform"
-                              Visibility="{x:Bind viewModel.IsShowPlayingImage, Converter={StaticResource BoolToVisiblityConverter}, Mode=OneWay}">
-                <controls:ImageEx.ContextFlyout>
-                    <MenuFlyout>
-                        <MenuFlyoutItem Text="Details" />
-                        <MenuFlyoutItem Text="Add bookmark" />
-                    </MenuFlyout>
-                </controls:ImageEx.ContextFlyout>
-            </controls:ImageEx>
-            <AppBarButton Grid.Column="1"
-                          Width="140"
-                          Height="140"
-                          HorizontalAlignment="Left"
-                          VerticalAlignment="Center"
-                          AccessKey=""
-                          Command="{Binding PlayCommand}"
-                          FontSize="20"
-                          FontWeight="ExtraBold"
-                          Icon="Play"
-                          IsCompact="True"
-                          RenderTransformOrigin="0.5,0.5" />
-            <AppBarButton Grid.Column="2"
-                          Width="70"
-                          Margin="70"
-                          HorizontalAlignment="Left"
-                          VerticalAlignment="Center"
-                          Command="{Binding PauseCommand}"
-                          Icon="Pause"
-                          IsCompact="True"
-                          RenderTransformOrigin="0.5,0.5">
-                <AppBarButton.RenderTransform>
-                    <CompositeTransform ScaleX="2" ScaleY="2" />
-                </AppBarButton.RenderTransform>
-            </AppBarButton>
-        </Grid>
-        <controls:PullToRefreshListView x:Name="bookListView"
-                                        Grid.Row="7"
-                                        HorizontalAlignment="Stretch"
-                                        VerticalAlignment="Stretch"
-                                        Background="Silver"
-                                        ItemsSource="{Binding Folders,
-                                                              Mode=OneWay,
-                                                              UpdateSourceTrigger=PropertyChanged}"
-                                        RenderTransformOrigin="0.5,0.5"
-                                        RightTapped="BookListView_OnRightTapped"
-                                        SelectedItem="{Binding SelectedFolder,
-                                                               Mode=TwoWay}"
-                                        Visibility="{Binding ElementName=showBooks,
-                                                             Path=IsChecked,
-                                                             Converter={StaticResource BoolToVisibilityConverter}}">
-            <controls:PullToRefreshListView.Transitions>
-                <TransitionCollection>
-                    <RepositionThemeTransition />
-                    <EdgeUIThemeTransition />
-                </TransitionCollection>
-            </controls:PullToRefreshListView.Transitions>
-            <controls:PullToRefreshListView.ItemContainerStyle>
-                <Style TargetType="ListViewItem">
-                    <Setter Property="HorizontalAlignment" Value="Stretch" />
-                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                    <Setter Property="VerticalAlignment" Value="Stretch" />
-                    <Setter Property="VerticalContentAlignment" Value="Stretch" />
-                </Style>
-            </controls:PullToRefreshListView.ItemContainerStyle>
-            <controls:PullToRefreshListView.ContextFlyout>
-                <MenuFlyout>
-                    <MenuFlyoutItem Command="{x:Bind viewModel.ResumePlayBookCommand}"
-                                    CommandParameter="{x:Bind RightSelectedItemContext, Mode=OneWay}"
-                                    Text="Play" />
-                    <MenuFlyoutSeparator />
+                    </VariableSizedWrapGrid>
+                </StackPanel>
+                <Grid Grid.Row="7">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <controls:ImageEx x:Name="image"
+                                      Grid.ColumnSpan="4"
+                                      MinWidth="200"
+                                      MinHeight="200"
+                                      HorizontalAlignment="Stretch"
+                                      VerticalAlignment="Stretch"
+                                      DataContext="{Binding PlayingSource,
+                                                            Mode=OneWay,
+                                                            UpdateSourceTrigger=PropertyChanged}"
+                                      DataContextChanged="FrameworkElement_OnDataContextChanged"
+                                      IsCacheEnabled="True"
+                                      PlaceholderSource="{x:Bind viewModel.Settings.StandartCover, Mode=OneTime}"
+                                      Source="{Binding Cover,
+                                                       Mode=OneWay,
+                                                       UpdateSourceTrigger=PropertyChanged}"
+                                      Stretch="Uniform"
+                                      Visibility="{x:Bind viewModel.IsShowPlayingImage, Converter={StaticResource BoolToVisiblityConverter}, Mode=OneWay}">
+                        <controls:ImageEx.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Text="Details" />
+                                <MenuFlyoutItem Text="Add bookmark" />
+                            </MenuFlyout>
+                        </controls:ImageEx.ContextFlyout>
+                    </controls:ImageEx>
+                    <AppBarButton Grid.Column="1"
+                                  Width="140"
+                                  Height="140"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Center"
+                                  AccessKey=""
+                                  Command="{Binding PlayCommand}"
+                                  FontSize="20"
+                                  FontWeight="ExtraBold"
+                                  Icon="Play"
+                                  IsCompact="True"
+                                  RenderTransformOrigin="0.5,0.5" />
+                    <AppBarButton Grid.Column="2"
+                                  Width="70"
+                                  Margin="70"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Center"
+                                  Command="{Binding PauseCommand}"
+                                  Icon="Pause"
+                                  IsCompact="True"
+                                  RenderTransformOrigin="0.5,0.5">
+                        <AppBarButton.RenderTransform>
+                            <CompositeTransform ScaleX="2" ScaleY="2" />
+                        </AppBarButton.RenderTransform>
+                    </AppBarButton>
+                </Grid>
+                <controls:PullToRefreshListView x:Name="bookListView"
+                                                Grid.Row="7"
+                                                HorizontalAlignment="Stretch"
+                                                VerticalAlignment="Stretch"
+                                                Background="Silver"
+                                                ItemsSource="{Binding Folders,
+                                                                      Mode=OneWay,
+                                                                      UpdateSourceTrigger=PropertyChanged}"
+                                                RenderTransformOrigin="0.5,0.5"
+                                                RightTapped="BookListView_OnRightTapped"
+                                                SelectedItem="{Binding SelectedFolder,
+                                                                       Mode=TwoWay}"
+                                                Visibility="{Binding ElementName=showBooks,
+                                                                     Path=IsChecked,
+                                                                     Converter={StaticResource BoolToVisibilityConverter}}">
+                    <controls:PullToRefreshListView.Transitions>
+                        <TransitionCollection>
+                            <RepositionThemeTransition />
+                            <EdgeUIThemeTransition />
+                        </TransitionCollection>
+                    </controls:PullToRefreshListView.Transitions>
+                    <controls:PullToRefreshListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalAlignment" Value="Stretch" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="VerticalAlignment" Value="Stretch" />
+                            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                        </Style>
+                    </controls:PullToRefreshListView.ItemContainerStyle>
+                    <controls:PullToRefreshListView.ContextFlyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Command="{x:Bind viewModel.ResumePlayBookCommand}"
+                                            CommandParameter="{x:Bind RightSelectedItemContext, Mode=OneWay}"
+                                            Text="Play" />
+                            <MenuFlyoutSeparator />
 
-                    <!--<MenuFlyoutItem Click="AddFolderClick" Text="Add source" />-->
-                    <MenuFlyoutItem Command="{x:Bind viewModel.ShowBookDetailCommand}"
-                                    CommandParameter="{x:Bind RightSelectedItemContext, Mode=OneWay}"
-                                    Text="Details" />
-                    <MenuFlyoutSubItem x:Name="uploadSubContextMenu"
-                                       Loaded="FillUploadSubContextMenu"
-                                       Text="Upload">
-                        <MenuFlyoutItem Text="DropBoxFake" />
-                        <MenuFlyoutItem Text="OneDriveFake" />
-                    </MenuFlyoutSubItem>
-                    <MenuFlyoutSubItem x:Name="downloadSubContextMenu"
-                                       Loaded="FillDownloadSubContextMenu"
-                                       Text="Download">
-                        <MenuFlyoutItem Text="DropBoxFake" />
-                        <MenuFlyoutItem Text="OneDriveFake" />
-                    </MenuFlyoutSubItem>
-                    <MenuFlyoutItem Text="Refresh" />
-                    <MenuFlyoutSeparator />
-                    <MenuFlyoutItem Command="{x:Bind viewModel.RemoveAudioBookSource}"
-                                    CommandParameter="{x:Bind RightSelectedItemContext, Mode=OneWay}"
-                                    Text="Remove" />
-                </MenuFlyout>
-            </controls:PullToRefreshListView.ContextFlyout>
-        </controls:PullToRefreshListView>
-        <TextBlock Grid.Row="7"
-                   Margin="5"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   TextWrapping="Wrap"
-                   Visibility="{Binding IsNothingFound,
-                                        Converter={StaticResource BoolToVisibilityConverter},
-                                        Mode=OneWay,
-                                        UpdateSourceTrigger=PropertyChanged}">
-            <Run Text="Nothing found, you can " />
-            <Hyperlink Click="AddFolderClick">
-                <Run Text="Add book" />
-            </Hyperlink>
-            <Run Text=", " />
-            <Hyperlink Click="SelectBaseFolderClick">
-                <Run Text="select folder with your books(this button not work)" />
-            </Hyperlink>
-            <Run Text=" or " />
-            <Hyperlink>
-                <Run Text="add your cloud account" />
-            </Hyperlink>
-        </TextBlock>
-        <CommandBar Grid.Row="8" Visibility="{Binding ElementName=showBooks, Path=IsChecked, Converter={StaticResource BoolToVisibilityConverter}}">
-            <CommandBar.Transitions>
-                <TransitionCollection>
-                    <RepositionThemeTransition />
-                </TransitionCollection>
-            </CommandBar.Transitions>
+                            <!--<MenuFlyoutItem Click="AddFolderClick" Text="Add source" />-->
+                            <MenuFlyoutItem Command="{x:Bind viewModel.ShowBookDetailCommand}"
+                                            CommandParameter="{x:Bind RightSelectedItemContext, Mode=OneWay}"
+                                            Text="Details" />
+                            <MenuFlyoutSubItem x:Name="uploadSubContextMenu"
+                                               Loaded="FillUploadSubContextMenu"
+                                               Text="Upload">
+                                <MenuFlyoutItem Text="DropBoxFake" />
+                                <MenuFlyoutItem Text="OneDriveFake" />
+                            </MenuFlyoutSubItem>
+                            <MenuFlyoutSubItem x:Name="downloadSubContextMenu"
+                                               Loaded="FillDownloadSubContextMenu"
+                                               Text="Download">
+                                <MenuFlyoutItem Text="DropBoxFake" />
+                                <MenuFlyoutItem Text="OneDriveFake" />
+                            </MenuFlyoutSubItem>
+                            <MenuFlyoutItem Text="Refresh" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Command="{x:Bind viewModel.RemoveAudioBookSource}"
+                                            CommandParameter="{x:Bind RightSelectedItemContext, Mode=OneWay}"
+                                            Text="Remove" />
+                        </MenuFlyout>
+                    </controls:PullToRefreshListView.ContextFlyout>
+                </controls:PullToRefreshListView>
+                <TextBlock Grid.Row="7"
+                           Margin="5"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap"
+                           Visibility="{Binding IsNothingFound,
+                                                Converter={StaticResource BoolToVisibilityConverter},
+                                                Mode=OneWay,
+                                                UpdateSourceTrigger=PropertyChanged}">
+                    <Run Text="Nothing found, you can " />
+                    <Hyperlink Click="AddFolderClick">
+                        <Run Text="Add book" />
+                    </Hyperlink>
+                    <Run Text=", " />
+                    <Hyperlink Click="SelectBaseFolderClick">
+                        <Run Text="select folder with your books(this button not work)" />
+                    </Hyperlink>
+                    <Run Text=" or " />
+                    <Hyperlink>
+                        <Run Text="add your cloud account" />
+                    </Hyperlink>
+                </TextBlock>
+                <CommandBar Grid.Row="8" Visibility="{Binding ElementName=showBooks, Path=IsChecked, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <CommandBar.Transitions>
+                        <TransitionCollection>
+                            <RepositionThemeTransition />
+                        </TransitionCollection>
+                    </CommandBar.Transitions>
 
-            <AppBarButton Click="ShowAttachedContextMenuClick"
-                          Icon="Add"
-                          IsCompact="False"
-                          Label="Add">
-                <AppBarButton.ContextFlyout>
-                    <MenuFlyout>
-                        <MenuFlyoutItem Click="SelectBaseFolderClick" Text="Set base folder" />
-                        <MenuFlyoutItem Click="LibriVoxButtonclicked" Text="From LibriVox" />
-                        <MenuFlyoutSubItem Text="Cloud">
-                            <MenuFlyoutItem Command="{Binding AddCloudAccountCommand}" Text="DropBox">
-                                <MenuFlyoutItem.CommandParameter>
-                                    <modelView:CloudType>DropBox</modelView:CloudType>
-                                </MenuFlyoutItem.CommandParameter>
-                            </MenuFlyoutItem>
-                            <MenuFlyoutItem Command="{Binding AddCloudAccountCommand}" Text="OneDrive">
-                                <MenuFlyoutItem.CommandParameter>
-                                    <modelView:CloudType>OneDrive</modelView:CloudType>
-                                </MenuFlyoutItem.CommandParameter>
-                            </MenuFlyoutItem>
-                        </MenuFlyoutSubItem>
-                        <MenuFlyoutItem Click="AddFolderClick" Text="Folder" />
-                    </MenuFlyout>
-                </AppBarButton.ContextFlyout>
-            </AppBarButton>
-            <AppBarButton HorizontalAlignment="Right"
-                          Command="{Binding RemoveAudioBookSource}"
-                          CommandParameter="{Binding SelectedFolder,
-                                                     Mode=OneWay,
-                                                     UpdateSourceTrigger=PropertyChanged}"
-                          Icon="Remove"
-                          Label="Remove" />
-            <AppBarButton Click="ShowContextMenuDownload"
-                          Icon="Upload"
-                          Label="ToDropBox"
-                          Visibility="{Binding OnlyCloudControolers.Count,
-                                               Mode=OneWay,
-                                               UpdateSourceTrigger=PropertyChanged,
-                                               Converter={StaticResource IntToVisibilityConverter}}" />
-            <AppBarButton Click="ShowContextMenuUpload"
-                          Icon="Download"
-                          Label="FromDropBox"
-                          Visibility="{Binding CloudControllers.Count,
-                                               Mode=OneWay,
-                                               UpdateSourceTrigger=PropertyChanged,
-                                               Converter={StaticResource IntToVisibilityConverter}}" />
-            <AppBarButton Command="{Binding ShowBookDetailCommand}"
-                          CommandParameter="{Binding SelectedFolder,
-                                                     Mode=OneWay,
-                                                     UpdateSourceTrigger=PropertyChanged}"
-                          Icon="ContactInfo"
-                          Label="Details" />
-            <AppBarButton Command="{x:Bind viewModel.RefreshAllCommand}"
-                          Icon="Refresh"
-                          Label="Refresh" />
-        </CommandBar>
-        <ListView Grid.Row="9"
-                  Grid.Column="0"
-                  IsItemClickEnabled="False"
-                  ItemsSource="{Binding RefreshingControllers}"
-                  SelectionMode="None">
-            <ListView.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <StackPanel Orientation="Horizontal" />
-                </ItemsPanelTemplate>
-            </ListView.ItemsPanel>
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <StackPanel>
-                        <AppBarButton Icon="MapDrive"
-                                      Label="{Binding Type}"
-                                      ToolTipService.ToolTip="{Binding Type}" />
-                        <ProgressBar IsIndeterminate="True" />
-                    </StackPanel>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
-        <WebView x:Name="webView"
-                 Grid.Row="0"
-                 Grid.RowSpan="10"
-                 DefaultBackgroundColor="White"
-                 Visibility="Collapsed" />
-        <Rectangle x:Name="BottomRectagle"
-                   Grid.Row="9"
-                   Grid.RowSpan="10" />
-        <VariableSizedWrapGrid x:Name="playGrid"
-                               Grid.Row="10"
-                               HorizontalAlignment="Center"
-                               Orientation="Horizontal">
-            <AppBarButton Command="{Binding PrevCommand}" Icon="Previous" />
-            <AppBarButton Command="{Binding MoveSecsCommand}"
-                          Icon="Previous"
-                          Label="10 sec">
-                <AppBarButton.CommandParameter>
-                    <x:Int32>-10</x:Int32>
-                </AppBarButton.CommandParameter>
-            </AppBarButton>
-            <AppBarButton HorizontalAlignment="Left"
-                          VerticalAlignment="Center"
-                          AccessKey=""
-                          Command="{Binding PlayCommand}"
-                          FontSize="20"
-                          FontWeight="ExtraBold"
-                          Icon="Play"
-                          IsCompact="True" />
-            <AppBarButton MinWidth="0"
-                          HorizontalAlignment="Left"
-                          VerticalAlignment="Center"
-                          Command="{Binding PauseCommand}"
-                          Icon="Pause"
-                          IsCompact="True" />
-            <AppBarButton Command="{Binding MoveSecsCommand}"
-                          Icon="Next"
-                          Label="10 sec">
-                <AppBarButton.CommandParameter>
-                    <x:Int32>10</x:Int32>
-                </AppBarButton.CommandParameter>
-            </AppBarButton>
-            <AppBarButton Command="{Binding NextCommand}" Icon="Next" />
+                    <AppBarButton Click="ShowAttachedContextMenuClick"
+                                  Icon="Add"
+                                  IsCompact="False"
+                                  Label="Add">
+                        <AppBarButton.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Click="SelectBaseFolderClick" Text="Set base folder" />
+                                <MenuFlyoutItem Click="LibriVoxButtonclicked" Text="From LibriVox" />
+                                <MenuFlyoutSubItem Text="Cloud">
+                                    <MenuFlyoutItem Command="{Binding AddCloudAccountCommand}" Text="DropBox">
+                                        <MenuFlyoutItem.CommandParameter>
+                                            <modelView:CloudType>DropBox</modelView:CloudType>
+                                        </MenuFlyoutItem.CommandParameter>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutItem Command="{Binding AddCloudAccountCommand}" Text="OneDrive">
+                                        <MenuFlyoutItem.CommandParameter>
+                                            <modelView:CloudType>OneDrive</modelView:CloudType>
+                                        </MenuFlyoutItem.CommandParameter>
+                                    </MenuFlyoutItem>
+                                </MenuFlyoutSubItem>
+                                <MenuFlyoutItem Click="AddFolderClick" Text="Folder" />
+                            </MenuFlyout>
+                        </AppBarButton.ContextFlyout>
+                    </AppBarButton>
+                    <AppBarButton HorizontalAlignment="Right"
+                                  Command="{Binding RemoveAudioBookSource}"
+                                  CommandParameter="{Binding SelectedFolder,
+                                                             Mode=OneWay,
+                                                             UpdateSourceTrigger=PropertyChanged}"
+                                  Icon="Remove"
+                                  Label="Remove" />
+                    <AppBarButton Click="ShowContextMenuDownload"
+                                  Icon="Upload"
+                                  Label="ToDropBox"
+                                  Visibility="{Binding OnlyCloudControolers.Count,
+                                                       Mode=OneWay,
+                                                       UpdateSourceTrigger=PropertyChanged,
+                                                       Converter={StaticResource IntToVisibilityConverter}}" />
+                    <AppBarButton Click="ShowContextMenuUpload"
+                                  Icon="Download"
+                                  Label="FromDropBox"
+                                  Visibility="{Binding CloudControllers.Count,
+                                                       Mode=OneWay,
+                                                       UpdateSourceTrigger=PropertyChanged,
+                                                       Converter={StaticResource IntToVisibilityConverter}}" />
+                    <AppBarButton Command="{Binding ShowBookDetailCommand}"
+                                  CommandParameter="{Binding SelectedFolder,
+                                                             Mode=OneWay,
+                                                             UpdateSourceTrigger=PropertyChanged}"
+                                  Icon="ContactInfo"
+                                  Label="Details" />
+                    <AppBarButton Command="{x:Bind viewModel.RefreshAllCommand}"
+                                  Icon="Refresh"
+                                  Label="Refresh" />
+                </CommandBar>
+                <ListView Grid.Row="9"
+                          Grid.Column="0"
+                          IsItemClickEnabled="False"
+                          ItemsSource="{Binding RefreshingControllers}"
+                          SelectionMode="None">
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <AppBarButton Icon="MapDrive"
+                                              Label="{Binding Type}"
+                                              ToolTipService.ToolTip="{Binding Type}" />
+                                <ProgressBar IsIndeterminate="True" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+                <WebView x:Name="webView"
+                         Grid.Row="0"
+                         Grid.RowSpan="10"
+                         DefaultBackgroundColor="White"
+                         Visibility="Collapsed" />
+                <Rectangle x:Name="BottomRectagle"
+                           Grid.Row="9"
+                           Grid.RowSpan="10" />
+                <VariableSizedWrapGrid x:Name="playGrid"
+                                       Grid.Row="10"
+                                       HorizontalAlignment="Center"
+                                       Orientation="Horizontal">
+                    <AppBarButton Command="{Binding PrevCommand}" Icon="Previous" />
+                    <AppBarButton Command="{Binding MoveSecsCommand}"
+                                  Icon="Previous"
+                                  Label="10 sec">
+                        <AppBarButton.CommandParameter>
+                            <x:Int32>-10</x:Int32>
+                        </AppBarButton.CommandParameter>
+                    </AppBarButton>
+                    <AppBarButton HorizontalAlignment="Left"
+                                  VerticalAlignment="Center"
+                                  AccessKey=""
+                                  Command="{Binding PlayCommand}"
+                                  FontSize="20"
+                                  FontWeight="ExtraBold"
+                                  Icon="Play"
+                                  IsCompact="True" />
+                    <AppBarButton MinWidth="0"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Center"
+                                  Command="{Binding PauseCommand}"
+                                  Icon="Pause"
+                                  IsCompact="True" />
+                    <AppBarButton Command="{Binding MoveSecsCommand}"
+                                  Icon="Next"
+                                  Label="10 sec">
+                        <AppBarButton.CommandParameter>
+                            <x:Int32>10</x:Int32>
+                        </AppBarButton.CommandParameter>
+                    </AppBarButton>
+                    <AppBarButton Command="{Binding NextCommand}" Icon="Next" />
 
-        </VariableSizedWrapGrid>
-        <StackPanel Grid.Row="10" Visibility="Collapsed">
-            <TextBlock>
-                <Run Text="Downloading progress: " />
-                <Run Text="{Binding DownloadingProgresss, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
-                <Run Text="%" />
-            </TextBlock>
-        </StackPanel>
-    </Grid>
+                </VariableSizedWrapGrid>
+                <StackPanel Grid.Row="10" Visibility="Collapsed">
+                    <TextBlock>
+                        <Run Text="Downloading progress: " />
+                        <Run Text="{Binding DownloadingProgresss, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <Run Text="%" />
+                    </TextBlock>
+                </StackPanel>
+            </Grid>
+        </SplitView.Content>
+    </SplitView>
 </Page>
