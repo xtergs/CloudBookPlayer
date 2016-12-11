@@ -134,7 +134,7 @@ namespace UWPAudioBookPlayer
                 defaultWidthOfPlayButtons = (playGrid.Children[0] as AppBarButton).ActualWidth;
             }
             double totalWidth = playGrid.Children.Count *
-                                (playGrid.Children[0] as AppBarButton).ActualWidth;
+                                defaultWidthOfPlayButtons;
             foreach (var result in playGrid.Children.OfType<AppBarButton>())
             {
                 if (totalWidth >= Rectagle.ActualWidth)

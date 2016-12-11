@@ -726,10 +726,12 @@
         <TextBlock Grid.Row="1"
                    HorizontalAlignment="Center"
                    FontSize="20"
-                   Text="{Binding CurrentState.BookName}" />
+                   Text="{Binding CurrentState.BookName}"
+                   TextTrimming="CharacterEllipsis" />
         <TextBlock Grid.Row="2"
                    HorizontalAlignment="Center"
-                   Text="{Binding PlayingFile.Name}" />
+                   Text="{Binding PlayingFile.Name}"
+                   TextTrimming="CharacterEllipsis" />
         <StackPanel Grid.Row="3" Margin="10,0,10,0">
             <Slider Grid.Row="3"
                     Maximum="{Binding FileDuration.TotalSeconds,
@@ -762,8 +764,8 @@
 
         <StackPanel Grid.Row="5"
                     HorizontalAlignment="Center"
-                    SizeChanged="AdditionalControlButtonSizeChanged"
-                    Orientation="Vertical">
+                    Orientation="Vertical"
+                    SizeChanged="AdditionalControlButtonSizeChanged">
             <VariableSizedWrapGrid x:Name="ControlPanel"
                                    Grid.Row="5"
                                    HorizontalAlignment="Center"
