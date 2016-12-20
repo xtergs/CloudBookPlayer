@@ -134,7 +134,11 @@ namespace UWPAudioBookPlayer.Model
             //var stream = await fl.OpenAsync(FileAccessMode.Read);
             return fl.Path;
         }
-        
+
+        [JsonIgnore]
+        public CloudType[] Clouds
+            => AdditionSources.OfType<AudioBookSourceCloud>().Select(x => x.Type).Distinct().ToArray();
+
     }
     [ImplementPropertyChanged]
     public class AudioBookSource : INotifyPropertyChanged

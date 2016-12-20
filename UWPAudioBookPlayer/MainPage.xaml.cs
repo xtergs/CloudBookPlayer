@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -633,7 +634,25 @@ namespace UWPAudioBookPlayer
             }
             catch (Exception e)
             {
-                
+//                var oneDriveSource = source as AudioBookSourceCloud;
+//                if (oneDriveSource == null)
+//                    return;
+//                if (oneDriveSource.Type == CloudType.OneDrive)
+//                {
+//                    var controller =this.viewModel.CloudControllers.FirstOrDefault(x => x.Type == CloudType.OneDrive);
+//                    if (controller == null)
+//                        return;
+//                    var stream =await  controller.DownloadBookFile(source.Name,
+//                        (source.Cover ?? source.Images.FirstOrDefault()));
+//                    if (stream != null)
+//                    {
+//                        var btmimage = new BitmapImage();
+//                        await btmimage.SetSourceAsync(stream.AsRandomAccessStream());
+//                        fileImageCache[cachekey] = btmimage;
+//                        img.Source = btmimage;
+//                        stream.Dispose();
+//                    }
+//                }
             }
         }
 

@@ -475,7 +475,9 @@
             </Grid>
         </DataTemplate>
         <DataTemplate x:Name="TilesDataTemplate" x:DataType="model:AudioBookSourceWithClouds">
-            <Grid MaxWidth="200" MaxHeight="200">
+            <Grid MaxWidth="200"
+                  MaxHeight="200"
+                  Margin="5">
                 <Grid.RowDefinitions>
                     <RowDefinition />
                     <RowDefinition Height="Auto" />
@@ -490,6 +492,37 @@
                                                               Mode=OneWay}"
                                   Source="{Binding Cover}"
                                   Stretch="Uniform" />
+                <Image Width="25"
+                       Height="25"
+                       HorizontalAlignment="Left"
+                       VerticalAlignment="Top"
+                       Source="{Binding Converter={StaticResource AudioBookSourceToImageConverter}}" />
+                <ListView Grid.Row="0"
+                          Margin="0"
+                          HorizontalAlignment="Right"
+                          VerticalAlignment="Top"
+                          FlowDirection="RightToLeft"
+                          IsEnabled="False"
+                          IsFocusEngagementEnabled="False"
+                          IsItemClickEnabled="False"
+                          ItemsSource="{Binding AdditionSources,
+                                                Mode=OneWay,
+                                                UpdateSourceTrigger=PropertyChanged}"
+                          Opacity="1"
+                          SelectionMode="None">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Image Width="25"
+                                   Height="25"
+                                   Source="{Binding Converter={StaticResource AudioBookSourceToImageConverter}}" />
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
+                </ListView>
                 <ProgressBar Grid.Row="1"
                              Maximum="{Binding Files.Count}"
                              Minimum="0"
@@ -528,9 +561,9 @@
         </ItemsPanelTemplate>
     </Page.Resources>
     <SplitView DisplayMode="Overlay"
-                OpenPaneLength="500"
                IsPaneOpen="{Binding IsChecked,
                                     ElementName=showSourceList}"
+               OpenPaneLength="500"
                PanePlacement="Right">
         <SplitView.Pane>
             <ListView x:Name="operationsList"

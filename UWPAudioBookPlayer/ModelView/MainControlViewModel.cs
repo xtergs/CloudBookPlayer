@@ -36,6 +36,7 @@ using UWPAudioBookPlayer.DAL.Model;
 using UWPAudioBookPlayer.Model;
 using UWPAudioBookPlayer.Helper;
 using UWPAudioBookPlayer.Service;
+using Buffer = System.Buffer;
 
 namespace UWPAudioBookPlayer.ModelView
 {
@@ -71,6 +72,119 @@ namespace UWPAudioBookPlayer.ModelView
         public string AccessToken { get; set; }
     }
 
+    public enum OperationStatus
+    {
+        Started,
+        Ended,
+    }
+
+    public class OperationProgress
+    {
+        public OperationProgress()
+        {
+            StopCommand = new RelayCommand(CancelOperation);
+            PauseCommand = new RelayCommand(PauseOperation);
+            ResumeCommand = new RelayCommand(ResumeOperation);
+
+        }
+        public UploadProgress Progress { get; set; }
+        public ICommand StopCommand { get; private set; }
+        public ICommand ResumeCommand { get; private set; }
+        public ICommand PauseCommand { get; private set; }
+
+        public void Stop()
+        {
+            if (StopCommand.CanExecute(this))
+                StopCommand.Execute(this);
+        }
+
+        public void Pause()
+        {
+            if (PauseCommand.CanExecute(this))
+                PauseCommand.Execute(this);
+        }
+
+        public void Resume()
+        {
+            if (ResumeCommand.CanExecute(this))
+                ResumeCommand.Execute(this);
+        }
+
+        private void ResumeOperation()
+        {
+            this.Progress.IsPaused = false;
+        }
+
+        private void PauseOperation()
+        {
+            Progress.IsPaused = true;
+        }
+
+        private void CancelOperation()
+        {
+            Progress.IsCancelled = true;
+        }
+    }
+
+    public class OperationsService
+    {
+        private readonly ICommand _stopCommand;
+        private readonly ICommand _pauseCommand;
+        private readonly ICommand _resuemCommand;
+
+        //        public delegate OperationsService Factory(ICommand stopCommand, ICommand pauseCommand, ICommand resumeCommand);
+        //        public OperationsService(ICommand stopCommand, ICommand pauseCommand, ICommand resuemCommand)
+        //        {
+        //            _stopCommand = stopCommand;
+        //            _pauseCommand = pauseCommand;
+        //            _resuemCommand = resuemCommand;
+        //        }
+
+        public OperationsService()
+        {
+
+        }
+
+        public bool AlreadyWorking(string operationName, CloudType type)
+        {
+            return Operations.Any(x => x.Progress.BookName == operationName && x.Progress.Type == type);
+        }
+
+        public ObservableCollection<OperationProgress> Operations { get; } = new ObservableCollection<OperationProgress>();
+
+        public IProgress<UploadProgress> GetIProgressReporter()
+        {
+            return new Progress<UploadProgress>(ProgressReporterHandle);
+        }
+
+        private void ProgressReporterHandle(UploadProgress uploadProgress)
+        {
+            if (uploadProgress.OperationStatus == OperationStatus.Started)
+                Operations.Add(GetOperationProgress(uploadProgress));
+            else
+                RemoveOperation(uploadProgress);
+
+
+        }
+
+        private void RemoveOperation(UploadProgress progress)
+        {
+            var operation = Operations.First(x => x.Progress.OperationId == progress.OperationId);
+            Operations.Remove(operation);
+        }
+
+        private OperationProgress GetOperationProgress(UploadProgress proggress)
+        {
+            return new OperationProgress()
+            {
+                //                PauseCommand = _pauseCommand,
+                //                StopCommand = _stopCommand,
+                //                ResumeCommand = _resuemCommand,
+                Progress = proggress
+            };
+        }
+    }
+
     [ImplementPropertyChanged]
     public class UploadProgress
     {
@@ -83,6 +197,8 @@ namespace UWPAudioBookPlayer.ModelView
         public int MaximumValue { get; set; }
         public bool IsCancelled { get; set; }
         public bool IsPaused { get; set; }
+
+        public OperationStatus OperationStatus { get; set; }
     }
 
     public class AudioBookSourcesCombined
@@ -98,7 +214,7 @@ namespace UWPAudioBookPlayer.ModelView
         public string FileName { get; set; }
         public TimeSpan PositionInFile { get; set; }
         public TimeSpan TotalDuration { get; set; }
-        public bool IsLink { get; set; } 
+        public bool IsLink { get; set; }
         public double PlayBackSpeed { get; set; }
 
 
@@ -122,6 +238,7 @@ namespace UWPAudioBookPlayer.ModelView
         private ISettingsService settings;
         private INotification notificator;
         private ManageSources manageSources;
+        private readonly OperationsService operationService;
 
         public ObservableAudioBooksCollection<AudioBookSourceWithClouds> Folders { get; private set; }
 
@@ -130,8 +247,8 @@ namespace UWPAudioBookPlayer.ModelView
 
         public AudioBookSourceWithClouds[] LocalFolders => Folders.Where(x => !(x is AudioBookSourceCloud)).ToArray();
 
-        public ObservableCollection<UploadProgress> UploadOperations { get; set; } =
-            new ObservableCollection<UploadProgress>();
+        //        public ObservableCollection<UploadProgress> UploadOperations { get; set; } =
+        //            new ObservableCollection<UploadProgress>();
 
         public AudioBookSourceWithClouds SelectedFolder { get; set; }
 
@@ -187,9 +304,6 @@ namespace UWPAudioBookPlayer.ModelView
         public RelayCommand<ICloudController> RemoveCloudAccountCommand { get; private set; }
         //public RelayCommand UploadBookToDrBoxCommand { get; private set; }
         public RelayCommand<ICloudController> UploadBookToCloudCommand { get; private set; }
-        public RelayCommand<Guid> CancelOperationCommand { get; private set; }
-        public RelayCommand<Guid> PauseOperationCommand { get; private set; }
-        public RelayCommand<Guid> ResumeOperationCommand { get; private set; }
         public RelayCommand DownloadBookFromDrBoxCommand { get; private set; }
         public RelayCommand<ICloudController> DownloadBookFromCloudCommand { get; private set; }
         public RelayCommand<AudioBookSourceWithClouds> ShowBookDetailCommand { get; private set; }
@@ -263,17 +377,20 @@ namespace UWPAudioBookPlayer.ModelView
             }
         }
 
-        public MainControlViewModel(RemoteDevicesService remoteDevicesService, ManageSources manage)
+        public MainControlViewModel(RemoteDevicesService remoteDevicesService, ManageSources manage, OperationsService operService)
         {
             if (remoteDevicesService == null)
                 Debug.WriteLine($"{nameof(remoteDevicesService)} is null!");
             _remoteDeviceService = remoteDevicesService;
+            if (operService == null)
+                throw new ArgumentNullException(nameof(operService));
+            operationService = operService;
             manageSources = manage;
             var mediaPlayer = new MediaPlayer()
             {
                 AutoPlay = false,
             };
-            
+
             var playbackBinding = new Binding()
             {
                 Path = new PropertyPath("PlayingSource.PlaybackRate"),
@@ -329,9 +446,9 @@ namespace UWPAudioBookPlayer.ModelView
                 controller => controller != null && controller.IsAutorized);
             ShowBookDetailCommand = new RelayCommand<AudioBookSourceWithClouds>(ShowBookDetailExecute);
 
-            CancelOperationCommand = new RelayCommand<Guid>(CancelOperation);
-            PauseOperationCommand = new RelayCommand<Guid>(PauseOperation);
-            ResumeOperationCommand = new RelayCommand<Guid>(ResumeOperation);
+            //            CancelOperationCommand = new RelayCommand<Guid>(CancelOperation);
+            //            PauseOperationCommand = new RelayCommand<Guid>(PauseOperation);
+            //            ResumeOperationCommand = new RelayCommand<Guid>(ResumeOperation);
 
             ChangeTimerStateCommand = new RelayCommand(ChangeTimerState);
             ResumePlayBookCommand = new RelayCommand<AudioBookSourceWithClouds>(ResumePlayBook);
@@ -391,8 +508,9 @@ namespace UWPAudioBookPlayer.ModelView
             await
                 Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(
                     CoreDispatcherPriority.Normal,
-                    () => {
-                              DownloadingProgresss = sender.DownloadProgress;
+                    () =>
+                    {
+                        DownloadingProgresss = sender.DownloadProgress;
                     });
         }
 
@@ -402,19 +520,20 @@ namespace UWPAudioBookPlayer.ModelView
             await
                 Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(
                     CoreDispatcherPriority.Normal,
-                    () => {
-                              BufferingProgress = sender.BufferingProgress;
+                    () =>
+                    {
+                        BufferingProgress = sender.BufferingProgress;
                     });
         }
 
         private void PlayerOnBufferingEnded(MediaPlaybackSession sender, object args)
         {
-            
+
         }
 
         private void PlayerOnBufferingStarted(MediaPlaybackSession sender, object args)
         {
-            
+
         }
 
         private async void StreamToDevice(RemoteSystem obj)
@@ -519,32 +638,33 @@ namespace UWPAudioBookPlayer.ModelView
             if (PlayingSource.BookMarks == null)
                 PlayingSource.BookMarks = new List<BookMark>();
             if (repository.AddBookMark(PlayingSource, obj))
-            if (obj.IsRange)
-            {
-                CutAndSaveBookMarkFile(PlayingSource, obj.FileName, obj);
-                repository.UpdateBookMark(PlayingSource, obj);
-            }
+                if (obj.IsRange)
+                {
+                    CutAndSaveBookMarkFile(PlayingSource, obj.FileName, obj, operationService.GetIProgressReporter());
+                    repository.UpdateBookMark(PlayingSource, obj);
+                }
             OnPropertyChanged(nameof(BookMarksForSelectedPlayingBook));
         }
 
         Regex unspupportedRegex = new Regex(@"([<>:"" /\|? *])", RegexOptions.IgnoreCase);
 
-        private async void CutAndSaveBookMarkFile(AudioBookSourceWithClouds book, string fileName, BookMark bookmark)
+        private async void CutAndSaveBookMarkFile(AudioBookSourceWithClouds book, string fileName, BookMark bookmark, IProgress<UploadProgress> reporter)
         {
             var trimOperation = new UploadProgress()
             {
                 BookName = fileName,
                 OperationId = Guid.NewGuid(),
                 Type = CloudType.Local,
-                Status = "Trimming..."
+                Status = "Trimming...",
+                OperationStatus = OperationStatus.Started
             };
 
-            UploadOperations.Add(trimOperation);
+            reporter.Report(trimOperation);
 
             string validTitle = unspupportedRegex.Replace(bookmark.Title.Substring(0, Math.Min(50, bookmark.Title.Length)), " ").Trim();
             if (string.IsNullOrWhiteSpace(validTitle))
                 validTitle = "bookmark";
-                string bookMarkFileName = $"{bookmark.Order}_{validTitle}{Path.GetExtension(fileName)}";
+            string bookMarkFileName = $"{bookmark.Order}_{validTitle}{Path.GetExtension(fileName)}";
             try
             {
                 var folder = await StorageApplicationPermissions.FutureAccessList.GetFolderAsync(book.AccessToken);
@@ -601,7 +721,8 @@ namespace UWPAudioBookPlayer.ModelView
             }
             finally
             {
-                UploadOperations.Remove(trimOperation);
+                trimOperation.OperationStatus = OperationStatus.Ended;
+                reporter.Report(trimOperation);
             }
         }
 
@@ -691,6 +812,152 @@ namespace UWPAudioBookPlayer.ModelView
             OnShowBookDetails(ev);
         }
 
+
+        private async Task<bool> IsAlreadyInFolder(StorageFile[] filesOnDisk, AudiBookFile audioFile)
+        {
+            StorageFile temp = null;
+            if ((temp = filesOnDisk.FirstOrDefault(x => x.Name == audioFile.Name)) !=
+                null)
+            {
+                var property = await temp.GetBasicPropertiesAsync();
+                if (property.Size == audioFile.Size)
+                    return true;
+            }
+            return false;
+        }
+
+        private async Task<ulong> WriteStreamToFile(Stream stream, StorageFolder bookFolder, AudiBookFile audioFile, byte[] buff = null)
+        {
+            if (stream == null)
+                return 0;
+            byte[] buffer;
+            if (buff == null)
+                buffer = new byte[1024 * 1024 * 4];
+            else
+                buffer = buff;
+            int readed = 0;
+            var file =
+                await
+                    bookFolder.CreateFileAsync(audioFile.Name,
+                        CreationCollisionOption.ReplaceExisting);
+
+            uint written = 0;
+            using (var random = await file.OpenTransactedWriteAsync())
+            {
+                while ((readed = stream.Read(buffer, 0, buffer.Length)) >= 0 &&
+                       written < audioFile.Size)
+                {
+                    random.Stream.AsStreamForWrite().Write(buffer, 0, readed);
+                    written += (uint)readed;
+                }
+                await random.Stream.FlushAsync();
+                await random.CommitAsync();
+            }
+            return written;
+        }
+
+        private async Task DownloadBookFromCloud(ICloudController cloudControllser, AudioBookSourceWithClouds tempSelectedFolder, AudioBookSourceWithClouds originalSelectedFolder, IProgress<UploadProgress> progres)
+        {
+            UploadProgress progress = new UploadProgress()
+            {
+                BookName = tempSelectedFolder.Name,
+                MaximumValue = tempSelectedFolder.Files.Count(),
+                OperationId = Guid.NewGuid(),
+                Status = "Downloading",
+                Type = cloudControllser.Type,
+                OperationStatus = OperationStatus.Started
+            };
+            progres.Report(progress);
+            try
+            {
+                StorageFolder bookFolder = null;
+                if (originalSelectedFolder == null)
+                {
+                    var dir =
+                        await
+                            StorageApplicationPermissions.FutureAccessList.GetFolderAsync(baseFolder.AccessToken);
+                    bookFolder =
+                        await
+                            dir.CreateFolderAsync(tempSelectedFolder.Folder, CreationCollisionOption.OpenIfExists);
+
+                    originalSelectedFolder = new AudioBookSourceWithClouds()
+                    {
+                        IsHaveDropBox = true,
+                        Name = tempSelectedFolder.Name,
+                        AccessToken = StorageApplicationPermissions.FutureAccessList.Add(bookFolder),
+                        Path = bookFolder.Path,
+                        CountFilesDropBoxTotal = tempSelectedFolder.AvalibleCount,
+                        CountFilesDropBox = tempSelectedFolder.Files.Count(),
+                    };
+                    originalSelectedFolder.AdditionSources.Add(tempSelectedFolder);
+                    var index = Folders.IndexOf(tempSelectedFolder);
+                    if (index >= 0)
+                    {
+                        Folders.Insert(index, originalSelectedFolder);
+                        Folders.Remove(tempSelectedFolder);
+                    }
+                    else
+                        Folders.Add(originalSelectedFolder);
+                }
+                else
+                {
+                    bookFolder =
+                        await
+                            StorageApplicationPermissions.FutureAccessList.GetFolderAsync(
+                                originalSelectedFolder.AccessToken);
+                    if (bookFolder == null)
+                    {
+                        Debug.WriteLine("Not found folder by access token, but should");
+                        return;
+                    }
+                }
+
+
+                var alreadyInFolder =
+                    (await bookFolder.GetFilesAsync()).ToArray();
+
+                byte[] buffer = new byte[1024 * 4 * 4];
+                var avalibleFiles = tempSelectedFolder.AvalibleFiles;
+                for (int i = 0; i < tempSelectedFolder.AvalibleCount; i++)
+                {
+                    progress.Value = i;
+                    while (progress.IsPaused && !progress.IsCancelled)
+                        await Task.Delay(500);
+                    if (progress.IsCancelled)
+                        return;
+                    if (await IsAlreadyInFolder(alreadyInFolder, avalibleFiles[i]))
+                        continue;
+                    var index = i;
+                    await Task.Run(async () =>
+                    {
+                        var stream =
+                            await
+                                cloudControllser.DownloadBookFile(tempSelectedFolder.Folder,
+                                    avalibleFiles[index].Name);
+                        // somehow we didn't found a file
+                        ulong writed = await WriteStreamToFile(stream, bookFolder, avalibleFiles[index], buffer);
+                        if (writed <= 0)
+                            return;
+                        originalSelectedFolder.Files.Add(new AudiBookFile()
+                        {
+                            Duration = avalibleFiles[index].Duration,
+                            IsAvalible = true,
+                            Name = avalibleFiles[index].Name,
+                            Order = avalibleFiles[index].Order,
+                            Size = writed
+                        });
+                    });
+                }
+                originalSelectedFolder.CreationDateTimeUtc = tempSelectedFolder.CreationDateTimeUtc;
+                originalSelectedFolder.ModifiDateTimeUtc = tempSelectedFolder.ModifiDateTimeUtc;
+            }
+            finally
+            {
+                progress.OperationStatus = OperationStatus.Ended;
+                progres.Report(progress);
+            }
+        }
+
         private async void DownloadBookFromCloud(ICloudController cloudControllser)
         {
             if (!cloudControllser.IsAutorized)
@@ -702,7 +969,7 @@ namespace UWPAudioBookPlayer.ModelView
                 (cloudControllser.Type == CloudType.Online &&
                  SelectedFolder.AdditionSources.Any(x => x is OnlineAudioBookSource)))
             {
-                await DownloadBookFromOnline(SelectedFolder as OnlineAudioBookSource);
+                await DownloadBookFromOnline(SelectedFolder as OnlineAudioBookSource, operationService.GetIProgressReporter());
                 return;
             }
             if (!(SelectedFolder is OnlineAudioBookSource) && !cloudControllser.IsCloud)
@@ -725,130 +992,13 @@ namespace UWPAudioBookPlayer.ModelView
             }
             if (tempSelectedFolder == null)
                 return;
-            UploadProgress progress = new UploadProgress()
-            {
-                BookName = tempSelectedFolder.Name,
-                MaximumValue = tempSelectedFolder.Files.Count(),
-                OperationId = Guid.NewGuid(),
-                Status = "Downloading",
-                Type = cloudControllser.Type
-            };
-            UploadOperations.Add(progress);
-            try
-            {
-                StorageFolder bookFolder = null;
-                if (originalSelectedFolder == null)
-                {
-                    var dir =
-                        await
-                            StorageApplicationPermissions.FutureAccessList.GetFolderAsync(baseFolder.AccessToken);
-                    bookFolder =
-                        await
-                            dir.CreateFolderAsync(tempSelectedFolder.Folder, CreationCollisionOption.OpenIfExists);
-                }
-                else
-                {
-                    bookFolder =
-                        await
-                            StorageApplicationPermissions.FutureAccessList.GetFolderAsync(
-                                originalSelectedFolder.AccessToken);
-                    if (bookFolder == null)
-                    {
-                        Debug.WriteLine("Not found folder by access token, but should");
-                        return;
-                    }
-                }
-
-                if (originalSelectedFolder == null)
-                {
-                    originalSelectedFolder = new AudioBookSourceWithClouds()
-                    {
-                        IsHaveDropBox = true,
-                        Name = tempSelectedFolder.Name,
-                        AccessToken = StorageApplicationPermissions.FutureAccessList.Add(bookFolder),
-                        Path = bookFolder.Path,
-                        CountFilesDropBoxTotal = tempSelectedFolder.AvalibleCount,
-                        CountFilesDropBox = tempSelectedFolder.Files.Count(),
-                    };
-                    originalSelectedFolder.AdditionSources.Add(tempSelectedFolder);
-                    var index = Folders.IndexOf(tempSelectedFolder);
-                    if (index >= 0)
-                    {
-                        Folders.Insert(index, originalSelectedFolder);
-                        Folders.Remove(tempSelectedFolder);
-                    }
-                    else
-                        Folders.Add(originalSelectedFolder);
-                }
-
-                var alreadyInFolder =
-                    (await bookFolder.GetFilesAsync()).ToList();
-                int readed = 0;
-                byte[] buffer = new byte[1024 * 4 * 4];
-                var avalibleFiles = tempSelectedFolder.AvalibleFiles;
-                for (int i = 0; i < tempSelectedFolder.AvalibleCount; i++)
-                {
-                    progress.Value = i;
-                    while (progress.IsPaused && !progress.IsCancelled)
-                        await Task.Delay(500);
-                    if (progress.IsCancelled)
-                        return;
-                    StorageFile temp = null;
-                    if ((temp = alreadyInFolder.FirstOrDefault(x => x.Name == avalibleFiles[i].Name)) !=
-                        null)
-                    {
-                        var property = await temp.GetBasicPropertiesAsync();
-                        if (property.Size == avalibleFiles[i].Size)
-                            continue;
-                    }
-                    var index = i;
-                    await Task.Run(async () =>
-                    {
-                        var stream =
-                            await
-                                cloudControllser.DownloadBookFile(tempSelectedFolder.Folder,
-                                    avalibleFiles[index].Name);
-                        // somehow we didn't found a file
-                        if (stream == null)
-                            return;
-                        var file =
-                            await
-                                bookFolder.CreateFileAsync(avalibleFiles[index].Name,
-                                    CreationCollisionOption.ReplaceExisting);
-
-                        using (var random = await file.OpenTransactedWriteAsync())
-                        {
-                            uint written = 0;
-                            while ((readed = stream.Read(buffer, 0, buffer.Length)) >= 0 &&
-                                   written < avalibleFiles[index].Size)
-                            {
-                                random.Stream.AsStreamForWrite().Write(buffer, 0, readed);
-                                written += (uint)readed;
-                            }
-                            await random.Stream.FlushAsync();
-                            await random.CommitAsync();
-                        }
-                        originalSelectedFolder.Files.Add(new AudiBookFile()
-                        {
-                            Duration = avalibleFiles[index].Duration,
-                            IsAvalible = true,
-                            Name = avalibleFiles[index].Name,
-                            Order = avalibleFiles[index].Order,
-                            Size = (await file.GetBasicPropertiesAsync()).Size
-                        });
-                    });
-                }
-                originalSelectedFolder.CreationDateTimeUtc = tempSelectedFolder.CreationDateTimeUtc;
-                originalSelectedFolder.ModifiDateTimeUtc = tempSelectedFolder.ModifiDateTimeUtc;
-            }
-            finally
-            {
-                UploadOperations.Remove(progress);
-            }
+            await
+                DownloadBookFromCloud(cloudControllser, tempSelectedFolder, originalSelectedFolder,
+                    operationService.GetIProgressReporter());
         }
 
 
-        private async Task DownloadBookFromOnline(OnlineAudioBookSource source)
+        private async Task DownloadBookFromOnline(OnlineAudioBookSource source, IProgress<UploadProgress> reporter)
         {
             AudioBookSourceWithClouds tempSelectedFolder = source;
             AudioBookSourceWithClouds originalSelectedFolder = null;
@@ -867,9 +1017,10 @@ namespace UWPAudioBookPlayer.ModelView
                 MaximumValue = tempSelectedFolder.Files.Count(),
                 OperationId = Guid.NewGuid(),
                 Status = "Downloading",
-                Type = CloudType.Online
+                Type = CloudType.Online,
+                OperationStatus = OperationStatus.Started
             };
-            UploadOperations.Add(progress);
+            reporter.Report(progress);
             try
             {
                 StorageFolder bookFolder = null;
@@ -975,7 +1126,8 @@ namespace UWPAudioBookPlayer.ModelView
             }
             finally
             {
-                UploadOperations.Remove(progress);
+                progress.OperationStatus = OperationStatus.Ended;
+                reporter.Report(progress);
             }
         }
 
@@ -984,30 +1136,6 @@ namespace UWPAudioBookPlayer.ModelView
         //{
         //    DrownloadBookFromCloud(DrbController);
         //}
-
-        private void ResumeOperation(Guid obj)
-        {
-            var operation = UploadOperations.FirstOrDefault(o => o.OperationId == obj);
-            if (operation == null)
-                return;
-            operation.IsPaused = false;
-        }
-
-        private void PauseOperation(Guid obj)
-        {
-            var operation = UploadOperations.FirstOrDefault(o => o.OperationId == obj);
-            if (operation == null)
-                return;
-            operation.IsPaused = true;
-        }
-
-        private void CancelOperation(Guid obj)
-        {
-            var operation = UploadOperations.FirstOrDefault(o => o.OperationId == obj);
-            if (operation == null)
-                return;
-            operation.IsCancelled = true;
-        }
 
         private async Task UploadBookmarksToCloud(ICloudController controller, AudioBookSourceWithClouds source)
         {
@@ -1090,7 +1218,7 @@ namespace UWPAudioBookPlayer.ModelView
                 return;
             if (!selectedFolderTemp.Files.Any() || !obj.IsCloud)
                 return;
-            if (UploadOperations.Any(x => x.BookName == selectedFolderTemp.Name && x.Type == obj.Type))
+            if (operationService.AlreadyWorking(selectedFolderTemp.Name, obj.Type))
                 return;
             var UploadOperation = new UploadProgress()
             {
@@ -1098,8 +1226,10 @@ namespace UWPAudioBookPlayer.ModelView
                 Status = "Uploading",
                 BookName = selectedFolderTemp.Name,
                 MaximumValue = selectedFolderTemp.Files.Count,
+                OperationStatus = OperationStatus.Started
             };
-            UploadOperations.Add(UploadOperation);
+            var reporter = operationService.GetIProgressReporter();
+            reporter.Report(UploadOperation);
             try
             {
                 await UploadBookToCloud(obj, selectedFolderTemp, UploadOperation);
@@ -1108,7 +1238,8 @@ namespace UWPAudioBookPlayer.ModelView
             }
             finally
             {
-                UploadOperations.Remove(UploadOperation);
+                UploadOperation.OperationStatus = OperationStatus.Ended;
+                reporter.Report(UploadOperation);
             }
         }
 
@@ -1148,7 +1279,7 @@ namespace UWPAudioBookPlayer.ModelView
                                 PlayingSource.AddHistory(PlayBackHistoryElement.HistoryType.Pause);
                             break;
 
-                            case MediaPlaybackState.Buffering:
+                        case MediaPlaybackState.Buffering:
                             BufferingProgress = player.PlaybackSession.BufferingProgress;
                             break;
                     }
@@ -1342,7 +1473,7 @@ namespace UWPAudioBookPlayer.ModelView
 
         private void CloudOnFileChanged(object sender, FileChangedStruct fileChangedStruct)
         {
-            
+
         }
 
         private void CloudOnMediaInfoChanged(object sender, AudioBookSourceCloud audioBookSourceCloud)
@@ -1546,9 +1677,9 @@ namespace UWPAudioBookPlayer.ModelView
         public async Task SaveData()
         {
             if (PlayingSource != null)
-            foreach (var cloudService in CloudControllers.Where(x => x.IsAutorized && x.IsCloud).ToArray())
-                        await cloudService.UploadBookMetadata(PlayingSource);
-                //Folders.AsParallel().Select(async x =>
+                foreach (var cloudService in CloudControllers.Where(x => x.IsAutorized && x.IsCloud).ToArray())
+                    await cloudService.UploadBookMetadata(PlayingSource);
+            //Folders.AsParallel().Select(async x =>
 
 
             var books = new SaveModel
@@ -1580,8 +1711,10 @@ namespace UWPAudioBookPlayer.ModelView
                 OperationId = Guid.NewGuid(),
                 BookName = folder,
                 Status = "Adding",
+                OperationStatus = OperationStatus.Started
             };
-            UploadOperations.Add(operation);
+            var reporter = operationService.GetIProgressReporter();
+            reporter.Report(operation);
             try
             {
                 var source = await factory.GetFromLocalFolderAsync(folder, token, new Progress<Tuple<int, int>>(
@@ -1596,7 +1729,8 @@ namespace UWPAudioBookPlayer.ModelView
             }
             finally
             {
-                UploadOperations.Remove(operation);
+                operation.OperationStatus = OperationStatus.Ended;
+                reporter.Report(operation);
                 OnPropertyChanged(nameof(IsNothingFound));
             }
             //foreach (var cloud in CloudControllers)
@@ -1652,7 +1786,7 @@ namespace UWPAudioBookPlayer.ModelView
             if (
                 await
                     notificator.ShowMessage("", "Do you want to delete this book from clouds?",
-                        ActionButtons.Cancel , ActionButtons.Ok) == ActionButtons.Ok)
+                        ActionButtons.Cancel, ActionButtons.Ok) == ActionButtons.Ok)
                 foreach (var cloud in CloudControllers)
                     await cloud.DeleteAudioBook(contains);
         }
@@ -1660,15 +1794,19 @@ namespace UWPAudioBookPlayer.ModelView
         public BookMark[] BookMarksForSelectedPlayingBook => repository.BookMarks(PlayingSource);
 
         private object _image;
-        public object Image { get
+        public object Image
+        {
+            get
             {
                 if (_image != null && (_image as IRandomAccessStream)?.Size > 0)
                     return _image;
                 return Settings.StandartCover;
             }
-            set {
+            set
+            {
                 _image = value;
-            } }
+            }
+        }
         public RelayCommand<RemoteSystem> StreamToDeviceCommand { get; private set; }
 
         public INotification Notificator
@@ -1762,7 +1900,7 @@ namespace UWPAudioBookPlayer.ModelView
                     var source = MediaSource.CreateFromUri(new Uri(link));
                     source.StateChanged += SourceOnStateChanged;
                     player.Source = new MediaPlaybackItem(source);
-                    
+
                 }
                 else
                 {
@@ -1781,7 +1919,7 @@ namespace UWPAudioBookPlayer.ModelView
 
         private void SourceOnStateChanged(MediaSource sender, MediaSourceStateChangedEventArgs args)
         {
-            
+
         }
 
         TimeSpan temp = TimeSpan.MinValue;
@@ -1954,7 +2092,7 @@ namespace UWPAudioBookPlayer.ModelView
                     await
                         notificator.ShowMessage("Already have this type",
                             "You already added this type of cloud service. Are want add another?",
-                            ActionButtons.Cancel , ActionButtons.Ok) != ActionButtons.Ok)
+                            ActionButtons.Cancel, ActionButtons.Ok) != ActionButtons.Ok)
                     return;
             }
 
@@ -2042,7 +2180,8 @@ namespace UWPAudioBookPlayer.ModelView
         {
             await Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(
                 CoreDispatcherPriority.Normal,
-                () => {
+                () =>
+                {
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
                 });
         }
@@ -2058,7 +2197,7 @@ namespace UWPAudioBookPlayer.ModelView
         {
             if (string.IsNullOrWhiteSpace(remove))
                 return;
-            var param  = remove.Split(';');
+            var param = remove.Split(';');
             if (!param.Any())
                 return;
 
@@ -2076,7 +2215,7 @@ namespace UWPAudioBookPlayer.ModelView
 
             if (!Folders.Any(x => x.Name == source.Name))
                 Folders.Add(source);
-                
+
             await SaveData();
 
             await SetSource(source);
@@ -2085,7 +2224,7 @@ namespace UWPAudioBookPlayer.ModelView
 
         RemoteOpenParams GetOpenParams(string json)
         {
-            var obj  = JsonConvert.DeserializeObject<RemoteOpenParams>(json);
+            var obj = JsonConvert.DeserializeObject<RemoteOpenParams>(json);
             return obj;
         }
 

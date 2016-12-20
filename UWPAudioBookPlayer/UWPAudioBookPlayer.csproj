@@ -101,6 +101,7 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
+    <Compile Include="CacheService.cs" />
     <Compile Include="Comparer\AudioBookFileEqualityComparer.cs" />
     <Compile Include="Comparer\AudioBookWithCloudEqualityComparer.cs" />
     <Compile Include="Converter\AudioBookSourceToCoverConverter.cs" />

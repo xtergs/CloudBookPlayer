@@ -184,6 +184,7 @@ namespace UWPAudioBookPlayer
             builder.RegisterType<JSonRepository>().As<IDataRepository>();
             builder.RegisterType<AudioBookSourceFactory>();
             builder.RegisterType<ManageSources>();
+            builder.RegisterType<OperationsService>();
 
             var container = builder.Build();
             Global.container = container;
