@@ -14,7 +14,19 @@
         <converter:TimeSpanToSecondsConverter x:Key="TimeSpanToSecondsConverter" />
         <converter:BoolToNotVisiblityConverter x:Key="BoolToNotVisiblityConverter" />
         <converter:BoolToUniformOrFillConverter x:Key="BoolToUniformOrFillConverter" />
-        <converter:IntToVisibilityConverter x:Key="IntToVisibilityConverter"/>
-        <converter:IntToNoVisibilityConverter x:Key="IntToNoVisibilityConverter"/>
+        <converter:IntToVisibilityConverter x:Key="IntToVisibilityConverter" />
+        <converter:IntToNoVisibilityConverter x:Key="IntToNoVisibilityConverter" />
+        <converter:IntToBoolConverter x:Key="IntToBoolConverter" />
+
+        <Style x:Name="FullListViewItemContainer" TargetType="ListViewItem">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
     </Application.Resources>
 </Application>

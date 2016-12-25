@@ -34,22 +34,22 @@ namespace UWPAudioBookPlayer.ModelView
 
         public async Task<object> GetCover()
         {
-            if (Book.Images != null && Book.Images.Any())
+            if (Book.Cover.IsValide)
             {
-                if (Book.Images[0].StartsWith("http"))
+                if (Book.Cover.Url.StartsWith("http"))
                 {
-                    Cover =  Book.Images[0];
+                    Cover =  Book.Cover.Url;
                     return Cover;
                 }
-
-                Cover =  await LoadPictyri(Book.Images[0]);
+                if (Book.Cover.IsValide)
+                    Cover =  await LoadPicture(Book.Cover.Url);
                 return Cover;
 
             }
             return null;
         }
 
-        private async Task<object>  LoadPictyri(string filename)
+        private async Task<object>  LoadPicture(string filename)
         {
             try
             {

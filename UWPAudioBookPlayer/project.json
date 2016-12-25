@@ -1,7 +1,6 @@
 ﻿{
   "dependencies": {
     "Autofac": "4.2.1",
-    "ColorPicker": "1.0.2",
     "Dropbox.Api": "4.1.0",
     "HockeySDK.UWP": "4.1.5",
     "HtmlAgilityPack.NetCore": "1.5.0.1",
@@ -20,8 +19,8 @@
     "PropertyChanged.Fody": "1.51.3",
     "QueryString.NET": "1.0.0",
     "Sqlite.net-pcl": "3.1.1",
-    "UWPValColorPicker": "1.0.1",
-    "Win2D.uwp": "1.20.0"
+    "Win2D.uwp": "1.20.0",
+    "Xamarin.FFImageLoading": "2.2.5"
   },
   "frameworks": {
     "uap10.0": {}

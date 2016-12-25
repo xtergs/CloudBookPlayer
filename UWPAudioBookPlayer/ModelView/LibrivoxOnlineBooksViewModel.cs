@@ -392,7 +392,8 @@ namespace UWPAudioBookPlayer.ModelView
             OnlineAudioBookSource source = new OnlineAudioBookSource("LibviVox", CloudType.Online)
             {
                 Name = book.BookName,
-                Cover = book.CoverLink,
+                //Cover = book.CoverLink,
+                Images = new ImageStruct[] {new ImageStruct( book.CoverLink, book.CoverLink)},
                 IsLocked = true,
                 TotalDuration = book.Duration,
                 Link = book.link,

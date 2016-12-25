@@ -10,6 +10,7 @@ using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using Windows.ApplicationModel.Activation;
 using Windows.Storage;
 using Windows.Storage.AccessCache;
 using Windows.Storage.FileProperties;
@@ -78,7 +79,7 @@ namespace UWPAudioBookPlayer.Model
 
         public override async Task<string> GetImage(string name)
         {
-            return Cover;
+            return Cover.Url;
         }
 
         
@@ -140,6 +141,20 @@ namespace UWPAudioBookPlayer.Model
             => AdditionSources.OfType<AudioBookSourceCloud>().Select(x => x.Type).Distinct().ToArray();
 
     }
+
+    public struct ImageStruct
+    {
+        public ImageStruct(string title, string url = null)
+        {
+            Title = title;
+            Url = url;
+        }
+
+        public string Title { get; set; }
+        public string Url { get; set; }
+
+        public bool IsValide => !string.IsNullOrWhiteSpace(Title);
+    }
     [ImplementPropertyChanged]
     public class AudioBookSource : INotifyPropertyChanged
     {
@@ -174,8 +189,17 @@ namespace UWPAudioBookPlayer.Model
         public string AccessToken { get; set; }
         public string Path { get; set; }
         public string Name { get; set; }
-        public string Cover { get; set; }
-        public string[] Images { get; set; }
+
+        public ImageStruct Cover
+        {
+            get
+            {
+                if (Images == null || Images.Length <= 0)
+                    return new ImageStruct();
+                return Images.First();
+            }
+        }
+        public ImageStruct[] Images { get; set; }
         public TimeSpan TotalDuration { get; set; }
         public List<AudiBookFile> Files { get; set;} = new List<AudiBookFile>();
 
@@ -219,7 +243,7 @@ namespace UWPAudioBookPlayer.Model
 
         public virtual async Task<string> GetImage(string name)
         {
-            return Images?.FirstOrDefault(x => x == name);
+            return Images?.FirstOrDefault(x => x.Url == name).Url;
         }
 
         [JsonIgnore]
@@ -267,9 +291,9 @@ namespace UWPAudioBookPlayer.Model
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public string GetAnyCover()
+        public ImageStruct GetAnyCover()
         {
-            return Cover ?? Images?.FirstOrDefault();
+            return Images.FirstOrDefault();
         }
 
         public bool IsLink(string url)
@@ -417,8 +441,8 @@ namespace UWPAudioBookPlayer.Model
                                     IsAvalible = true,
                                 };
                             }).ToList(),
-                        Images = covers.Select(x=> x.Name).ToArray(),
-                        Cover = covers.FirstOrDefault()?.Name,
+                        Images = covers.Select(x=> new ImageStruct() {Title = x.Name, Url = x.Name}).ToArray(),
+                        //Cover = covers.FirstOrDefault()?.Name,
 
                     };
                     result.TotalDuration = TimeSpan.FromSeconds(result.Files.Sum(x => x.Duration.TotalSeconds));
@@ -610,6 +634,14 @@ namespace UWPAudioBookPlayer.Model
         {
             var result = await book.GetFileStream(imageName);
             return result.Item2.AsStream();
+        }
+
+        public ICloudController SelectContorller(AudioBookSource source, IEnumerable<ICloudController> activeContorllers)
+        {
+            var cloudSource = source as AudioBookSourceCloud;
+            if (cloudSource == null)
+                return null;
+            return activeContorllers.Single(x => x.CanHandleSource(cloudSource));
         }
     }
 

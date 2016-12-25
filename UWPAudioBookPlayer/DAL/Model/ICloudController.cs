@@ -18,10 +18,10 @@ namespace UWPAudioBookPlayer.DAL.Model
         bool IsAutorized { get; }
         string Token { get; set; }
 
-        event EventHandler CloseAuthPage;
-        event EventHandler<Tuple<Uri, Action<Uri>>> NavigateToAuthPage;
+        //event EventHandler CloseAuthPage;
+        //event EventHandler<Tuple<Uri, Action<Uri>>> NavigateToAuthPage;
 
-        void Auth();
+        Task Auth();
         Task DeleteAudioBook(AudioBookSource source);
         Task<Stream> DownloadBookFile(string BookName, string fileName);
         Task<AudioBookSourceCloud> GetAudioBookInfo(string bookName);
@@ -34,6 +34,8 @@ namespace UWPAudioBookPlayer.DAL.Model
         Task Uploadbook(string BookName, string fileName, Stream stream);
         Task Uploadfile(AudioBookSourceWithClouds book, string fileName, Stream stream, string subPath = "");
         Task UploadBookMetadata(AudioBookSource source, string revision = null);
+
+        bool CanHandleSource(AudioBookSourceCloud source);
 
         bool IsChangesObserveAvalible { get; }
         event EventHandler<FileChangedStruct> FileChanged;

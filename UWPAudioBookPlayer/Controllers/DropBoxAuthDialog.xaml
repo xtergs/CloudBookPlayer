@@ -1,0 +1,29 @@
+﻿<ContentDialog x:Class="UWPAudioBookPlayer.Controllers.DropBoxAuthDialog"
+               xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+               xmlns:local="using:UWPAudioBookPlayer.Controllers"
+               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+               Title="DropBox Authentication"
+               HorizontalAlignment="Stretch"
+               VerticalAlignment="Stretch"
+               FullSizeDesired="True"
+               PrimaryButtonClick="ContentDialog_PrimaryButtonClick"
+               PrimaryButtonText=""
+               SecondaryButtonClick="ContentDialog_SecondaryButtonClick"
+               SecondaryButtonText="Close"
+               mc:Ignorable="d">
+    <Grid>
+        <WebView x:Name="webView"
+                 HorizontalAlignment="Stretch"
+                 VerticalAlignment="Stretch"
+                 NavigationCompleted="WebView_OnNavigationCompleted"
+                 NavigationStarting="WebView_OnNavigationStarting"
+                 SizeChanged="WebView_OnSizeChanged" />
+        <ProgressRing x:Name="progress"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      IsActive="False"
+                      Visibility="Visible" />
+    </Grid>
+</ContentDialog>

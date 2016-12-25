@@ -44,7 +44,7 @@ namespace UWPAudioBookPlayer.DAL.Model
             
         }
 
-        public async void Auth()
+        public async Task Auth()
         {
             try
             {
@@ -155,7 +155,7 @@ namespace UWPAudioBookPlayer.DAL.Model
                         continue;
                     metaData.CloudStamp = CloudStamp;
                     metaData.Type = CloudType.OneDrive;
-                    metaData.Cover = null;
+                    //metaData.Cover = null;
                     continue;
                 }
                 if (this.IsImage(filesEntry.Name))
@@ -170,7 +170,10 @@ namespace UWPAudioBookPlayer.DAL.Model
                     IsAvalible = true
                 });
             }
-            var links = await Task.WhenAll(images.Select(x => GetLink(bookName, x.Name)));
+            var links =
+                await
+                    Task.WhenAll(
+                        images.Select(async x => new {Link = await GetLink(bookName, x.Name), FileName = x.Name}));
             if (metaData != null)
             {
                 var diff = metaData.Files.Except(book.Files).ToList();
@@ -187,14 +190,14 @@ namespace UWPAudioBookPlayer.DAL.Model
                     else
                         metaData.Files[i].IsAvalible = false;
                 }
-                metaData.Images = links;
-                metaData.Cover = links.FirstOrDefault();
+                metaData.Images = links.Select(x => new ImageStruct(x.FileName, x.Link)).ToArray(); ;
+                //metaData.Cover = links.FirstOrDefault();
                 return metaData;
 
             }
             //result.Add(book);
-            book.Images = links;
-            book.Cover = links.FirstOrDefault();
+            book.Images = links.Select(x => new ImageStruct(x.FileName, x.Link)).ToArray(); ;
+            //book.Cover = links.FirstOrDefault();
             book.CloudStamp = CloudStamp;
             book.Type = Type;
             return book;
@@ -322,6 +325,11 @@ namespace UWPAudioBookPlayer.DAL.Model
                var data = await client.Drive.Root.ItemWithPath(BaseFolder + "/" + source.Folder + "/" + mediaInfoFileName).Content.Request().PutAsync<Item>(stream);
 
             }
+        }
+
+        public bool CanHandleSource(AudioBookSourceCloud source)
+        {
+            return CloudStamp == source.CloudStamp && IsAutorized;
         }
 
         public bool IsChangesObserveAvalible => false;

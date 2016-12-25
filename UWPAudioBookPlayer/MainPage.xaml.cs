@@ -29,6 +29,8 @@ using UWPAudioBookPlayer.ModelView;
 using UWPAudioBookPlayer.Service;
 using UWPAudioBookPlayer.View;
 using Autofac;
+using FFImageLoading;
+using FFImageLoading.Work;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Effects;
 using Microsoft.Graphics.Canvas.Text;
@@ -52,7 +54,7 @@ namespace UWPAudioBookPlayer
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        private MainControlViewModel viewModel;
+        private readonly MainControlViewModel viewModel;
         private SettingsModelView _settingsModelView;
         private CastService castService;
         public MainPage(/*SettingsModelView settingsModelView*/)
@@ -98,6 +100,8 @@ namespace UWPAudioBookPlayer
             this.SizeChanged += OnSizeChanged;
             Rectagle.SizeChanged += RectagleOnSizeChanged;
             BottomRectagle.SizeChanged += BottomRectagleOnSizeChanged;
+
+            VisualStateManager.GoToState(this, nameof(GeneralVisualStates), false);
         }
 
         private void OnSizeChanged(object sender, SizeChangedEventArgs sizeChangedEventArgs)
@@ -206,7 +210,6 @@ namespace UWPAudioBookPlayer
             viewModel.PropertyChanged -= ViewModelOnPropertyChanged;
             if (viewModel.Settings != null)
             viewModel.Settings.PropertyChanged -= SettingsOnPropertyChanged;
-            viewModel = null;
         }
 
 
@@ -577,13 +580,14 @@ namespace UWPAudioBookPlayer
         private async void FrameworkElement_OnDataContextChanged(FrameworkElement sender, DataContextChangedEventArgs args)
         {
             var source = args.NewValue as AudioBookSourceWithClouds;
+
             if (source == null)
                 return;
             var img = sender as ImageEx;
             if (img == null)
                 return;
-            string cover = source.GetAnyCover();
-            if (cover == null)
+            ImageStruct cover = source.Cover;
+            if (!cover.IsValide)
             {
                 var mediaFile = await source.GetFile(source.GetCurrentFile.Name);
                 if (mediaFile != null)
@@ -602,11 +606,11 @@ namespace UWPAudioBookPlayer
                     SetDefaultImage(img);
                 return;
             }
-            if (source.IsLink(cover))
+            if (source.IsLink(cover.Url))
             {
                 try
                 {
-                    var Bitmap = await ImageCache.Instance.GetFromCacheAsync(new Uri(cover, UriKind.Absolute), Guid.NewGuid().ToString(), true);
+                    var Bitmap = await ImageCache.Instance.GetFromCacheAsync(new Uri(cover.Url, UriKind.Absolute), Guid.NewGuid().ToString(), true);
                     img.Source = Bitmap;
                     return;
                 }catch(Exception e)
@@ -623,17 +627,28 @@ namespace UWPAudioBookPlayer
                     img.Source = btmimage;
                     return;
                 }
-                var streamResult = await source.GetFileStream(cover);
+                var streamResult = await source.GetFileStream(cover.Url);
                 btmimage = new BitmapImage();
                 streamResult.Item2.Seek(0);
                 await btmimage.SetSourceAsync(streamResult.Item2);
                 streamResult.Item2.Dispose();
                 fileImageCache[cachekey] = btmimage;
                 img.Source = btmimage;
-                streamResult = null;
+               streamResult = null;
             }
             catch (Exception e)
             {
+                if (viewModel == null)
+                    return;
+                using (var stream = await viewModel.DownloadFileFromBook(source, source.Cover.Title))
+                {
+                    if (stream == null)
+                        return;
+                    var bitmap = new BitmapImage();
+                    await bitmap.SetSourceAsync(stream.AsRandomAccessStream());
+                    fileImageCache[cachekey] = bitmap;
+                    img.Source = bitmap;
+                }
 //                var oneDriveSource = source as AudioBookSourceCloud;
 //                if (oneDriveSource == null)
 //                    return;

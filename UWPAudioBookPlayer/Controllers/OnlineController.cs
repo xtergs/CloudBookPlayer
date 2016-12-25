@@ -28,7 +28,7 @@ namespace UWPAudioBookPlayer.DAL.Model
             CloudStamp = cloudStamp;
         }
 
-        public void Auth()
+        public async Task Auth()
         {
         }
 
@@ -93,9 +93,14 @@ namespace UWPAudioBookPlayer.DAL.Model
             
         }
 
+        public bool CanHandleSource(AudioBookSourceCloud source)
+        {
+            return CloudStamp == source.CloudStamp && IsAutorized;
+        }
+
         public override string ToString()
         {
-            return "LibriVox";
+            return CloudStamp;
         }
 
         public bool IsChangesObserveAvalible => false;

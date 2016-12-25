@@ -17,24 +17,23 @@ namespace UWPAudioBookPlayer.Service
         public ICloudController[] GetControllersForUpload(AudioBookSourceWithClouds book,
             ICloudController[] controllers)
         {
-            return GetSupportedControllers(book, controllers).Where(x => x.IsCloud).ToArray();
+            if (book is AudioBookSourceCloud)
+                return new ICloudController[0];
+            return controllers.Where(x=> x!= null && x.IsCloud).ToArray();
         }
 
         private ICloudController[] GetSupportedControllers(AudioBookSourceWithClouds book,
             ICloudController[] controllers)
         {
-            var list =
-                controllers?.Where(
-                    x =>
-                        book.AdditionSources?.OfType<AudioBookSourceCloud>().Any(b =>
-                            String.Equals(b.CloudStamp, x.CloudStamp, StringComparison.OrdinalIgnoreCase)) ??
-                        false)?.ToList() ?? new List<ICloudController>();
-            var cntl = controllers.FirstOrDefault(controller =>
-                String.Equals(controller.CloudStamp, (book as AudioBookSourceCloud)?.CloudStamp,
-                    StringComparison.OrdinalIgnoreCase));
-            list.Add(cntl);
+            AudioBookSourceCloud loudData = book as AudioBookSourceCloud;
+            if (loudData == null)
+                return new ICloudController[0];
+            var llist = new[] { loudData }.Union(book.AdditionSources?.OfType<AudioBookSourceCloud>());
+            ICloudController[] louds =
+                controllers.Join(llist, controller => controller.CloudStamp, cloud => cloud.CloudStamp,
+                    (controller, cloud) => controller).ToArray();
 
-            return list.Where(x => x != null).ToArray();
+            return louds;
         }
     }
 }

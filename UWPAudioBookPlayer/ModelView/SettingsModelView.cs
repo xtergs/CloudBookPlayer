@@ -83,8 +83,8 @@ namespace UWPAudioBookPlayer.ModelView
                                    $"4) Show list with books with respect to window height{Environment.NewLine}" +
                                    $"5) Show button Operations if needed and use for that overlay{Environment.NewLine}" +
                                    $"6) Show services for book in tile view{Environment.NewLine}" +
-                                   $"7) Show cover from file tag if cover's file hasn't found{Environment.NewLine}"
-                                   ;
+                                   $"7) Show cover from file tag if cover's file hasn't found{Environment.NewLine}" +
+                                   $"8) Correct way to add DropBox account{Environment.NewLine}";
 
         public string ChanglogShowedForVersion
         {
@@ -234,7 +234,10 @@ namespace UWPAudioBookPlayer.ModelView
                 {
                     return "ms-appdata:///local/" + CustomeCoverName;
                 }
-                return helper.SimpleGet("ms-appx:///Image/no-image-available.jpg"); }
+                var debug =  helper.SimpleGet("ms-appx:///Image/no-image-available.jpg");
+                return debug;
+            }
+
             set { helper.SimpleSet(value); }
         }
 

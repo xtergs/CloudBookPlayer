@@ -15,6 +15,8 @@ using UWPAudioBookPlayer.Model;
 using Newtonsoft.Json;
 using UWPAudioBookPlayer.ModelView;
 using System.Diagnostics;
+using Windows.ApplicationModel.AppService;
+using UWPAudioBookPlayer.Controllers;
 
 namespace UWPAudioBookPlayer.DAL.Model
 {
@@ -27,9 +29,7 @@ namespace UWPAudioBookPlayer.DAL.Model
         }
         [JsonIgnore]
         public string Revision { get; set; }
-        [JsonIgnore]
         public string CloudStamp { get; set; }
-        [JsonIgnore]
         public CloudType Type { get; set; }
 
         public override async Task<Tuple<string, IRandomAccessStream>> GetFileStream(string fileName)
@@ -66,6 +66,11 @@ namespace UWPAudioBookPlayer.DAL.Model
 
         public bool StoreUploadedRevisions { get; set; }
         private Dictionary<string, string> _uploadedFiles = new Dictionary<string, string>(10);
+        public bool CanHandleSource(AudioBookSourceCloud source)
+        {
+            return CloudStamp == source.CloudStamp && IsAutorized;
+        }
+
         public bool IsChangesObserveAvalible => true;
         public event EventHandler<FileChangedStruct> FileChanged;
         public event EventHandler<AudioBookSourceCloud> MediaInfoChanged;
@@ -138,11 +143,20 @@ namespace UWPAudioBookPlayer.DAL.Model
             }
         }
 
-        public void Auth()
+        public async Task Auth()
         {
             Uri authDrBox = DropboxOAuth2Helper.GetAuthorizeUri(OAuthResponseType.Code, AppCode,
                AppResponseUrl, disableSignup: true);
-            OnNavigateToAuthPage(new Tuple<Uri, Action<Uri>>(authDrBox, Item2));
+            var dialog = new DropBoxAuthDialog(authDrBox, AppResponseUrl, AppCode, AppSercret);
+            var result = await dialog.ShowAsync();
+            if (dialog.Result == ResultEnum.Authenticated)
+            {
+                Token = dialog.Token;
+                await Inicialize();
+                OnCloseAuthPage();
+
+            }
+            //OnNavigateToAuthPage(new Tuple<Uri, Action<Uri>>(authDrBox, Item2));
         }
 
         private async void Item2(Uri uri)
@@ -277,7 +291,7 @@ namespace UWPAudioBookPlayer.DAL.Model
                     IsAvalible = true
                 });
             }
-            var links = await Task.WhenAll(images.Select(x => GetLink(bookName, x.Name)));
+            var links = await Task.WhenAll(images.Select(async x => new {Link = await GetLink(bookName, x.Name), FileName = x.Name}));
             if (metaData != null)
             {
                 var diff = metaData.Files.Except(book.Files).ToList();
@@ -294,14 +308,14 @@ namespace UWPAudioBookPlayer.DAL.Model
                     else
                         metaData.Files[i].IsAvalible = false;
                 }
-                metaData.Images = links;
-                metaData.Cover = links.FirstOrDefault();
+                metaData.Images = links.Select(x => new ImageStruct(x.FileName, x.Link)).ToArray();
+                //metaData.Cover = links.FirstOrDefault();
                 return metaData;
 
             }
             //result.Add(book);
-            book.Images = links;
-            book.Cover = links.FirstOrDefault();
+            book.Images = links.Select(x => new ImageStruct(x.FileName, x.Link)).ToArray();
+            //book.Cover = links.FirstOrDefault();
             book.CloudStamp = CloudStamp;
             book.Type = Type;
             return book;

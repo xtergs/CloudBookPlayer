@@ -104,6 +104,12 @@
     <Compile Include="CacheService.cs" />
     <Compile Include="Comparer\AudioBookFileEqualityComparer.cs" />
     <Compile Include="Comparer\AudioBookWithCloudEqualityComparer.cs" />
+    <Compile Include="Controllers\DropBoxAuthDialog.xaml.cs">
+      <DependentUpon>DropBoxAuthDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Controllers\DropBoxAuthView.xaml.cs">
+      <DependentUpon>DropBoxAuthView.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Converter\AudioBookSourceToCoverConverter.cs" />
     <Compile Include="Converter\AudioBookSourceToImageConverter.cs" />
     <Compile Include="Converter\BoolToOpacityConverter.cs" />
@@ -119,10 +125,10 @@
     <Compile Include="DAL\IDataRepository.cs" />
     <Compile Include="DAL\JSonRepository.cs" />
     <Compile Include="DAL\Model\CurrentState.cs" />
-    <Compile Include="DAL\Model\DropBoxController.cs" />
+    <Compile Include="Controllers\DropBoxController.cs" />
     <Compile Include="DAL\Model\ICloudController.cs" />
-    <Compile Include="DAL\Model\OneDriveController.cs" />
-    <Compile Include="DAL\Model\OnlineController.cs" />
+    <Compile Include="Controllers\OneDriveController.cs" />
+    <Compile Include="Controllers\OnlineController.cs" />
     <Compile Include="DAL\Model\SaveModel.cs" />
     <Compile Include="DAL\OneDriveRepository.cs" />
     <Compile Include="DAL\SqliteRepository.cs" />
@@ -195,6 +201,14 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Page Include="Controllers\DropBoxAuthDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Controllers\DropBoxAuthView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainPage.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

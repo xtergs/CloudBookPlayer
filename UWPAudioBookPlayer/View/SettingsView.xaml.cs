@@ -44,6 +44,17 @@ namespace UWPAudioBookPlayer.View
             {
                 this.feedbackButton.Visibility = Visibility.Visible;
             }
+
+            //CompactState = SomeSettings.Name;
+            VisualStateManager.GoToState(this, SomeSettings.Name, false);
+
+            this.Unloaded += OnUnloaded;
+        }
+
+        private void OnUnloaded(object sender, RoutedEventArgs routedEventArgs)
+        {
+            DataContext = null;
+            _modelView = null;
         }
 
         private void SettingsView_BackRequested(object sender, BackRequestedEventArgs e)
@@ -72,8 +83,6 @@ namespace UWPAudioBookPlayer.View
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
         {
-            DataContext = null;
-            _modelView = null;
             try
             {
                 m_remoteSystemWatcher?.Stop();
@@ -266,7 +275,13 @@ namespace UWPAudioBookPlayer.View
             if (width >= WidthCompactTrashhold)
             {
                 if (listView1.SelectedIndex < 0)
-                    listView1.SelectedIndex = 0;
+                {
+                    var index = listView1.Items.IndexOf(CompactState);
+                    if (index >= 0)
+                        listView1.SelectedIndex = index;
+                    else
+                        listView1.SelectedIndex = 1;
+                }
                 if (CompactState == CoverViewState.Name)
                     VisualStateManager.GoToState(this, FullWindowImages.Name, true);
             }
@@ -285,7 +300,7 @@ namespace UWPAudioBookPlayer.View
             }
         }
 
-        private void ChangeVisualState()
+        private void ChangeVisualState(bool changeState = true)
         {
             ChangeLeftPanelUI(ActualWidth, ActualHeight);
             ChangeRightPartUI(ActualWidth, ActualHeight);
