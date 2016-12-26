@@ -481,34 +481,9 @@ namespace UWPAudioBookPlayer.Model
             }
         }
 
-        public ICloudController GetCloudController(CloudService service)
-        {
-            if (service.Name == "DropBox")
-                return new DropBoxController()
-                {
-                    Token = service.Token,
-                };
-            if (service.Name == "OneDrive")
-                return new OneDriveController()
-                {
-                    Token = service.Token
-                };
-            return null;
-        }
 
-        public ICloudController GetCloudController(CloudType service)
-        {
-            switch (service)
-            {
-                    case CloudType.DropBox:
-                    return new DropBoxController();
-                    case CloudType.OneDrive:
-                    return new OneDriveController();
-                default:
-                    break;
-            }
-            return null;
-        }
+
+
 
         public string GetBookMarkFileName(BookMark bookmark)
         {
@@ -641,7 +616,7 @@ namespace UWPAudioBookPlayer.Model
             var cloudSource = source as AudioBookSourceCloud;
             if (cloudSource == null)
                 return null;
-            return activeContorllers.Single(x => x.CanHandleSource(cloudSource));
+            return activeContorllers.SingleOrDefault(x => x.CanHandleSource(cloudSource));
         }
     }
 

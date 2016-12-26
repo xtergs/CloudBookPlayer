@@ -148,6 +148,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Scrapers\LIbriVoxScraper.cs" />
     <Compile Include="Service\CastService.cs" />
+    <Compile Include="Service\ControllersService.cs" />
     <Compile Include="Service\ISettingsService.cs" />
     <Compile Include="Service\ManageOperationsService.cs" />
     <Compile Include="Service\ManageSources.cs" />

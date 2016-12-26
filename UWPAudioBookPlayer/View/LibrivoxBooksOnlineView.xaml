@@ -70,27 +70,20 @@
                   Margin="5"
                   HorizontalAlignment="Stretch"
                   VerticalAlignment="Stretch"
-                  SelectedItem="{Binding SelectedProjectTyp,
+                  Header="Type"
+                  ItemsSource="{Binding ProjectTypes}"
+                  SelectedItem="{Binding SelectedProjectType,
                                          Mode=TwoWay,
-                                         UpdateSourceTrigger=PropertyChanged}">
-            <ComboBox.Items>
-                <scrapers:ProjectTyp>All</scrapers:ProjectTyp>
-                <scrapers:ProjectTyp>Solo</scrapers:ProjectTyp>
-                <scrapers:ProjectTyp>Group</scrapers:ProjectTyp>
-            </ComboBox.Items>
-        </ComboBox>
+                                         UpdateSourceTrigger=PropertyChanged}" />
         <ComboBox Grid.Row="1"
                   Grid.Column="1"
                   Margin="5"
                   HorizontalAlignment="Stretch"
+                  Header="Sort by"
+                  ItemsSource="{Binding SortOrders}"
                   SelectedItem="{Binding SelectedSortOrder,
                                          Mode=TwoWay,
-                                         UpdateSourceTrigger=PropertyChanged}">
-            <ComboBox.Items>
-                <scrapers:SortOrder>alpha</scrapers:SortOrder>
-                <scrapers:SortOrder>catalog_date</scrapers:SortOrder>
-            </ComboBox.Items>
-        </ComboBox>
+                                         UpdateSourceTrigger=PropertyChanged}" />
         <ListView Grid.Row="2"
                   Grid.ColumnSpan="4"
                   IncrementalLoadingThreshold="10"

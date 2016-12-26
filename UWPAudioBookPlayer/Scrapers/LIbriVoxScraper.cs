@@ -61,16 +61,47 @@ namespace UWPAudioBookPlayer.Scrapers
         public int CurrentPage { get; set; }
     }
 
-    public enum ProjectTyp
+    public enum ProjectType
     {
         Solo, Group,
         All
+    }
+
+    public struct ProjectTypeNamed
+    {
+        public ProjectTypeNamed(ProjectType type, string name)
+        {
+            Type = type;
+            Name = name;
+        }
+        public ProjectType Type { get; set; }
+        public string Name { get; set; }
+
+        public override string ToString()
+        {
+            return Name;
+        }
     }
 
     public enum SortOrder
     {
         catalog_date,
         alpha
+    }
+
+    public struct SortOrderNamed
+    {
+        public SortOrderNamed(SortOrder order, string name)
+        {
+            Order = order;
+            Name = name;
+        }
+        public SortOrder Order { get; set; }
+        public string Name { get; set; }
+        public override string ToString()
+        {
+            return Name;
+        }
     }
 
     public class Language
@@ -82,7 +113,7 @@ namespace UWPAudioBookPlayer.Scrapers
     }
     public class LIbriVoxScraper
     {
-        public string GetLinkToTitles(int page, int language = 0, ProjectTyp type = ProjectTyp.All, SortOrder order = SortOrder.alpha)
+        public string GetLinkToTitles(int page, int language = 0, ProjectType type = ProjectType.All, SortOrder order = SortOrder.alpha)
         {
             if (page <= 0)
                 page = 1;
@@ -90,35 +121,35 @@ namespace UWPAudioBookPlayer.Scrapers
             if (language != 0)
                 category = "language";
             string projectType = "either";
-            if (type == ProjectTyp.Solo)
+            if (type == ProjectType.Solo)
                 projectType = "solo";
-            else if (type == ProjectTyp.Group)
+            else if (type == ProjectType.Group)
                 projectType = "group";
             return
                 $@"https://librivox.org/search/get_results?primary_key={language}&search_category={category}&sub_category=&search_page={page}&search_order={order.ToString()}&project_type={projectType}";
         }
 
-        public string GetLinkToAuthors(int page, ProjectTyp type = ProjectTyp.All, SortOrder order = SortOrder.alpha)
+        public string GetLinkToAuthors(int page, ProjectType type = ProjectType.All, SortOrder order = SortOrder.alpha)
         {
             if (page <= 0)
                 page = 1;
             string projectType = "either";
-            if (type == ProjectTyp.Solo)
+            if (type == ProjectType.Solo)
                 projectType = "solo";
-            else if (type == ProjectTyp.Group)
+            else if (type == ProjectType.Group)
                 projectType = "group";
             return
                 $@"https://librivox.org/search/get_results?primary_key=0&search_category=author&sub_category=&search_page={page}&search_order={order.ToString()}&project_type={projectType}";
         }
 
-        public string GetLinkAuthorBooks(int authorId, int page, SortOrder order = SortOrder.alpha, ProjectTyp type = ProjectTyp.All)
+        public string GetLinkAuthorBooks(int authorId, int page, SortOrder order = SortOrder.alpha, ProjectType type = ProjectType.All)
         {
             if (page <= 0)
                 page = 1;
             string projectType = "either";
-            if (type == ProjectTyp.Solo)
+            if (type == ProjectType.Solo)
                 projectType = "solo";
-            else if (type == ProjectTyp.Group)
+            else if (type == ProjectType.Group)
                 projectType = "group";
             return
                 $@"https://librivox.org/author/get_results?primary_key={authorId}&search_category=author&sub_category=&search_page={page}&search_order={order}&project_type={projectType}";

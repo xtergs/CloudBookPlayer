@@ -60,7 +60,7 @@
                               Visibility="Collapsed" />
                 <StackPanel x:Name="stackPanel" Grid.Row="1">
                     <TextBlock Text="Cloud Accouonts" />
-                    <TextBlock Visibility="{Binding MainViewModel.OnlyCloudControoler.Count, Converter={StaticResource IntToNoVisibilityConverter}}">
+                    <TextBlock Visibility="{Binding ControlersService.Clouds.Length, Converter={StaticResource IntToNoVisibilityConverter}}">
                         <Run Text="You don't have any cloud account, " />
                         <Hyperlink Click="Hyperlink_Click">
                             <Run Text="Add account" />
@@ -68,15 +68,15 @@
                     </TextBlock>
                     <ListView Grid.Row="1"
                               VerticalAlignment="Stretch"
-                              ItemsSource="{Binding Controllers}"
-                              Visibility="{Binding MainViewModel.OnlyCloudControolers.Count,
+                              ItemsSource="{Binding ControlersService.Clouds}"
+                              Visibility="{Binding ControlersService.Clouds.Length,
                                                    Converter={StaticResource IntToVisibilityConverter}}">
                         <ListView.ItemTemplate>
                             <DataTemplate>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="50" />
-                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="1*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <Image Source="{Binding Type, Converter={StaticResource CloudTypetoImiageConverter}}" />
@@ -112,7 +112,7 @@
                                   Grid.Row="2"
                                   Icon="Add"
                                   Label="Add more"
-                                  Visibility="{Binding MainViewModel.OnlyCloudControolers.Count,
+                                  Visibility="{Binding ControlersService.Clouds.Length,
                                                        Converter={StaticResource IntToVisibilityConverter}}">
                         <AppBarButton.Flyout>
                             <MenuFlyout>

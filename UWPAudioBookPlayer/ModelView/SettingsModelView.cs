@@ -20,7 +20,9 @@ namespace UWPAudioBookPlayer.ModelView
     {
         private IApplicationSettingsHelper helper;
         private MainControlViewModel mainViewModel;
-        public SettingsModelView(IApplicationSettingsHelper helper, MainControlViewModel mainViewModel)
+        private readonly ControllersService _controlersService;
+
+        public SettingsModelView(IApplicationSettingsHelper helper, MainControlViewModel mainViewModel, ControllersService controlersService)
         {
             if (helper == null)
                 throw new ArgumentNullException(nameof(helper));
@@ -28,15 +30,16 @@ namespace UWPAudioBookPlayer.ModelView
             if (mainViewModel == null)
                 throw new ArgumentNullException(nameof(mainViewModel));
             this.mainViewModel = mainViewModel;
-            this.mainViewModel.PropertyChanged += MainViewModel_PropertyChanged;
+            _controlersService = controlersService;
+           // this.mainViewModel.PropertyChanged += MainViewModel_PropertyChanged;
 
             RemoveCloudController = new RelayCommand<ICloudController>((controller) =>
             {
                 if (controller == null)
                     return;
                 this.mainViewModel.RemoveCloudAccountCommand.Execute(controller);
-                OnPropertyChanged(nameof(Controllers));
-                OnPropertyChanged(nameof(ControllersCount));
+//                OnPropertyChanged(nameof(Controllers));
+//                OnPropertyChanged(nameof(ControllersCount));
             });
         }
 
@@ -52,12 +55,12 @@ namespace UWPAudioBookPlayer.ModelView
             helper = null;
         }
 
-        public List<ICloudController> Controllers
-        {
-            get { return mainViewModel.OnlyCloudControolers; }
-        }
+//        public List<ICloudController> Controllers
+//        {
+//            get { return mainViewModel.OnlyCloudControolers; }
+//        }
 
-        public int ControllersCount => Controllers.Count;
+        //public int ControllersCount => Controllers.Count;
 
         public bool AutomaticaliDeleteFilesFromDrBox {
             get { return helper.SimpleGet(false); }
@@ -252,6 +255,12 @@ namespace UWPAudioBookPlayer.ModelView
             get { return helper.SimpleGet(true); }
             set { helper.SimpleSet(value); }
         }
+
+        public ControllersService ControlersService
+        {
+            get { return _controlersService; }
+        }
+
         public void NotifyCustomeImageChanged()
         {
             OnPropertyChanged(nameof(StandartCover));

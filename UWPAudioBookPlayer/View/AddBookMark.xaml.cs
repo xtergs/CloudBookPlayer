@@ -19,6 +19,7 @@ using UWPAudioBookPlayer.Annotations;
 using UWPAudioBookPlayer.DAL.Model;
 using UWPAudioBookPlayer.Model;
 using UWPAudioBookPlayer.ModelView;
+using UWPAudioBookPlayer.Service;
 
 // The User Control item template is documented at http://go.microsoft.com/fwlink/?LinkId=234236
 
@@ -27,6 +28,7 @@ namespace UWPAudioBookPlayer.View
     [ImplementPropertyChanged]
     public sealed partial class AddBookMark : Page, INotifyPropertyChanged
     {
+        private readonly ControllersService _controllerService;
         private BookMark bookmark;
         private AudioBookSourceWithClouds book;
         private AudiBookFile file;
@@ -34,8 +36,9 @@ namespace UWPAudioBookPlayer.View
 
        public bool OpeningMedia { get; private set; }
 
-        public AddBookMark()
+        public AddBookMark(ControllersService controllerService)
         {
+            _controllerService = controllerService;
             this.InitializeComponent();
             this.Loading += OnLoading;
             this.Loaded += OnLoaded;
@@ -93,8 +96,10 @@ namespace UWPAudioBookPlayer.View
             OpeningMedia = true;
             if (book is AudioBookSourceCloud)
             {
-                var controllers  = Global.container.Resolve<MainControlViewModel>().CloudControllers;
-                var controler = controllers.FirstOrDefault(x => x.CloudStamp == (book as AudioBookSourceCloud).CloudStamp);
+                
+                //var controllers  = Global.container.Resolve<MainControlViewModel>().CloudControllers;
+                //var controler = controllers.FirstOrDefault(x => x.CloudStamp == (book as AudioBookSourceCloud).CloudStamp);
+                var controler = _controllerService.GetController((book as AudioBookSourceCloud).CloudStamp);
                 if (controler == null)
                     return;
                 var link = await controler.GetLink(book as AudioBookSourceCloud, book.CurrentFile);

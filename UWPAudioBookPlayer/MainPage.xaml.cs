@@ -649,25 +649,6 @@ namespace UWPAudioBookPlayer
                     fileImageCache[cachekey] = bitmap;
                     img.Source = bitmap;
                 }
-//                var oneDriveSource = source as AudioBookSourceCloud;
-//                if (oneDriveSource == null)
-//                    return;
-//                if (oneDriveSource.Type == CloudType.OneDrive)
-//                {
-//                    var controller =this.viewModel.CloudControllers.FirstOrDefault(x => x.Type == CloudType.OneDrive);
-//                    if (controller == null)
-//                        return;
-//                    var stream =await  controller.DownloadBookFile(source.Name,
-//                        (source.Cover ?? source.Images.FirstOrDefault()));
-//                    if (stream != null)
-//                    {
-//                        var btmimage = new BitmapImage();
-//                        await btmimage.SetSourceAsync(stream.AsRandomAccessStream());
-//                        fileImageCache[cachekey] = btmimage;
-//                        img.Source = btmimage;
-//                        stream.Dispose();
-//                    }
-//                }
             }
         }
 

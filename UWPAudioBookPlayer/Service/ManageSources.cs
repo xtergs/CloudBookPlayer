@@ -9,13 +9,13 @@ namespace UWPAudioBookPlayer.Service
     public class ManageSources
     {
         public ICloudController[] GetControllersForDownload(AudioBookSourceWithClouds book,
-            ICloudController[] controllers)
+            IEnumerable<ICloudController> controllers)
         {
-            return GetSupportedControllers(book, controllers);
+            return GetSupportedControllers(book, controllers.ToArray());
         }
 
         public ICloudController[] GetControllersForUpload(AudioBookSourceWithClouds book,
-            ICloudController[] controllers)
+            IEnumerable<ICloudController> controllers)
         {
             if (book is AudioBookSourceCloud)
                 return new ICloudController[0];

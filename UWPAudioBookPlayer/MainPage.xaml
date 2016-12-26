@@ -1131,14 +1131,14 @@
                         <AppBarButton Click="ShowContextMenuDownload"
                                       Icon="Upload"
                                       Label="ToDropBox"
-                                      Visibility="{Binding OnlyCloudControolers.Count,
+                                      Visibility="{Binding ControllersService1.Controllers.Count,
                                                            Mode=OneWay,
                                                            UpdateSourceTrigger=PropertyChanged,
                                                            Converter={StaticResource IntToVisibilityConverter}}" />
                         <AppBarButton Click="ShowContextMenuUpload"
                                       Icon="Download"
                                       Label="FromDropBox"
-                                      Visibility="{Binding CloudControllers.Count,
+                                      Visibility="{Binding ControllersService1.Clouds.Length,
                                                            Mode=OneWay,
                                                            UpdateSourceTrigger=PropertyChanged,
                                                            Converter={StaticResource IntToVisibilityConverter}}" />

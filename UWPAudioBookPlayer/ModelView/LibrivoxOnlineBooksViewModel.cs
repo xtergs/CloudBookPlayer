@@ -223,8 +223,8 @@ namespace UWPAudioBookPlayer.ModelView
             FetchingData = true;
             try
             {
-                var link = scraper.GetLinkToTitles(page, SelectedLanguage.primaryKey, SelectedProjectTyp,
-                    SelectedSortOrder);
+                var link = scraper.GetLinkToTitles(page, SelectedLanguage.primaryKey, SelectedProjectType.Type,
+                    SelectedSortOrder.Order);
                 using (var client = new HttpClient())
                 {
                     client.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest");
@@ -246,7 +246,7 @@ namespace UWPAudioBookPlayer.ModelView
             FetchingData = true;
             try
             {
-                var link = scraper.GetLinkToAuthors(page, SelectedProjectTyp, SelectedSortOrder);
+                var link = scraper.GetLinkToAuthors(page, SelectedProjectType.Type, SelectedSortOrder.Order);
                 using (var client = new HttpClient())
                 {
                     client.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest");
@@ -266,8 +266,8 @@ namespace UWPAudioBookPlayer.ModelView
             FetchingData = true;
             try
             {
-                var link = scraper.GetLinkAuthorBooks(SelectedAuthor.AuthorId, page, SelectedSortOrder,
-                    SelectedProjectTyp);
+                var link = scraper.GetLinkAuthorBooks(SelectedAuthor.AuthorId, page, SelectedSortOrder.Order,
+                    SelectedProjectType.Type);
                 using (var client = new HttpClient())
                 {
                     client.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest");
@@ -284,8 +284,7 @@ namespace UWPAudioBookPlayer.ModelView
         }
 
         public int CurrentPage { get; set; } = 1;
-        public int MaxPage { get; set; } = 1;
-
+        public int MaxPage { get; set; } = 1; 
 
 
         public IncrementalLoadingCollection<OnlineBook> BookList { get; private set; }
@@ -367,9 +366,12 @@ namespace UWPAudioBookPlayer.ModelView
 
         public List<Language> Languges { get; set; }
         public Language SelectedLanguage { get; set; }
-        public ProjectTyp SelectedProjectTyp { get; set; } = ProjectTyp.All;
-        public SortOrder SelectedSortOrder { get; set; } = SortOrder.alpha;
+        public ProjectTypeNamed SelectedProjectType { get; set; } = ProjectTypes[0];
+        public static ProjectTypeNamed[] ProjectTypes { get; } = new ProjectTypeNamed[] {new ProjectTypeNamed(ProjectType.All, "All"), new ProjectTypeNamed(ProjectType.Group, "Group"), new ProjectTypeNamed(ProjectType.Solo, "Solo"),   };
+        public SortOrderNamed SelectedSortOrder { get; set; } = SortOrders[0];
 
+        public static SortOrderNamed[] SortOrders { get; } = new[]
+        {new SortOrderNamed(SortOrder.alpha, "Alpha"), new SortOrderNamed(SortOrder.catalog_date, "CatalogDate"),};
 
         public bool IsShowBookList { get; set; }
         public bool IsShowAuthorList { get; set; }
