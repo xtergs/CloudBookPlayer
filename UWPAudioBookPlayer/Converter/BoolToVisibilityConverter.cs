@@ -9,6 +9,21 @@ using Windows.UI.Xaml.Media;
 
 namespace UWPAudioBookPlayer.Converter
 {
+    public class VisibilityToBoolConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, string language)
+        {
+            var val = (Visibility) value;
+            if (val == Visibility.Visible)
+                return true;
+            return false;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, string language)
+        {
+            throw new NotImplementedException();
+        }
+    }
     public class BoolToVisibilityConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, string language)
@@ -19,7 +34,9 @@ namespace UWPAudioBookPlayer.Converter
 
         public object ConvertBack(object value, Type targetType, object parameter, string language)
         {
-            throw new NotImplementedException();
+            var val = (Visibility) value;
+            return val == Visibility.Visible;
+
         }
     }
 

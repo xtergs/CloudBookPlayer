@@ -10,6 +10,7 @@ namespace UWPAudioBookPlayer.DAL.Model
 {
     public interface ICloudController
     {
+        bool IsFailedToAuthenticate { get; }
         bool IsCloud { get; }
         string CloudStamp { get; }
         CloudType Type { get; }
@@ -20,7 +21,7 @@ namespace UWPAudioBookPlayer.DAL.Model
 
         //event EventHandler CloseAuthPage;
         //event EventHandler<Tuple<Uri, Action<Uri>>> NavigateToAuthPage;
-
+        AccountInfo Account { get; }
         Task Auth();
         Task DeleteAudioBook(AudioBookSource source);
         Task<Stream> DownloadBookFile(string BookName, string fileName);
@@ -33,7 +34,7 @@ namespace UWPAudioBookPlayer.DAL.Model
         Task Inicialize();
         Task Uploadbook(string BookName, string fileName, Stream stream);
         Task Uploadfile(AudioBookSourceWithClouds book, string fileName, Stream stream, string subPath = "");
-        Task UploadBookMetadata(AudioBookSource source, string revision = null);
+        Task<bool> UploadBookMetadata(AudioBookSource source, string revision = null);
 
         bool CanHandleSource(AudioBookSourceCloud source);
 

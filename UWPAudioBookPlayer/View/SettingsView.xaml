@@ -3,6 +3,7 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:Core="using:Microsoft.Xaml.Interactions.Core"
       xmlns:Interactivity="using:Microsoft.Xaml.Interactivity"
+      xmlns:controls="using:Microsoft.Toolkit.Uwp.UI.Controls"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:local="using:UWPAudioBookPlayer.View"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -38,7 +39,7 @@
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
         <ListView x:Name="listView1"
-                  Header="App settings"
+                  Header="   App settings"
                   IsItemClickEnabled="True"
                   ItemClick="listView1_ItemClick"
                   SelectionMode="Single">
@@ -68,41 +69,74 @@
                     </TextBlock>
                     <ListView Grid.Row="1"
                               VerticalAlignment="Stretch"
+                              ItemContainerStyle="{StaticResource FullListViewItemContainer}"
                               ItemsSource="{Binding ControlersService.Clouds}"
                               Visibility="{Binding ControlersService.Clouds.Length,
                                                    Converter={StaticResource IntToVisibilityConverter}}">
                         <ListView.ItemTemplate>
                             <DataTemplate>
-                                <Grid>
+                                <Grid Margin="5">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="50" />
                                         <ColumnDefinition Width="1*" />
                                         <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <Image Source="{Binding Type, Converter={StaticResource CloudTypetoImiageConverter}}" />
-                                    <AppBarButton Grid.Column="2"
+                                    <AppBarButton Grid.Column="3"
                                                   Command="{Binding DataContext.RemoveCloudController,
                                                                     ElementName=page}"
                                                   CommandParameter="{Binding}"
                                                   Icon="Remove"
                                                   Label="Remove" />
+                                    <AppBarButton Grid.Column="4"
+                                                  Command="{Binding DataContext.RefreshCloudControllerCommand,
+                                                                    ElementName=page}"
+                                                  CommandParameter="{Binding}"
+                                                  Icon="Refresh"
+                                                  Label="Refresh"
+                                                  Visibility="{Binding IsFailedToAuthenticate,
+                                                                       Mode=OneWay,
+                                                                       UpdateSourceTrigger=PropertyChanged,
+                                                                       Converter={StaticResource BoolToVisibilityConverter}}" />
+                                    <controls:ImageEx Grid.RowSpan="2"
+                                                      Grid.Column="2"
+                                                      VerticalAlignment="Stretch"
+                                                      Source="{Binding Account.UserPhotoUrl}"
+                                                      Stretch="Uniform"
+                                                      Visibility="{Binding Account.IsUserPhotoUrlAvaliable,
+                                                                           Converter={StaticResource BoolToVisibilityConverter}}" />
                                     <StackPanel Grid.Column="1">
                                         <TextBlock>
-                                            <Run Text="Type: " />
+                                            <Run FontWeight="Bold" Text="Type: " />
                                             <Run Text="{Binding}" />
                                         </TextBlock>
-                                        <TextBlock ToolTipService.ToolTip="{Binding Token}">
-                                            <Run Text="Token: " />
-                                            <Run Text="will not show" />
-                                        </TextBlock>
                                         <TextBlock>
-                                            <Run Text="CloudStamp: " />
+                                            <Run FontWeight="Bold" Text="CloudStamp: " />
                                             <Run Text="{Binding CloudStamp}" />
                                         </TextBlock>
                                         <TextBlock>
-                                            <Run Text="BaseFolder: " />
+                                            <Run FontWeight="Bold" Text="BaseFolder: " />
                                             <Run Text="{Binding BaseFolder}" />
                                         </TextBlock>
+                                        <TextBlock>
+                                            <Run FontWeight="Bold" Text="Can listen to changes of files: " />
+                                            <Run Text="{Binding IsChangesObserveAvalible}" />
+                                        </TextBlock>
+                                        <TextBlock TextTrimming="CharacterEllipsis" Visibility="{Binding Account.IsAccountInfoAvaliable, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <Run FontWeight="Bold" Text="Name: " />
+                                            <Run Text="{Binding Account.Name}" />
+                                            <Run Text=", " />
+                                            <Run FontWeight="Bold" Text="Email: " />
+                                            <Run Text="{Binding Account.Email}" />
+                                        </TextBlock>
+                                        <TextBlock Foreground="OrangeRed"
+                                                   Text="Failed to authenticate, please refresh account"
+                                                   Visibility="{Binding IsFailedToAuthenticate,
+                                                                        Mode=OneWay,
+                                                                        UpdateSourceTrigger=PropertyChanged,
+                                                                        Converter={StaticResource BoolToVisibilityConverter}}" />
                                     </StackPanel>
                                 </Grid>
                             </DataTemplate>

@@ -119,6 +119,7 @@
     <Compile Include="Converter\IRandomAccessStreamToImageSourceConverter.cs" />
     <Compile Include="Converter\NoConverter.cs" />
     <Compile Include="Converter\NullToBoolConverter.cs" />
+    <Compile Include="Converter\NullToVisibilityConverter.cs" />
     <Compile Include="Converter\SecondsToStringConverter.cs" />
     <Compile Include="Converter\TimeSpanToSecondsConverter.cs" />
     <Compile Include="DAL\DropboxRepository.cs" />
@@ -147,6 +148,7 @@
     <Compile Include="Properties\Annotations3.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Scrapers\LIbriVoxScraper.cs" />
+    <Compile Include="Scrapers\OnlineBookViewModel.cs" />
     <Compile Include="Service\CastService.cs" />
     <Compile Include="Service\ControllersService.cs" />
     <Compile Include="Service\ISettingsService.cs" />

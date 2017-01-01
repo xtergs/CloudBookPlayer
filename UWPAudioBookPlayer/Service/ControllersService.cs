@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using PropertyChanged;
+using UWPAudioBookPlayer.DAL;
 using UWPAudioBookPlayer.DAL.Model;
 using UWPAudioBookPlayer.ModelView;
 
@@ -13,6 +13,8 @@ namespace UWPAudioBookPlayer.Service
     [ImplementPropertyChanged]
     public class ControllersService
     {
+        private readonly IDataRepository repository;
+        private readonly string fileName = "clouds.json_v2";
         public event EventHandler<FileChangedStruct> FileChanged;
         public event EventHandler<AudioBookSourceCloud> MediaInfoChanged;
         public event EventHandler AccountAlreadyAdded;
@@ -21,8 +23,25 @@ namespace UWPAudioBookPlayer.Service
         public ImmutableList<ICloudController> Controllers { get; private set; } = ImmutableList<ICloudController>.Empty;
         public ICloudController[] Clouds => GetOnlyClouds();
 
+        public async Task<bool> Load()
+        {
+            repository.RoamingFileName = fileName;
+            repository.LocalFileName = null;
+            var loaded = await repository.Load();
+            await InicializeControllers(loaded.CloudServices);
+            return true;
+        }
+
+        public ControllersService(IDataRepository repository)
+        {
+            if (repository == null)
+                throw new ArgumentNullException(nameof(repository));
+            this.repository = repository;
+        }
+
         public async Task InicializeControllers(CloudService[] services)
         {
+            
             List<ICloudController> newControlelrs = new List<ICloudController>();
             foreach (var service in services)
             {
@@ -123,6 +142,18 @@ namespace UWPAudioBookPlayer.Service
         protected virtual void OnControllerDelted(ICloudController e)
         {
             ControllerDelted?.Invoke(this, e);
+        }
+
+        public Task Save()
+        {
+            var x = GetDataToSave();
+            repository.LocalFileName = null;
+            repository.RoamingFileName = fileName;
+
+            return repository.Save(new SaveModel()
+            {
+                CloudServices = x,
+            });
         }
     }
 }

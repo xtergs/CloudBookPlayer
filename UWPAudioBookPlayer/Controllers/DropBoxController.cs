@@ -16,6 +16,8 @@ using Newtonsoft.Json;
 using UWPAudioBookPlayer.ModelView;
 using System.Diagnostics;
 using Windows.ApplicationModel.AppService;
+using Dropbox.Api.Stone;
+using Dropbox.Api.Users;
 using UWPAudioBookPlayer.Controllers;
 
 namespace UWPAudioBookPlayer.DAL.Model
@@ -37,8 +39,15 @@ namespace UWPAudioBookPlayer.DAL.Model
             byte[] bytes;
             if (string.IsNullOrWhiteSpace(fileName))
                 return new Tuple<string, IRandomAccessStream>("", null);
-            using (HttpClient client = new HttpClient())
-                bytes = await client.GetByteArrayAsync(fileName);
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                    bytes = await client.GetByteArrayAsync(fileName);
+            }
+            catch (Exception ex)
+            {
+                return new Tuple<string, IRandomAccessStream>("", null);
+            }
             var stream = new MemoryStream(bytes);
             return new Tuple<string, IRandomAccessStream>("link", stream.AsRandomAccessStream());
         }
@@ -50,8 +59,24 @@ namespace UWPAudioBookPlayer.DAL.Model
         public string FileName { get; set; }
     }
 
+    public struct AccountInfo
+    {
+        public bool IsAccountInfoAvaliable { get; set; }
+        public string Name { get; set; }
+        public bool IsNameAvaliable { get; set; }
+        public string Email { get; set; }
+        public bool IsEmailAvaliable { get; set; }
+        public string UserPhotoUrl { get; set; }
+        public bool IsUserPhotoUrlAvaliable { get; set; }
+
+        public ulong UsedSpace { get; set; }
+        public ulong AllSpace { get; set; }
+        public bool IsFreeSpaceAvaliable { get; set; }
+    }
+
     public class DropBoxController : ICloudController
     {
+        public bool IsFailedToAuthenticate { get; } = false;
         public bool IsCloud => true;
         public string CloudStamp { get; private set; }
         public string AppCode { get; set; } = "kuld6fsmktlczbf";
@@ -88,32 +113,82 @@ namespace UWPAudioBookPlayer.DAL.Model
             if (!string.IsNullOrWhiteSpace(Token))
             {
                 client = new DropboxClient(Token);
-                CloudStamp = (await client.Users.GetCurrentAccountAsync()).AccountId;
+                var account = await client.Users.GetCurrentAccountAsync();
+                Account = FullAccountInfo(account);
+                CloudStamp = account.AccountId;
+                try
+                {
+                    var folder = await client.Files.CreateFolderAsync(BaseFolder);
+                }
+                catch (ApiException<CreateFolderError> ex)
+                {
+                    
+                }
                 StartListenChanges();
 
 
             }
         }
 
+
+        private AccountInfo FullAccountInfo(FullAccount info)
+        {
+            var result = new AccountInfo
+            {
+                Email = info.Email,
+                IsEmailAvaliable = true,
+                IsAccountInfoAvaliable = true,
+                Name = info.Name.DisplayName,
+                IsNameAvaliable = true,
+                UserPhotoUrl = info.ProfilePhotoUrl,
+                IsUserPhotoUrlAvaliable = info.ProfilePhotoUrl != null,
+            };
+
+            return result;
+        }
+
+        public AccountInfo Account { get; private set; }
+
+        private async void GetAccountInfo()
+        {
+//            var space = await client.Users.GetSpaceUsageAsync();
+//
+//            if (space.Allocation.IsIndividual)
+//            {
+//                Account.IsFreeSpaceAvaliable = true;
+//                Account.AllSpace = space.Allocation.AsIndividual.Value.Allocated;
+//                Account.UsedSpace = space.Used;
+//            }
+
+        }
+
         private async Task StartListenChanges()
         {
-            var cursor = await client.Files.ListFolderAsync(BaseFolder, true);
-            string cursorS = cursor.Cursor;
-            while (true)
+            try
             {
-                var res = await client.Files.ListFolderLongpollAsync(cursorS);
-                if (res.Changes)
+                var cursor = await client.Files.ListFolderAsync(BaseFolder, true);
+                string cursorS = cursor.Cursor;
+                while (true)
                 {
-                    ListFolderResult poll;
-                    do
+                    var res = await client.Files.ListFolderLongpollAsync(cursorS);
+                    if (res.Changes)
                     {
-                        poll = await client.Files.ListFolderContinueAsync(cursorS);
-                        cursorS = poll.Cursor;
-                        ProcessChangeList(poll.Entries);
-                    } while (poll.HasMore);
+                        ListFolderResult poll;
+                        do
+                        {
+                            poll = await client.Files.ListFolderContinueAsync(cursorS);
+                            cursorS = poll.Cursor;
+                            ProcessChangeList(poll.Entries);
+                        } while (poll.HasMore);
+                    }
+                    if (res.Backoff.HasValue)
+                        await Task.Delay(new TimeSpan((long) res.Backoff.Value));
                 }
-                if (res.Backoff.HasValue)
-                    await Task.Delay(new TimeSpan((long) res.Backoff.Value));
+            }
+            catch (Exception ex)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(10));
+                StartListenChanges();
             }
         }
 
@@ -189,7 +264,7 @@ namespace UWPAudioBookPlayer.DAL.Model
             //throw new NotImplementedException();
         }
 
-        public async Task UploadBookMetadata(AudioBookSource source, string revision = null)
+        public async Task<bool> UploadBookMetadata(AudioBookSource source, string revision = null)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
@@ -206,16 +281,36 @@ namespace UWPAudioBookPlayer.DAL.Model
                 else
                     writeMode = null;
 
-                var metadata = await client.Files.UploadAsync(BaseFolder + "/" + source.Folder + "/" + fileName, Dropbox.Api.Files.WriteMode.Overwrite.Instance, body: stream);
+                try
+                {
+                    var metadata =
+                        await
+                            client.Files.UploadAsync(BaseFolder + "/" + source.Folder + "/" + fileName,
+                                Dropbox.Api.Files.WriteMode.Overwrite.Instance, body: stream);
 
-                _uploadedFiles[metadata.Id] = metadata.Rev;
+                    _uploadedFiles[metadata.Id] = metadata.Rev;
+                }
+                catch (ApiException<UploadError> ex)
+                {
+                    //Ignore
+                    return false;
+                }
+                return true;
             }
         }
 
         public async Task Uploadbook(string BookName, string fileName, Stream stream)
         {
-            var metadata =  await client.Files.UploadAsync(BaseFolder + "/" + BookName + "/" + fileName, body: stream);
-            _uploadedFiles[metadata.Id] = metadata.Rev;
+            try
+            {
+                var metadata =
+                    await client.Files.UploadAsync(BaseFolder + "/" + BookName + "/" + fileName, body: stream);
+                _uploadedFiles[metadata.Id] = metadata.Rev;
+            }
+            catch (ApiException<UploadError> ex)
+            {
+                throw;
+            }
         }
 
         public async Task<Stream> DownloadBookFile(string BookName, string fileName)
@@ -248,7 +343,7 @@ namespace UWPAudioBookPlayer.DAL.Model
             {
                 files = await client.Files.ListFolderAsync(BaseFolder + "/" + bookName);
             }
-            catch (Exception e)
+            catch (ApiException<ListFolderError> e)
             {
                 Debug.WriteLine($"{e.Message}\n{e.StackTrace}");
                 return null;
@@ -262,8 +357,17 @@ namespace UWPAudioBookPlayer.DAL.Model
                     continue;
                 if (filesEntry.Name == MediaInfoFileName)
                 {
-                    var data =
-                        (await client.Files.DownloadAsync(filesEntry.PathDisplay));
+                    IDownloadResponse<FileMetadata> data;
+                    try
+                    {
+
+                        data = (await client.Files.DownloadAsync(filesEntry.PathDisplay));
+                    }
+                    catch (ApiException<DownloadError>)
+                    {
+                        metaData = null;
+                        continue;
+                    }
                     var config = (await data
                         
                             .GetContentAsStringAsync());
@@ -325,7 +429,14 @@ namespace UWPAudioBookPlayer.DAL.Model
         {
             if (string.IsNullOrWhiteSpace(bookName) || string.IsNullOrWhiteSpace(fileName))
                 return null;
-            return (await client.Files.GetTemporaryLinkAsync(BaseFolder + "/" + bookName + "/" + fileName)).Link;
+            try
+            {
+                return (await client.Files.GetTemporaryLinkAsync(BaseFolder + "/" + bookName + "/" + fileName)).Link;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
 
         public Task<string> GetLink(AudioBookSourceCloud book, int fileNumber)
@@ -338,7 +449,17 @@ namespace UWPAudioBookPlayer.DAL.Model
             if (!IsAutorized)
                 return new List<AudioBookSourceCloud>();
             var result = new List<AudioBookSourceCloud>();
-            var folders = await client.Files.ListFolderAsync(BaseFolder);
+            ListFolderResult folders;
+            try
+            {
+                folders = await client.Files.ListFolderAsync(BaseFolder);
+            }
+            catch (Exception ex)
+            {
+                if (ex.Message == @"path/not_found/...")
+                    return new List<AudioBookSourceCloud>(0);
+                throw;
+            }
             List<Task<AudioBookSourceCloud>> tasks = new List<Task<AudioBookSourceCloud>>(folders.Entries.Count);
 
             tasks.AddRange(folders.Entries.Select(folder => GetAudioBookInfo(folder.Name)));
@@ -353,7 +474,14 @@ namespace UWPAudioBookPlayer.DAL.Model
             if (!IsAutorized)
                 return;
 
-            var result = await client.Files.DeleteAsync(BaseFolder + "/" + source.Folder);
+            try
+            {
+                var result = await client.Files.DeleteAsync(BaseFolder + "/" + source.Folder);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
 
         public async Task<ulong> GetFreeSpaceBytes()

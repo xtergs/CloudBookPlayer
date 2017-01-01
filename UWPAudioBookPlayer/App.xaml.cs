@@ -178,12 +178,12 @@ namespace UWPAudioBookPlayer
             builder.RegisterType<UniversalApplicationSettingsHelper>().As<IApplicationSettingsHelper>();
             builder.RegisterType<LibrivoxOnlineBooksViewModel>();
             builder.RegisterType<LIbriVoxScraper>();
-            builder.RegisterType<RemoteDevicesService>();
+            builder.RegisterType<RemoteDevicesService>().SingleInstance();
             builder.RegisterType<BookMarksViewModel>();
             builder.RegisterType<UniversalNotification>().As<INotification>();
             builder.RegisterType<JSonRepository>().As<IDataRepository>();
             builder.RegisterType<AudioBookSourceFactory>();
-            builder.RegisterType<ManageSources>();
+            builder.RegisterType<ManageSources>().SingleInstance();
             builder.RegisterType<OperationsService>();
             builder.RegisterType<ControllersService>().SingleInstance();
 

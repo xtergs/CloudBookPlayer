@@ -92,8 +92,29 @@ namespace UWPAudioBookPlayer.Model
         {
             if (book.AccessToken == null || !StorageApplicationPermissions.FutureAccessList.ContainsItem(book.AccessToken))
                 return null;
-            var dir = await StorageApplicationPermissions.FutureAccessList.GetFolderAsync(book.AccessToken);
-            return await dir.GetFileAsync(fileName);
+            try
+            {
+                var dir = await StorageApplicationPermissions.FutureAccessList.GetFolderAsync(book.AccessToken);
+                return await dir.GetFileAsync(fileName);
+            }
+            catch (FileNotFoundException ex)
+            {
+                return null;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        public static bool IsOnlineBook(this AudioBookSource book)
+        {
+            return book is OnlineAudioBookSource;
+        }
+
+        public static bool IsCloudBook(this AudioBookSource book)
+        {
+            return book is AudioBookSourceCloud;
         }
     }
 

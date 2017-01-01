@@ -1,9 +1,11 @@
 ﻿<Page x:Class="UWPAudioBookPlayer.View.LibrivoxBooksOnlineView"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:behaviors="using:Microsoft.Toolkit.Uwp.UI.Animations.Behaviors"
       xmlns:controls="using:Microsoft.Toolkit.Uwp.UI.Controls"
       xmlns:converter="using:UWPAudioBookPlayer.Converter"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:interactivity="using:Microsoft.Xaml.Interactivity"
       xmlns:local="using:UWPAudioBookPlayer.View"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:modelView="using:UWPAudioBookPlayer.ModelView"
@@ -11,7 +13,166 @@
       x:Name="page"
       d:DataContext="{d:DesignInstance modelView:LibrivoxOnlineBooksViewModel}"
       mc:Ignorable="d">
+    <Page.Resources>
+        <ResourceDictionary>
+            <DataTemplate x:Key="bookItemTemplate">
+                <UserControl Loading="UserControl_Loading">
+                    <Grid Margin="5">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="50" />
+                            <ColumnDefinition Width="1*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <controls:ImageEx Grid.RowSpan="3"
+                                          IsCacheEnabled="True"
+                                          Source="{Binding Book.CoverLink}" />
+                        <TextBlock Grid.Column="1"
+                                   Margin="5,0,0,0"
+                                   Text="{Binding Book.BookName}"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Row="1"
+                                   Grid.Column="1"
+                                   Margin="5,0,0,0"
+                                   Text="{Binding Book.Author}"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Row="2"
+                                   Grid.Column="1"
+                                   Margin="5,0,0,0"
+                                   Text="{Binding Book.Genries}"
+                                   TextTrimming="CharacterEllipsis" />
+                        <AppBarToggleButton x:Name="additionalBar"
+                                            Grid.RowSpan="3"
+                                            Grid.Column="4"
+                                            Width="Auto"
+                                            Height="Auto"
+                                            MinWidth="0"
+                                            MinHeight="0"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Stretch"
+                                            VerticalContentAlignment="Center"
+                                            Icon="More"
+                                            IsChecked="{Binding IsExpanded,
+                                                                Mode=TwoWay,
+                                                                UpdateSourceTrigger=PropertyChanged}">
+                            <AppBarToggleButton.Projection>
+                                <PlaneProjection RotationY="90" />
+                            </AppBarToggleButton.Projection>
+                        </AppBarToggleButton>
+                        <StackPanel x:Name="rightButtons"
+                                    Grid.RowSpan="3"
+                                    Grid.Column="4"
+                                    Orientation="Horizontal">
 
+
+                            <AppBarButton Grid.RowSpan="3"
+                                          Grid.Column="2"
+                                          Command="{Binding DownlaodExternalCommand}"
+                                          CommandParameter="{Binding Book}"
+                                          Icon="Download"
+                                          IsEnabled="False"
+                                          Label="Download" />
+                            <AppBarButton Grid.RowSpan="3"
+                                          Grid.Column="3"
+                                          Command="{Binding PlayExternalCommand}"
+                                          CommandParameter="{Binding Book}"
+                                          Icon="Play"
+                                          IsEnabled="True"
+                                          Label="Play" />
+                            <AppBarButton Grid.RowSpan="3"
+                                          Grid.Column="4"
+                                          Command="{Binding AddToLiraryExternalCommand}"
+                                          CommandParameter="{Binding Book}"
+                                          Icon="Add"
+                                          Label="Add to library" />
+                        </StackPanel>
+
+                        <Grid x:Name="bottomGrid"
+                              Grid.Row="3"
+                              Grid.Column="0"
+                              Grid.ColumnSpan="6"
+                              HorizontalAlignment="Right"
+                              Visibility="{Binding CanBeExpanded,
+                                                   Mode=TwoWay,
+                                                   Converter={StaticResource BoolToVisibilityConverter}}">
+                            <Grid.Transitions>
+                                <TransitionCollection>
+                                    <EdgeUIThemeTransition Edge="Top" />
+                                </TransitionCollection>
+                            </Grid.Transitions>
+                            <StackPanel x:Name="bottomButtons"
+                                        Grid.Row="3"
+                                        Grid.Column="0"
+                                        Grid.ColumnSpan="6"
+                                        Orientation="Horizontal"
+                                        Visibility="{Binding IsExpanded,
+                                                             Mode=OneWay,
+                                                             UpdateSourceTrigger=PropertyChanged,
+                                                             Converter={StaticResource BoolToVisibilityConverter}}">
+                                <AppBarButton Grid.RowSpan="3"
+                                              Grid.Column="2"
+                                              Command="{Binding DownlaodExternalCommand}"
+                                              CommandParameter="{Binding Book}"
+                                              Icon="Download"
+                                              IsEnabled="False"
+                                              Label="Download" />
+                                <AppBarButton Grid.RowSpan="3"
+                                              Grid.Column="3"
+                                              Command="{Binding PlayExternalCommand}"
+                                              CommandParameter="{Binding Book}"
+                                              Icon="Play"
+                                              IsEnabled="True"
+                                              Label="Play" />
+                                <AppBarButton Grid.RowSpan="3"
+                                              Grid.Column="4"
+                                              Command="{Binding AddToLiraryExternalCommand}"
+                                              CommandParameter="{Binding Book}"
+                                              Icon="Add"
+                                              Label="Add to library" />
+                                <AppBarButton Grid.RowSpan="3"
+                                              Grid.Column="4"
+                                              Command="{Binding ShowBookInfoExternalCommand}"
+                                              CommandParameter="{Binding}"
+                                              Icon="MusicInfo"
+                                              Label="Details" />
+                            </StackPanel>
+                        </Grid>
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="ShowBookInfoStateGroup">
+                                <VisualState x:Name="CompactState">
+                                    <VisualState.StateTriggers>
+                                        <AdaptiveTrigger MinWindowWidth="0" />
+                                    </VisualState.StateTriggers>
+                                    <VisualState.Setters>
+                                        <Setter Target="bottomGrid.(UIElement.Visibility)" Value="Visible" />
+                                        <Setter Target="additionalBar.(UIElement.Visibility)" Value="Visible" />
+                                        <Setter Target="rightButtons.(UIElement.Visibility)" Value="Collapsed" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="FullState">
+                                    <VisualState.StateTriggers>
+                                        <AdaptiveTrigger MinWindowWidth="720" />
+                                    </VisualState.StateTriggers>
+                                    <VisualState.Setters>
+                                        <Setter Target="bottomGrid.(UIElement.Visibility)" Value="Collapsed" />
+                                        <Setter Target="additionalBar.(UIElement.Visibility)" Value="Collapsed" />
+                                        <Setter Target="rightButtons.(UIElement.Visibility)" Value="Visible" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </Grid>
+                </UserControl>
+            </DataTemplate>
+        </ResourceDictionary>
+    </Page.Resources>
     <Page.Transitions>
         <TransitionCollection>
             <NavigationThemeTransition>
@@ -31,164 +192,180 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <Button Margin="5"
-                HorizontalAlignment="Stretch"
-                Command="{Binding ShowAuthorsCommand}"
-                Content="Author" />
-        <Button Grid.Column="1"
-                Margin="5"
-                HorizontalAlignment="Stretch"
-                Command="{Binding ShowBooksByTitleCommand}"
-                Content="Title" />
-        <Button Grid.Column="2"
-                Margin="5"
-                HorizontalAlignment="Stretch"
-                Content="Genre"
-                IsEnabled="False" />
-        <ComboBox Grid.Column="3"
-                  Margin="5"
-                  HorizontalAlignment="Stretch"
-                  VerticalAlignment="Stretch"
-                  ItemsSource="{Binding Languges,
-                                        Mode=OneWay}"
-                  SelectedItem="{Binding SelectedLanguage,
-                                         Mode=TwoWay,
-                                         UpdateSourceTrigger=PropertyChanged}">
-            <ComboBox.ItemTemplate>
-                <DataTemplate>
-                    <StackPanel>
-                        <TextBlock Text="{Binding LanguageEnglish}" />
-                        <TextBlock FontSize="15" Text="{Binding LanguageLocal}" />
-                    </StackPanel>
-                </DataTemplate>
-            </ComboBox.ItemTemplate>
-        </ComboBox>
-        <ComboBox Grid.Row="1"
-                  Margin="5"
-                  HorizontalAlignment="Stretch"
-                  VerticalAlignment="Stretch"
-                  Header="Type"
-                  ItemsSource="{Binding ProjectTypes}"
-                  SelectedItem="{Binding SelectedProjectType,
-                                         Mode=TwoWay,
-                                         UpdateSourceTrigger=PropertyChanged}" />
-        <ComboBox Grid.Row="1"
-                  Grid.Column="1"
-                  Margin="5"
-                  HorizontalAlignment="Stretch"
-                  Header="Sort by"
-                  ItemsSource="{Binding SortOrders}"
-                  SelectedItem="{Binding SelectedSortOrder,
-                                         Mode=TwoWay,
-                                         UpdateSourceTrigger=PropertyChanged}" />
-        <ListView Grid.Row="2"
-                  Grid.ColumnSpan="4"
-                  IncrementalLoadingThreshold="10"
-                  ItemsSource="{Binding BookList}"
-                  SelectedItem="{Binding SelectedBook,
-                                         Mode=TwoWay,
-                                         UpdateSourceTrigger=PropertyChanged}"
-                  Visibility="{Binding IsShowBookList,
-                                       Converter={StaticResource BoolToVisibilityConverter}}">
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <Grid Margin="5">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="50" />
-                            <ColumnDefinition Width="1*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <controls:ImageEx Grid.RowSpan="3"
-                                          IsCacheEnabled="True"
-                                          Source="{Binding CoverLink}" />
-                        <TextBlock Grid.Column="1"
-                                   Margin="5,0,0,0"
-                                   Text="{Binding BookName}" />
-                        <TextBlock Grid.Row="1"
-                                   Grid.Column="1"
-                                   Margin="5,0,0,0"
-                                   Text="{Binding Author}" />
-                        <TextBlock Grid.Row="2"
-                                   Grid.Column="1"
-                                   Margin="5,0,0,0"
-                                   Text="{Binding Genries}" />
-                        <AppBarButton Grid.RowSpan="3"
-                                      Grid.Column="2"
-                                      Icon="Download"
-                                      IsEnabled="False"
-                                      Label="Download" />
-                        <AppBarButton Grid.RowSpan="3"
-                                      Grid.Column="3"
-                                      Command="{Binding ElementName=page,
-                                                        Path=DataContext.PlayBookCommand}"
-                                      CommandParameter="{Binding}"
-                                      Icon="Play"
-                                      IsEnabled="True"
-                                      Label="Play" />
-                        <AppBarButton Grid.RowSpan="3"
-                                      Grid.Column="4"
-                                      Command="{Binding ElementName=page,
-                                                        Path=DataContext.AddBookToLibraryCommand}"
-                                      CommandParameter="{Binding}"
-                                      Icon="Add"
-                                      Label="Add to library" />
-                    </Grid>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-            <ListView.ItemContainerStyle>
-                <Style TargetType="ListViewItem">
-                    <Setter Property="HorizontalAlignment" Value="Stretch" />
-                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                </Style>
-            </ListView.ItemContainerStyle>
-        </ListView>
-        <ListView Grid.Row="2"
-                  Grid.ColumnSpan="4"
-                  IncrementalLoadingThreshold="10"
-                  ItemsSource="{Binding AuthorList}"
-                  SelectedItem="{Binding SelectedAuthor,
-                                         Mode=TwoWay,
-                                         UpdateSourceTrigger=PropertyChanged}"
-                  Visibility="{Binding IsShowAuthorList,
-                                       Converter={StaticResource BoolToVisibilityConverter},
-                                       UpdateSourceTrigger=PropertyChanged,
-                                       Mode=OneWay}">
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <Grid Margin="5">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="1" Text="{Binding FullName}" />
-                    </Grid>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
-        <ProgressBar Grid.Row="3"
+        <Pivot Grid.RowSpan="4"
+               Grid.ColumnSpan="4"
+               SelectionChanged="Pivot_OnSelectionChanged">
+            <PivotItem x:Name="TitleItem" Header="Title">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <ComboBox Grid.Column="2"
+                              Margin="5"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              ItemsSource="{Binding Languges,
+                                                    Mode=OneWay}"
+                              SelectedItem="{Binding SelectedLanguage,
+                                                     Mode=TwoWay,
+                                                     UpdateSourceTrigger=PropertyChanged}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding LanguageEnglish}" />
+                                    <TextBlock FontSize="15" Text="{Binding LanguageLocal}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <ComboBox Margin="5"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              Header="Type"
+                              ItemsSource="{Binding ProjectTypes}"
+                              SelectedItem="{Binding SelectedProjectType,
+                                                     Mode=TwoWay,
+                                                     UpdateSourceTrigger=PropertyChanged}" />
+                    <ComboBox Grid.Column="1"
+                              Margin="5"
+                              HorizontalAlignment="Stretch"
+                              Header="Sort by"
+                              ItemsSource="{Binding SortOrders}"
+                              SelectedItem="{Binding SelectedSortOrder,
+                                                     Mode=TwoWay,
+                                                     UpdateSourceTrigger=PropertyChanged}" />
+                    <AppBarButton Grid.Column="3"
+                                  Margin="5"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Command="{Binding RerfreshDataCommand}"
+                                  Content="Refresh"
+                                  Icon="Refresh"
+                                  Label="Refresh" />
+                    <ListView Grid.Row="1"
+                              Grid.ColumnSpan="4"
+                              IncrementalLoadingThreshold="10"
+                              ItemTemplate="{StaticResource bookItemTemplate}"
+                              ItemsSource="{Binding BookList}"
+                              SelectedItem="{Binding SelectedBook,
+                                                     Mode=TwoWay,
+                                                     UpdateSourceTrigger=PropertyChanged}">
+
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                    </ListView>
+                </Grid>
+            </PivotItem>
+            <PivotItem x:Name="AuthorItem" Header="Author">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0"
+                               Grid.ColumnSpan="4"
+                               Margin="5"
+                               Visibility="{Binding SelectedAuthor,
+                                                    Mode=OneWay,
+                                                    Converter={StaticResource NullToVisibilityConverter}}">
+                        <Run FontSize="18" Text="Author: " />
+                        <Run FontSize="18" Text="{Binding SelectedAuthor.FullName}" />
+                        <LineBreak />
+                        <Run Foreground="DarkGray" Text="Complited books: " />
+                        <Run Foreground="DarkGray" Text="{Binding SelectedAuthor.ComplitedBooks}" />
+                    </TextBlock>
+                    <ListView Grid.Row="1"
+                              Grid.ColumnSpan="4"
+                              IncrementalLoadingThreshold="10"
+                              ItemsSource="{Binding AuthorList}"
+                              SelectedItem="{Binding SelectedAuthor,
+                                                     Mode=TwoWay,
+                                                     UpdateSourceTrigger=PropertyChanged}"
+                              Visibility="{Binding IsShowAuthorList,
+                                                   Converter={StaticResource BoolToVisibilityConverter},
+                                                   UpdateSourceTrigger=PropertyChanged,
+                                                   Mode=OneWay}">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="5">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding FullName}" />
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0">
+                                        <Run Text="Complited books: " />
+                                        <Run Text="{Binding ComplitedBooks}" />
+                                    </TextBlock>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <ListView Grid.Row="1"
+                              Grid.ColumnSpan="4"
+                              IncrementalLoadingThreshold="10"
+                              ItemTemplate="{StaticResource bookItemTemplate}"
+                              ItemsSource="{Binding AuthorBookList}"
+                              SelectedItem="{Binding AuthorSelectedBook,
+                                                     Mode=TwoWay,
+                                                     UpdateSourceTrigger=PropertyChanged}"
+                              Visibility="{Binding IsShowBookList,
+                                                   Converter={StaticResource BoolToVisibilityConverter}}">
+
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                    </ListView>
+                </Grid>
+            </PivotItem>
+        </Pivot>
+        <Button Grid.RowSpan="4"
+                Grid.ColumnSpan="4"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Command="{Binding RerfreshDataCommand}"
+                Content="Occured error, click to refresh"
+                Visibility="{Binding InicialErrorToDownload,
+                                     Mode=OneWay,
+                                     UpdateSourceTrigger=PropertyChanged,
+                                     Converter={StaticResource BoolToVisibilityConverter}}" />
+
+        <ProgressBar Grid.Row="4"
                      Grid.ColumnSpan="4"
                      IsIndeterminate="True"
                      Visibility="{Binding FetchingData,
                                           Mode=OneWay,
                                           UpdateSourceTrigger=PropertyChanged,
                                           Converter={StaticResource BoolToVisibilityConverter}}" />
-        <Grid Grid.RowSpan="4"
+        <Grid Grid.RowSpan="5"
               Grid.ColumnSpan="4"
               Background="White"
               Visibility="{Binding IsShowBookInfo,
@@ -201,50 +378,106 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition />
             </Grid.RowDefinitions>
-            <Image Grid.Column="1" Source="{Binding SelectedBook.link, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
-            <StackPanel DataContext="{Binding SelectedBook, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+            <controls:ImageEx Grid.RowSpan="10"
+                              Grid.ColumnSpan="10"
+                              IsCacheEnabled="True"
+                              Source="{Binding SelectedBook.Book.CoverLink,
+                                               Mode=OneWay,
+                                               UpdateSourceTrigger=PropertyChanged}"
+                              Stretch="Fill">
+                <interactivity:Interaction.Behaviors>
+                    <behaviors:Blur x:Name="BlurBehavior"
+                                    AutomaticallyStart="{x:Bind settings.IsBlurBackgroundImage}"
+                                    Delay="0"
+                                    Value="{x:Bind settings.ValueToBlurBackgroundImage}" />
+                </interactivity:Interaction.Behaviors>
+            </controls:ImageEx>
+            <Rectangle x:Name="backFrame"
+                       Grid.RowSpan="10"
+                       Grid.ColumnSpan="10"
+                       SizeChanged="BackFrame_OnSizeChanged" />
+            <controls:ImageEx Grid.Column="1"
+                              Margin="5"
+                              Source="{Binding SelectedBook.Book.CoverLink,
+                                               Mode=OneWay,
+                                               UpdateSourceTrigger=PropertyChanged}" />
+            <StackPanel Margin="5"
+                        Background="#00000000"
+                        DataContext="{Binding SelectedBook,
+                                              Mode=OneWay,
+                                              UpdateSourceTrigger=PropertyChanged}">
                 <TextBlock>
                     <TextBlock.Inlines>
-                        <Run Text="Title: " />
-                        <Run Text="{Binding BookName}" />
+                        <Run FontWeight="Bold" Text="Title: " />
+                        <Run Text="{Binding Book.BookName}" />
                     </TextBlock.Inlines>
                 </TextBlock>
                 <TextBlock>
                     <TextBlock.Inlines>
-                        <Run Text="Author: " />
-                        <Run Text="{Binding Author}" />
+                        <Run FontWeight="Bold" Text="Author: " />
+                        <Run Text="{Binding Book.Author}" />
                     </TextBlock.Inlines>
                 </TextBlock>
                 <TextBlock>
                     <TextBlock.Inlines>
-                        <Run Text="Genries: " />
-                        <Run Text="{Binding Genries}" />
+                        <Run FontWeight="Bold" Text="Genries: " />
+                        <Run Text="{Binding Book.Genries}" />
                     </TextBlock.Inlines>
                 </TextBlock>
                 <TextBlock>
                     <TextBlock.Inlines>
-                        <Run Text="Duration: " />
-                        <Run Text="{Binding Duration.TotalSeconds, Converter={StaticResource SecondsToTimeSpanConverter}}" />
+                        <Run FontWeight="Bold" Text="Duration: " />
+                        <Run Text="{Binding Book.Duration.TotalSeconds, Converter={StaticResource SecondsToTimeSpanConverter}}" />
                     </TextBlock.Inlines>
                 </TextBlock>
-                <TextBlock>
+                <TextBlock TextWrapping="WrapWholeWords">
                     <TextBlock.Inlines>
-                        <Run Text="Description: " />
-                        <Run Text="{Binding Description}" />
+                        <Run FontWeight="Bold" Text="Language: " />
+                        <Run Text="{Binding Book.Language, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
                     </TextBlock.Inlines>
                 </TextBlock>
-                <TextBlock>
+                <TextBlock x:Name="textBlock"
+                           TextWrapping="WrapWholeWords"
+                           Visibility="Collapsed">
                     <TextBlock.Inlines>
-                        <Run Text="Language: " />
-                        <Run Text="{Binding Language, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <Run FontWeight="Bold" Text="Description: " />
+                        <Run Text="{Binding Book.Description}" />
                     </TextBlock.Inlines>
                 </TextBlock>
+                <StackPanel Orientation="Horizontal">
+                    <Button Margin="5"
+                            Command="{Binding PlayExternalCommand}"
+                            CommandParameter="{Binding Book}"
+                            Content="Play" />
+                    <Button Margin="5"
+                            Command="{Binding AddToLiraryExternalCommand}"
+                            CommandParameter="{Binding Book}"
+                            Content="Add To Library" />
+                </StackPanel>
             </StackPanel>
             <ListView Grid.Row="1"
                       Grid.ColumnSpan="2"
-                      ItemsSource="{Binding SelectedBook.Files,
+                      Margin="0,5,0,0"
+                      Background="#00000000"
+                      ItemsSource="{Binding SelectedBook.Book.Files,
                                             Mode=OneWay,
                                             UpdateSourceTrigger=PropertyChanged}">
+                <ListView.Header>
+                    <StackPanel Orientation="Vertical">
+                        <TextBlock x:Name="textBlock1"
+                                   Margin="5,0"
+                                   IsTextSelectionEnabled="True"
+                                   TextWrapping="WrapWholeWords">
+                            <TextBlock.Inlines>
+                                <Run FontWeight="Bold" Text="Description: " />
+                                <Run Text="{Binding SelectedBook.Book.Description}" />
+                            </TextBlock.Inlines>
+                        </TextBlock>
+                        <TextBlock Margin="5"
+                                   FontWeight="Bold"
+                                   Text="Files: " />
+                    </StackPanel>
+                </ListView.Header>
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <StackPanel>
@@ -270,5 +503,24 @@
                           Grid.ColumnSpan="4"
                           IsActive="{Binding FetchingBook}" />
         </Grid>
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="ShowBookInfoStateGroup">
+                <VisualState x:Name="CompactState">
+                    <VisualState.Setters>
+                        <Setter Target="textBlock1.(UIElement.Visibility)" Value="Visible" />
+                        <Setter Target="textBlock.(UIElement.Visibility)" Value="Collapsed" />
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="FullState">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="720" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="textBlock1.(UIElement.Visibility)" Value="Collapsed" />
+                        <Setter Target="textBlock.(UIElement.Visibility)" Value="Visible" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
     </Grid>
 </Page>

@@ -11,6 +11,7 @@ namespace UWPAudioBookPlayer.DAL.Model
 {
     class OnlineController : ICloudController
     {
+        public bool IsFailedToAuthenticate { get; } = false;
         public bool IsCloud => false;
         public string CloudStamp { get; set; }
         public CloudType Type => CloudType.Online;
@@ -28,6 +29,8 @@ namespace UWPAudioBookPlayer.DAL.Model
             CloudStamp = cloudStamp;
         }
 
+        public AccountInfo Account { get; } = new AccountInfo() {IsAccountInfoAvaliable = false, IsUserPhotoUrlAvaliable = false};
+
         public async Task Auth()
         {
         }
@@ -39,7 +42,7 @@ namespace UWPAudioBookPlayer.DAL.Model
 
         public Task<Stream> DownloadBookFile(string BookName, string fileName)
         {
-            throw new NotImplementedException();
+            return null;
         }
 
         public Task<AudioBookSourceCloud> GetAudioBookInfo(string bookName)
@@ -88,9 +91,9 @@ namespace UWPAudioBookPlayer.DAL.Model
             throw new NotImplementedException();
         }
 
-        public async Task UploadBookMetadata(AudioBookSource source, string revision = null)
+        public async Task<bool> UploadBookMetadata(AudioBookSource source, string revision = null)
         {
-            
+            return false;
         }
 
         public bool CanHandleSource(AudioBookSourceCloud source)

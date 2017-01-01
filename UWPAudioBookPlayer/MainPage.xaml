@@ -1020,7 +1020,7 @@
                                                     VerticalAlignment="Stretch"
                                                     Background="Silver"
                                                     ItemContainerStyle="{StaticResource FullListViewItemContainer}"
-                                                    ItemsSource="{Binding Folders,
+                                                    ItemsSource="{Binding Sources.Folders,
                                                                           Mode=OneWay,
                                                                           UpdateSourceTrigger=PropertyChanged}"
                                                     RenderTransformOrigin="0.5,0.5"

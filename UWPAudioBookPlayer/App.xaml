@@ -17,6 +17,8 @@
         <converter:IntToVisibilityConverter x:Key="IntToVisibilityConverter" />
         <converter:IntToNoVisibilityConverter x:Key="IntToNoVisibilityConverter" />
         <converter:IntToBoolConverter x:Key="IntToBoolConverter" />
+        <converter:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+        <converter:VisibilityToBoolConverter x:Key="VisibilityToBoolConverter" />
 
         <Style x:Name="FullListViewItemContainer" TargetType="ListViewItem">
             <Setter Property="HorizontalAlignment" Value="Stretch" />

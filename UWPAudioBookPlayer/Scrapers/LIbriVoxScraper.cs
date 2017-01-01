@@ -224,8 +224,8 @@ namespace UWPAudioBookPlayer.Scrapers
             var book = new OnlineBook()
             {
                 BookName = document.DocumentNode.SelectSingleNode(@"/html/body/div/div[2]/div/h1").InnerText,
-                Language = document.DocumentNode.SelectSingleNode(@"/html/body/div/div[2]/div/p[3]").InnerText,
-                Genries = document.DocumentNode.SelectSingleNode(@"/html/body/div/div[2]/div/p[2]").InnerText,
+                Language = document.DocumentNode.SelectSingleNode(@"/html/body/div/div[2]/div/p[3]").InnerText.Replace("Language: ", ""),
+                Genries = document.DocumentNode.SelectSingleNode(@"/html/body/div/div[2]/div/p[2]").InnerText.Replace("Genre(s): ", ""),
                 CoverLink =
                     document.DocumentNode.SelectSingleNode(@"/html/body/div/div[2]/div/div[1]/img").Attributes["src"]
                         .Value,
@@ -282,6 +282,9 @@ namespace UWPAudioBookPlayer.Scrapers
             }
         }
 
+
+
+
         public BooksList ParseListBookByTitle(Stream data)
         {
             byte[] buffer = new byte[1024 * 32];
@@ -304,7 +307,8 @@ namespace UWPAudioBookPlayer.Scrapers
                     List<OnlineBook> books = new List<OnlineBook>(25);
                     foreach (var node in document.DocumentNode.ChildNodes.Where(xx => xx.Name == "li"))
                     {
-                        books.Add(ParseShortBookDescriptionFromTag(node));
+                        var tempViewModel = ParseShortBookDescriptionFromTag(node);
+                        books.Add(tempViewModel);
                     }
                     booksList.Books = books;
                 }

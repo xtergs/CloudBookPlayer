@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Windows.ApplicationModel.Contacts;
 using Windows.Foundation;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
@@ -50,6 +51,12 @@ namespace UWPAudioBookPlayer.ModelView
         public int CurrentPage = 0;
         public int MaxPageCount = 1;
 
+        public void ResetPages()
+        {
+            CurrentPage = 0;
+            MaxPageCount = 1;
+        }
+
         public delegate Task<KeyValuePair< List<T>, int>> LoadMoreData(int page);
 
         private Task<LoadMoreItemsResult> LoadDataAsync()
@@ -59,6 +66,11 @@ namespace UWPAudioBookPlayer.ModelView
             return Task.Run<LoadMoreItemsResult>(async () =>
             {
                 var books = await loadData(page);
+                if (books.Key == null)
+                {
+                    Interlocked.Decrement(ref CurrentPage);
+                    return new LoadMoreItemsResult();
+                }
                 await dispatcher.RunAsync(
                     CoreDispatcherPriority.Normal,
                     () =>
@@ -85,34 +97,67 @@ namespace UWPAudioBookPlayer.ModelView
         Authors, AuthorBooks, Titles, Genries, Book
     }
 
+
     [ImplementPropertyChanged]
     class LibrivoxOnlineBooksViewModel : INotifyPropertyChanged
     {
         private LIbriVoxScraper scraper;
         private Stack<CurrentState> state = new Stack<CurrentState>(3);
-        private OnlineBook _selectedBook;
+        private OnlineBookViewModel _selectedBook;
         private OnlineAuthor _selectedAuthor;
 
         private Windows.UI.Core.CoreDispatcher dispatcher;
         
 
         private Dictionary<string, OnlineBook> chachedFullBooks = new Dictionary<string, OnlineBook>(10);
+        private OnlineBookViewModel _authorSelectedBook;
 
         public LibrivoxOnlineBooksViewModel(LIbriVoxScraper scraper)
         {
             if (scraper == null)
                 throw new ArgumentNullException(nameof(scraper));
             this.scraper = scraper;
+            ShowBookForcedCommand = new RelayCommand<OnlineBookViewModel>(ShowBookForced);
             dispatcher = Window.Current.Dispatcher;
             AddBookToLibraryCommand = new RelayCommand<OnlineBook>(AddBookToLibrary);
             PlayBookCommand = new RelayCommand<OnlineBook>(PlayBook);
 
+            RerfreshDataCommand = new RelayCommand(RerfreshData);
 
             ShowBooksByTitleCommand = new RelayCommand(ShowBooksByTitle);
             ShowAuthorsCommand = new RelayCommand(ShowAuthors);
-            ShowBookCommand = new RelayCommand<OnlineBook>(ShowBook);
+            ShowBookCommand = new RelayCommand<OnlineBookViewModel>(ShowBook);
             ShowAuthorsBooksCommand = new RelayCommand<OnlineAuthor>(ShowAuthorBooks);
 
+        }
+
+        private async void ShowBookForced(OnlineBookViewModel obj)
+        {
+            if (FetchingBook)
+                return;
+            try
+            {
+                FetchingBook = true;
+                IsShowBookList = false;
+                IsShowAuthorList = false;
+                IsShowBookInfo = true;
+                state.Push(CurrentState.Book);
+                var fullBook = await GetBook(obj.Book);
+                _selectedBook = GetOnlineBookViewModel(fullBook);
+                ShowBook(_selectedBook);
+            }
+            finally
+            {
+                FetchingBook = false;
+            }
+        }
+
+        private void RerfreshData()
+        {
+            BookList?.Clear();
+            BookList?.ResetPages();
+            AuthorList?.Clear();
+            AuthorList?.ResetPages();
         }
 
 
@@ -121,8 +166,30 @@ namespace UWPAudioBookPlayer.ModelView
 
         public bool BackIfCan()
         {
+            if (state.Count <= 0)
+                return false;
+            if (state.Peek() == CurrentState.Book)
+            {
+                state.Pop();
+                IsShowBookInfo = false;
+                return true;
+            }
+            if (state.Peek() == CurrentState.AuthorBooks)
+            {
+                state.Pop();
+                IsShowBookInfo = false;
+                IsShowAuthorList = true;
+                IsShowBookList = false;
+                SelectedAuthor = null;
+                return true;
+            }
             if (state.Count <= 1)
                 return false;
+            if (SelectedAuthor != null)
+            {
+                SelectedAuthor = null;
+                return true;
+            }
             state.Pop();
             ChangeVisibility();
             return true;
@@ -132,7 +199,7 @@ namespace UWPAudioBookPlayer.ModelView
         {
             state.Push(CurrentState.AuthorBooks);
             SelectedAuthor = obj;
-            BookList = new IncrementalLoadingCollection<OnlineBook>(LoadMoreBooksByAuthor);
+            AuthorBookList = new IncrementalLoadingCollection<OnlineBookViewModel>(LoadMoreBooksByAuthor);
                 IsShowBookList = true;
             IsShowAuthorList = false;
             IsShowBookInfo = false;
@@ -154,11 +221,11 @@ namespace UWPAudioBookPlayer.ModelView
                 return null;
             var fullBook = scraper.ParseBookPage(stream);
             fullBook.link = obj.link;
-            chachedFullBooks.Add(obj.link, fullBook);
+            chachedFullBooks[obj.link] =  fullBook;
             return fullBook;
         }
 
-        private async void ShowBook(OnlineBook obj)
+        private async void ShowBook(OnlineBookViewModel obj)
         {
             if (FetchingBook)
                 return;
@@ -169,8 +236,8 @@ namespace UWPAudioBookPlayer.ModelView
                 IsShowAuthorList = false;
                 IsShowBookInfo = true;
                 state.Push(CurrentState.Book);
-                var fullBook = GetBook(obj);
-                SelectedBook = await fullBook;
+                var fullBook = await GetBook(obj.Book);
+                SelectedBook = GetOnlineBookViewModel(fullBook);
             }
             finally
             {
@@ -178,37 +245,67 @@ namespace UWPAudioBookPlayer.ModelView
             }
         }
 
-        public async Task LoadData()
+        private Task LoadingDataTask { get; set; }
+        public bool LoadingData { get; set; }
+
+        public Task LoadData()
+        {
+            if (LoadingData)
+                return LoadingDataTask;
+            LoadingDataTask =  LoadDataAsync();
+            LoadingData = true;
+            try
+            {
+                return LoadingDataTask;
+            }
+            finally
+            {
+                LoadingData = false;
+            }
+
+        }
+
+        public bool InicialErrorToDownload { get; set; }
+        public bool ConnectionError { get; set; }
+
+        public async Task LoadDataAsync()
         {
             Stream stream = null;
-            using (var client = new HttpClient())
+            try
             {
-                client.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest");
-                stream  = (await client.GetInputStreamAsync(new Uri(scraper.GetLinkToLanguages()))).AsStreamForRead();
+                using (var client = new HttpClient())
+                {
+                    client.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest");
+                    stream = (await client.GetInputStreamAsync(new Uri(scraper.GetLinkToLanguages()))).AsStreamForRead();
+                }
+            }
+            catch (Exception ex)
+            {
+                InicialErrorToDownload = true;
+                return;
             }
             if (stream == null)
+            {
+                InicialErrorToDownload = true;
                 return;
+            }
             Languges = scraper.GetLanguages(stream);
             SelectedLanguage = Languges.First();
+            InicialErrorToDownload = false;
         }
 
         private async void ShowBooksByTitle()
         {
-            state.Clear();
-            state.Push(CurrentState.Titles);
+            await LoadData();
             if (BookList == null)
             {
-                BookList = new IncrementalLoadingCollection<OnlineBook>(LoadMoreByTitle);
+                BookList = new IncrementalLoadingCollection<OnlineBookViewModel>(LoadMoreByTitle);
             }
-            IsShowAuthorList = false;
-            IsShowBookList = true;
             IsShowBookInfo = false;
         }
 
         private async void ShowAuthors()
         {
-            state.Clear();
-            state.Push(CurrentState.Authors);
             if (AuthorList == null)
             {
                 AuthorList = new IncrementalLoadingCollection<OnlineAuthor>(LoadMoreByAuthor);
@@ -218,8 +315,10 @@ namespace UWPAudioBookPlayer.ModelView
             IsShowBookInfo = false;
         }
 
-        private async Task<KeyValuePair<List<OnlineBook>, int>> LoadMoreByTitle(int page)
+        private async Task<KeyValuePair<List<OnlineBookViewModel>, int>> LoadMoreByTitle(int page)
         {
+            if (SelectedLanguage == null)
+                return new KeyValuePair<List<OnlineBookViewModel>, int>(new List<OnlineBookViewModel>(),0 );
             FetchingData = true;
             try
             {
@@ -230,8 +329,13 @@ namespace UWPAudioBookPlayer.ModelView
                     client.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest");
                     var stream = (await client.GetInputStreamAsync(new Uri(link))).AsStreamForRead();
                     var data = scraper.ParseListBookByTitle(stream);
-                    return new KeyValuePair<List<OnlineBook>, int>(data.Books, data.MaxPageCount);
+                    var tempViewMOdesl = GetOnlineBooksViewModel(data.Books);
+                    return new KeyValuePair<List<OnlineBookViewModel>, int>(tempViewMOdesl, data.MaxPageCount);
                 }
+            }
+            catch (Exception ex)
+            {
+                return new KeyValuePair<List<OnlineBookViewModel>, int>(null, 0);
             }
             finally
             {
@@ -246,13 +350,20 @@ namespace UWPAudioBookPlayer.ModelView
             FetchingData = true;
             try
             {
-                var link = scraper.GetLinkToAuthors(page, SelectedProjectType.Type, SelectedSortOrder.Order);
-                using (var client = new HttpClient())
+                try
                 {
-                    client.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest");
-                    var stream = (await client.GetInputStreamAsync(new Uri(link))).AsStreamForRead();
-                    var data = scraper.ParseListAuthor(stream);
-                    return new KeyValuePair<List<OnlineAuthor>, int>(data, data.MaxPageCount);
+                    var link = scraper.GetLinkToAuthors(page, SelectedProjectType.Type, SelectedSortOrder.Order);
+                    using (var client = new HttpClient())
+                    {
+                        client.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest");
+                        var stream = (await client.GetInputStreamAsync(new Uri(link))).AsStreamForRead();
+                        var data = scraper.ParseListAuthor(stream);
+                        return new KeyValuePair<List<OnlineAuthor>, int>(data, data.MaxPageCount);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return new KeyValuePair<List<OnlineAuthor>, int>(null, 0);
                 }
             }
             finally
@@ -261,7 +372,23 @@ namespace UWPAudioBookPlayer.ModelView
             }
         }
 
-        private async Task<KeyValuePair<List<OnlineBook>, int>> LoadMoreBooksByAuthor(int page)
+        private OnlineBookViewModel GetOnlineBookViewModel(OnlineBook book)
+        {
+                    return new OnlineBookViewModel(book)
+                    {
+                        AddToLiraryExternalCommand = AddBookToLibraryCommand,
+                        PlayExternalCommand = PlayBookCommand,
+                        ShowBookInfoExternalCommand = ShowBookForcedCommand
+                    };
+    }
+
+        private List<OnlineBookViewModel> GetOnlineBooksViewModel(IList<OnlineBook> books)
+        {
+            if (books == null) return null;
+            return books.Select(x => GetOnlineBookViewModel(x)).ToList();
+        } 
+
+        private async Task<KeyValuePair<List<OnlineBookViewModel>, int>> LoadMoreBooksByAuthor(int page)
         {
             FetchingData = true;
             try
@@ -273,7 +400,8 @@ namespace UWPAudioBookPlayer.ModelView
                     client.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest");
                     var stream = (await client.GetInputStreamAsync(new Uri(link))).AsStreamForRead();
                     var data = scraper.ParseListBookByTitle(stream);
-                    return new KeyValuePair<List<OnlineBook>, int>(data.Books, data.MaxPageCount);
+                    var tempViewModesl = GetOnlineBooksViewModel(data.Books);
+                    return new KeyValuePair<List<OnlineBookViewModel>, int>(tempViewModesl, data.MaxPageCount);
                 }
             }
             finally
@@ -287,23 +415,71 @@ namespace UWPAudioBookPlayer.ModelView
         public int MaxPage { get; set; } = 1; 
 
 
-        public IncrementalLoadingCollection<OnlineBook> BookList { get; private set; }
+        public IncrementalLoadingCollection<OnlineBookViewModel> BookList { get; private set; }
+
+        public IncrementalLoadingCollection<OnlineBookViewModel> AuthorBookList { get; private set; }
         public IncrementalLoadingCollection<OnlineAuthor> AuthorList { get; private set; }
 
-        public OnlineBook SelectedBook
+
+        public OnlineBookViewModel AuthorSelectedBook
+        {
+            get { return _authorSelectedBook; }
+            set
+            {
+                try
+                {
+                    if (_authorSelectedBook != null)
+                        _authorSelectedBook.IsExpanded = false;
+                    if (value != null && value.CanBeExpanded)
+                    {
+                        _authorSelectedBook = value;
+                        value.IsExpanded = !value.IsExpanded;
+                        return;
+                    }
+                    if (_authorSelectedBook?.Book?.link == value?.Book?.link)
+                    {
+                        _authorSelectedBook = value;
+                        return;
+                    }
+                    _authorSelectedBook = value;
+                    if (value?.Book == null)
+                    {
+                        if (!state.Any())
+                            return;
+                        var st = state.Pop();
+                    }
+                    else
+                        ShowBook(value);
+                }
+                finally
+                {
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public OnlineBookViewModel SelectedBook
         {
             get { return _selectedBook; }
             set
             {
                 try
                 {
-                    if (_selectedBook?.link == value?.link)
+                    if (_selectedBook != null)
+                        _selectedBook.IsExpanded = false;
+                    if (value != null && value.CanBeExpanded )
+                    {
+                        _selectedBook = value;
+                        value.IsExpanded = !value.IsExpanded;
+                        return;
+                    }
+                    if (_selectedBook?.Book?.link == value?.Book?.link)
                     {
                         _selectedBook = value;
                         return;
                     }
                     _selectedBook = value;
-                    if (value == null)
+                    if (value.Book == null)
                     {
                         if (!state.Any())
                             return;
@@ -329,8 +505,7 @@ namespace UWPAudioBookPlayer.ModelView
                 _selectedAuthor = value;
                 if (value == null)
                 {
-                    state.Pop();
-                    BookList = null;
+                    
                 }
                 else
                     ShowAuthorBooks(value);
@@ -378,10 +553,12 @@ namespace UWPAudioBookPlayer.ModelView
         public bool IsShowBookInfo { get; set; } = false;
 
 
+        public RelayCommand RerfreshDataCommand { get; private set; }
         public RelayCommand ShowBooksByTitleCommand { get; private set; }
         public RelayCommand ShowAuthorsCommand { get; private set; }
         public RelayCommand<OnlineAuthor> ShowAuthorsBooksCommand { get; private set; }
-        public RelayCommand<OnlineBook> ShowBookCommand { get; private set; }
+        public RelayCommand<OnlineBookViewModel> ShowBookCommand { get; }
+        public RelayCommand<OnlineBookViewModel> ShowBookForcedCommand { get; }
 
 
         public RelayCommand<OnlineBook> AddBookToLibraryCommand { get; }

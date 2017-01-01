@@ -19,6 +19,7 @@ namespace UWPAudioBookPlayer.DAL.Model
         static class OneDriveErrors
         {
             public const string ItemNotFound = "itemNotFound";
+            public const string GeneralException = "generalException";
         }
         public bool IsCloud => true;
         public string CloudStamp { get; private set; }
@@ -34,7 +35,7 @@ namespace UWPAudioBookPlayer.DAL.Model
         public CloudType Type => CloudType.OneDrive;
         public bool IsUseExternalBrowser => false;
         public string BaseFolder { get; set; } = @"/AudioBooks";
-        public bool IsAutorized => !string.IsNullOrWhiteSpace(Token);
+        public bool IsAutorized => !string.IsNullOrWhiteSpace(Token) && !IsFailedToAuthenticate;
         public string Token { get; set; }
         public event EventHandler CloseAuthPage;
         public event EventHandler<Tuple<Uri, Action<Uri>>> NavigateToAuthPage;
@@ -43,6 +44,12 @@ namespace UWPAudioBookPlayer.DAL.Model
         {
             
         }
+
+        public AccountInfo Account { get; } = new AccountInfo()
+        {
+            IsAccountInfoAvaliable = false,
+            IsUserPhotoUrlAvaliable = false
+        };
 
         public async Task Auth()
         {
@@ -56,11 +63,11 @@ namespace UWPAudioBookPlayer.DAL.Model
                 var session = (((MsaAuthenticationProvider) client.AuthenticationProvider).CurrentAccountSession);
                 Token = session.RefreshToken;
                 CloudStamp = session.UserId;
-                OnCloseAuthPage();
+                IsFailedToAuthenticate = false;
             }
             catch (Exception e)
             {
-                
+                IsFailedToAuthenticate = true;
             }
         }
 
@@ -72,7 +79,7 @@ namespace UWPAudioBookPlayer.DAL.Model
             }
             catch (ServiceException e)
             {
-                if (e.Error.Code == OneDriveErrors.ItemNotFound)
+                if (e.Error.Code == OneDriveErrors.ItemNotFound || e.Error.Code == OneDriveErrors.GeneralException)
                     return;
                 throw;
             }
@@ -86,7 +93,7 @@ namespace UWPAudioBookPlayer.DAL.Model
             }
             catch (ServiceException e)
             {
-                if (e.Error.Code == OneDriveErrors.ItemNotFound)
+                if (e.Error.Code == OneDriveErrors.ItemNotFound || e.Error.Code == OneDriveErrors.GeneralException)
                     return null;
                 throw;
             }
@@ -128,7 +135,7 @@ namespace UWPAudioBookPlayer.DAL.Model
             }
             catch (ServiceException e)
             {
-                if (e.Error.Code == OneDriveErrors.ItemNotFound)
+                if (e.Error.Code == OneDriveErrors.ItemNotFound || e.Error.Code == OneDriveErrors.GeneralException)
                     return null;
                 throw;
             }
@@ -139,24 +146,35 @@ namespace UWPAudioBookPlayer.DAL.Model
             {
                 if (filesEntry.File == null)
                     continue;
-                if (filesEntry.Name == mediaInfoFileName)
+                try
                 {
-                    using (
-                var stream =
-                (await
-                    client.Drive.Root.ItemWithPath( bookFolder + filesEntry.Name ).Content
-                        .Request()
-                        .GetAsync()))
+                    if (filesEntry.Name == mediaInfoFileName)
                     {
-                        stream.Position = 0;
-                        metaData= StreamToSource(stream);
-                    }
-                    if (metaData == null)
+                        using (
+                            var stream =
+                                (await
+                                    client.Drive.Root.ItemWithPath(bookFolder + filesEntry.Name).Content
+                                        .Request()
+                                        .GetAsync()))
+                        {
+                            stream.Position = 0;
+                            metaData = StreamToSource(stream);
+                        }
+                        if (metaData == null)
+                            continue;
+                        metaData.CloudStamp = CloudStamp;
+                        metaData.Type = CloudType.OneDrive;
+                        //metaData.Cover = null;
                         continue;
-                    metaData.CloudStamp = CloudStamp;
-                    metaData.Type = CloudType.OneDrive;
-                    //metaData.Cover = null;
-                    continue;
+                    }
+                }
+                catch (ServiceException e)
+                {
+                    if (e.Error.Code == OneDriveErrors.GeneralException)
+                    {
+                        metaData = null;
+                        continue;
+                    }
                 }
                 if (this.IsImage(filesEntry.Name))
                 {
@@ -213,7 +231,17 @@ namespace UWPAudioBookPlayer.DAL.Model
             if (!IsAutorized)
                 return new List<AudioBookSourceCloud>();
             var result = new List<AudioBookSourceCloud>();
-            var folders = await client.Drive.Root.ItemWithPath(BaseFolder).Children.Request().GetAsync();
+            IItemChildrenCollectionPage folders;
+            try
+            {
+                folders = await client.Drive.Root.ItemWithPath(BaseFolder).Children.Request().GetAsync();
+            }
+            catch (ServiceException ex)
+            {
+                if (ex.Error.Code == OneDriveErrors.ItemNotFound || ex.Error.Code == OneDriveErrors.GeneralException)
+                    return new List<AudioBookSourceCloud>(0);
+                throw;
+            }
             var tasts = new List<Task<AudioBookSourceCloud>>(folders.Count);
 
             tasts.AddRange(folders.Select(folder => GetAudioBookInfo(folder.Name)));
@@ -244,7 +272,7 @@ namespace UWPAudioBookPlayer.DAL.Model
             }
             catch (ServiceException e)
             {
-                if (e.Error.Code == OneDriveErrors.ItemNotFound)
+                if (e.Error.Code == OneDriveErrors.ItemNotFound || e.Error.Code == OneDriveErrors.GeneralException)
                     return null;
                 throw;
             }
@@ -264,7 +292,7 @@ namespace UWPAudioBookPlayer.DAL.Model
             }
             catch (ServiceException e)
             {
-                if (e.Error.Code == OneDriveErrors.ItemNotFound)
+                if (e.Error.Code == OneDriveErrors.ItemNotFound || e.Error.Code == OneDriveErrors.GeneralException)
                     return null;
                 throw;
             }
@@ -295,9 +323,18 @@ namespace UWPAudioBookPlayer.DAL.Model
             var _msaAuthenticationProvider = new MsaAuthenticationProvider(ClientId, AppResponseUrl, scopes);
             client = new OneDriveClient(oneDriveConsumerBaseUrl, _msaAuthenticationProvider);
             _msaAuthenticationProvider.CurrentAccountSession = session;
-            await _msaAuthenticationProvider.AuthenticateUserAsync();
-            CloudStamp = _msaAuthenticationProvider.CurrentAccountSession.UserId;
+            try
+            {
+                await _msaAuthenticationProvider.AuthenticateUserAsync();
+                CloudStamp = _msaAuthenticationProvider.CurrentAccountSession.UserId;
+            }
+            catch (Exception ex)
+            {
+                IsFailedToAuthenticate = true;
+            }
         }
+
+        public bool IsFailedToAuthenticate { get; private set; } = false;
 
         public Task Uploadbook(string BookName, string fileName, Stream stream)
         {
@@ -306,25 +343,47 @@ namespace UWPAudioBookPlayer.DAL.Model
 
         public Task Uploadfile(AudioBookSourceWithClouds book, string fileName, Stream stream, string subPath = "")
         {
-            if (!string.IsNullOrWhiteSpace(subPath) && !subPath.StartsWith("/"))
-                subPath = "/" + subPath;
-            return client.Drive.Root.ItemWithPath(BaseFolder + "/" + book.Folder + subPath + "/" + fileName).Content.Request().PutAsync<Item>(stream);
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(subPath) && !subPath.StartsWith("/"))
+                    subPath = "/" + subPath;
+                return
+                    client.Drive.Root.ItemWithPath(BaseFolder + "/" + book.Folder + subPath + "/" + fileName)
+                        .Content.Request()
+                        .PutAsync<Item>(stream);
+            }
+            catch (ServiceException ex)
+            {
+                return Task.FromResult(false);
+            }
         }
 
-        public async Task UploadBookMetadata(AudioBookSource source, string revision = null)
+        public async Task<bool> UploadBookMetadata(AudioBookSource source, string revision = null)
         {
             if (!IsAutorized)
-                return;
+                return false;
 
            
             var str = JsonConvert.SerializeObject(source);
             var byted = Encoding.UTF8.GetBytes(str);
             using (var stream = new MemoryStream(byted, false))
             {
-                stream.Position = 0;
-               var data = await client.Drive.Root.ItemWithPath(BaseFolder + "/" + source.Folder + "/" + mediaInfoFileName).Content.Request().PutAsync<Item>(stream);
+                try
+                {
+                    stream.Position = 0;
+                    var data =
+                        await
+                            client.Drive.Root.ItemWithPath(BaseFolder + "/" + source.Folder + "/" + mediaInfoFileName)
+                                .Content.Request()
+                                .PutAsync<Item>(stream);
+                }
+                catch (Exception ex)
+                {
+                    return false;
+                }
 
             }
+            return true;
         }
 
         public bool CanHandleSource(AudioBookSourceCloud source)

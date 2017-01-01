@@ -12,12 +12,14 @@ namespace UWPAudioBookPlayer.DAL
 {
     public class JSonRepository : IDataRepository
     {
-        public string LocalFileName { get; set; } = "audioBooksStore.json_v1";
-        public string RoamingFileName { get; set; } = "clouds.json_v1";
+        public string LocalFileName { get; set; } = "general.json_v1";
+        public string RoamingFileName { get; set; } = "general.json_v1";
         private bool isBusy = false;
 
-        public async Task Save<T>(StorageFolder folder, string fileName, T data)
+        private async Task Save<T>(StorageFolder folder, string fileName, T data)
         {
+            if (fileName == null)
+                return;
             var file =
                     await
                         folder.CreateFileAsync(fileName,
@@ -25,27 +27,6 @@ namespace UWPAudioBookPlayer.DAL
             string serialized = JsonConvert.SerializeObject(data);
             await FileIO.WriteTextAsync(file, serialized);
         }
-
-        //public async Task SaveClouds(CloudService[] clouds)
-        //{
-        //    var file =
-        //            await
-        //                ApplicationData.Current.RoamingFolder.CreateFileAsync(RoamingFileName,
-        //                    CreationCollisionOption.ReplaceExisting);
-        //    string serialized = JsonConvert.SerializeObject(clouds);
-        //    await FileIO.WriteTextAsync(file, serialized);
-        //}
-
-        //public async Task SaveLocalData(SaveModel books)
-        //{
-        //    books.CloudServices = null;
-        //    var file =
-        //            await
-        //                ApplicationData.Current.LocalFolder.CreateFileAsync(LocalFileName,
-        //                    CreationCollisionOption.ReplaceExisting);
-        //    string serialized = JsonConvert.SerializeObject(books);
-        //    await FileIO.WriteTextAsync(file, serialized);
-        //}
 
         public async Task Save(SaveModel books)
         {
@@ -99,28 +80,10 @@ namespace UWPAudioBookPlayer.DAL
         }
 
 
-        //public async Task<CloudService[]> LoadClouds()
-        //{
-        //    try
-        //    {
-        //        var file = await ApplicationData.Current.RoamingFolder.GetFileAsync(RoamingFileName);
-        //        string json = await FileIO.ReadTextAsync(file);
-        //        var data = JsonConvert.DeserializeObject<CloudService[]>(json);
-        //        return data ?? new CloudService[0];
-        //    }
-        //    catch (JsonSerializationException e)
-        //    {
-        //        //version of file is different
-        //        return new SaveModel();
-        //    }
-        //    catch (FileNotFoundException e)
-        //    {
-        //        return new SaveModel();
-        //    }
-        //}
-
         public async Task<T> Load<T>(StorageFolder folder,string fileName)
         {
+            if (fileName == null)
+                return default(T);
             try
             {
                 var file = await folder.GetFileAsync(fileName);

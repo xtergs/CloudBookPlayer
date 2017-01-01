@@ -12,6 +12,7 @@ using UWPAudioBookPlayer.Annotations;
 using UWPAudioBookPlayer.DAL.Model;
 using UWPAudioBookPlayer.Service;
 using System.Linq;
+using UWPAudioBookPlayer.Helper;
 
 namespace UWPAudioBookPlayer.ModelView
 {
@@ -19,19 +20,22 @@ namespace UWPAudioBookPlayer.ModelView
     public class SettingsModelView : ISettingsService, INotifyPropertyChanged
     {
         private IApplicationSettingsHelper helper;
+        private readonly INotification _notification;
         private MainControlViewModel mainViewModel;
         private readonly ControllersService _controlersService;
 
-        public SettingsModelView(IApplicationSettingsHelper helper, MainControlViewModel mainViewModel, ControllersService controlersService)
+        public SettingsModelView(IApplicationSettingsHelper helper, INotification notification, MainControlViewModel mainViewModel, ControllersService controlersService)
         {
             if (helper == null)
                 throw new ArgumentNullException(nameof(helper));
             this.helper = helper;
+            _notification = notification;
             if (mainViewModel == null)
                 throw new ArgumentNullException(nameof(mainViewModel));
             this.mainViewModel = mainViewModel;
             _controlersService = controlersService;
-           // this.mainViewModel.PropertyChanged += MainViewModel_PropertyChanged;
+            RefreshCloudControllerCommand = new RelayCommand<ICloudController>(RefreshCloudController);
+            // this.mainViewModel.PropertyChanged += MainViewModel_PropertyChanged;
 
             RemoveCloudController = new RelayCommand<ICloudController>((controller) =>
             {
@@ -41,6 +45,15 @@ namespace UWPAudioBookPlayer.ModelView
 //                OnPropertyChanged(nameof(Controllers));
 //                OnPropertyChanged(nameof(ControllersCount));
             });
+        }
+
+        private async void RefreshCloudController(ICloudController obj)
+        {
+            await obj.Auth();
+            if (obj.IsFailedToAuthenticate)
+            {
+                await _notification.ShowMessage("Failed", "Account hasn't been authorized");
+            }
         }
 
         private void MainViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -206,6 +219,7 @@ namespace UWPAudioBookPlayer.ModelView
         }
 
         public RelayCommand<ICloudController> RemoveCloudController { get; }
+        public RelayCommand<ICloudController> RefreshCloudControllerCommand { get; }
 
         public MainControlViewModel MainViewModel
         {
