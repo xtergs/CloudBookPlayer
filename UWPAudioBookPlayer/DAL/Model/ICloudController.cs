@@ -19,8 +19,6 @@ namespace UWPAudioBookPlayer.DAL.Model
         bool IsAutorized { get; }
         string Token { get; set; }
 
-        //event EventHandler CloseAuthPage;
-        //event EventHandler<Tuple<Uri, Action<Uri>>> NavigateToAuthPage;
         AccountInfo Account { get; }
         Task Auth();
         Task DeleteAudioBook(AudioBookSource source);

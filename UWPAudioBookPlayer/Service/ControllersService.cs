@@ -13,8 +13,8 @@ namespace UWPAudioBookPlayer.Service
     [ImplementPropertyChanged]
     public class ControllersService
     {
-        private readonly IDataRepository repository;
-        private readonly string fileName = "clouds.json_v2";
+        private readonly IControllersRepository repository;
+        private readonly string fileName = "clouds.db_v2";
         public event EventHandler<FileChangedStruct> FileChanged;
         public event EventHandler<AudioBookSourceCloud> MediaInfoChanged;
         public event EventHandler AccountAlreadyAdded;
@@ -32,7 +32,7 @@ namespace UWPAudioBookPlayer.Service
             return true;
         }
 
-        public ControllersService(IDataRepository repository)
+        public ControllersService(IControllersRepository repository)
         {
             if (repository == null)
                 throw new ArgumentNullException(nameof(repository));
@@ -88,8 +88,13 @@ namespace UWPAudioBookPlayer.Service
         {
             return
                 Controllers.Where(x => x.IsAutorized && x.IsCloud)
-                    .Select(x => new CloudService() {Name = x.ToString(), Token = x.Token})
+                    .Select(x => new CloudService() {Name = x.ToString(), Token = x.Token, CloudStamp = x.CloudStamp})
                     .ToArray();
+        }
+
+        public CloudService GetDataToSave(ICloudController controlelr)
+        {
+            return new CloudService() { Name = controlelr.ToString(), Token = controlelr.Token, CloudStamp = controlelr.CloudStamp };
         }
 
         public ICloudController GetCloudController(CloudType service)
@@ -123,6 +128,7 @@ namespace UWPAudioBookPlayer.Service
                 return null;
             }
             Controllers = Controllers.Add(cloudService);
+            repository.AddCloudService(GetDataToSave(cloudService));
             return cloudService;
         }
 
@@ -136,6 +142,7 @@ namespace UWPAudioBookPlayer.Service
             if (cloudController == null)
                 return;
             Controllers = Controllers.Remove(cloudController);
+            repository.RemoveCloudSevice(GetDataToSave(cloudController));
             OnControllerDelted(cloudController);
         }
 
@@ -144,16 +151,21 @@ namespace UWPAudioBookPlayer.Service
             ControllerDelted?.Invoke(this, e);
         }
 
-        public Task Save()
+        public async Task Save()
         {
-            var x = GetDataToSave();
-            repository.LocalFileName = null;
-            repository.RoamingFileName = fileName;
+//            var x = GetDataToSave();
+//            repository.LocalFileName = null;
+//            repository.RoamingFileName = fileName;
+//
+//            return repository.Save(new SaveModel()
+//            {
+//                CloudServices = x,
+//            });
+        }
 
-            return repository.Save(new SaveModel()
-            {
-                CloudServices = x,
-            });
+        public void Update(ICloudController cloudController)
+        {
+            repository.UpdateCloudService(GetDataToSave(cloudController));
         }
     }
 }

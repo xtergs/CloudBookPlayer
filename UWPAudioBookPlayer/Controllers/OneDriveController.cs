@@ -62,7 +62,7 @@ namespace UWPAudioBookPlayer.DAL.Model
                 await authTask;
                 var session = (((MsaAuthenticationProvider) client.AuthenticationProvider).CurrentAccountSession);
                 Token = session.RefreshToken;
-                CloudStamp = session.UserId;
+                CloudStamp = this.ToString() + session.UserId;
                 IsFailedToAuthenticate = false;
             }
             catch (Exception e)
@@ -326,7 +326,7 @@ namespace UWPAudioBookPlayer.DAL.Model
             try
             {
                 await _msaAuthenticationProvider.AuthenticateUserAsync();
-                CloudStamp = _msaAuthenticationProvider.CurrentAccountSession.UserId;
+                CloudStamp = this.ToString() + _msaAuthenticationProvider.CurrentAccountSession.UserId;
             }
             catch (Exception ex)
             {

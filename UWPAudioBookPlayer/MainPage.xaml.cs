@@ -31,6 +31,7 @@ using UWPAudioBookPlayer.View;
 using Autofac;
 using FFImageLoading;
 using FFImageLoading.Work;
+using GoogleAnalytics.Core;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Effects;
 using Microsoft.Graphics.Canvas.Text;
@@ -59,9 +60,6 @@ namespace UWPAudioBookPlayer
         private CastService castService;
         public MainPage(/*SettingsModelView settingsModelView*/)
         {
-            //if (settingsModelView == null)
-            //    throw new ArgumentNullException(nameof(settingsModelView));
-            //this._settingsModelView = settingsModelView;
             viewModel = Global.container.Resolve<MainControlViewModel>();
             viewModel.Settings = Global.container.Resolve<ISettingsService>();
             this.InitializeComponent();
@@ -69,11 +67,7 @@ namespace UWPAudioBookPlayer
             Global.MainModelView = viewModel;
             SetDataTemplateForList();
             DataContext = viewModel;
-            viewModel.NavigateToAuthPage += DrbControllerOnNavigateToAuthPage;
             viewModel.ShowBookDetails += ViewModelOnShowBookDetails;
-            viewModel.CloseAuthPage += DrbControllerOnCloseAuthPage;
-            //viewModel.LoadData();
-            //element = viewModel.Player;
 
             viewModel.PropertyChanged += ViewModelOnPropertyChanged;
 
@@ -115,11 +109,14 @@ namespace UWPAudioBookPlayer
                 BottomVisual.Size = new Vector2((float)BottomRectagle.ActualWidth, (float)BottomRectagle.ActualHeight);
         }
 
+        private Tracker Tracker => GoogleAnalytics.EasyTracker.GetTracker();
+
         void SetDataTemplateForList()
         {
             if (Resources.ContainsKey(viewModel.Settings.ListDataTemplate))
             {
                 bookListView.ItemTemplate = Resources[viewModel.Settings.ListDataTemplate] as DataTemplate;
+                Tracker.SendEvent(nameof(MainPage), "SetDataTemplateForList", bookListView.ItemTemplate?.ToString(), 0);
                 if (viewModel.Settings.IsWrapListItems)
                 {
                     bookListView.ItemsPanel = Resources["listWrapPanel"] as ItemsPanelTemplate;
@@ -203,9 +200,7 @@ namespace UWPAudioBookPlayer
     private void OnUnloaded(object sender, RoutedEventArgs routedEventArgs)
         {
             this.Unloaded -= OnUnloaded;
-            viewModel.NavigateToAuthPage -= DrbControllerOnNavigateToAuthPage;
             viewModel.ShowBookDetails -= ViewModelOnShowBookDetails;
-            viewModel.CloseAuthPage -= DrbControllerOnCloseAuthPage;
 
             viewModel.PropertyChanged -= ViewModelOnPropertyChanged;
             if (viewModel.Settings != null)
@@ -292,21 +287,6 @@ namespace UWPAudioBookPlayer
                 new AudioBookSourceDetailViewModel(audioBookSourcesCombined.MainSource, audioBookSourcesCombined.Clouds));
         }
 
-        private void DrbControllerOnNavigateToAuthPage(object sender, Tuple<Uri, Action<Uri>> tuple)
-        {
-            webView.Source = tuple.Item1;
-            webView.Visibility = Visibility.Visible;
-            var del = new TypedEventHandler<WebView,WebViewNavigationCompletedEventArgs>(delegate (WebView view, WebViewNavigationCompletedEventArgs args) { tuple.Item2(args.Uri); });
-            webView.NavigationCompleted -= del;
-            webView.NavigationCompleted += del;
-
-        }
-
-        private void DrbControllerOnCloseAuthPage(object sender, EventArgs eventArgs)
-        {
-            webView.Visibility = Visibility.Collapsed; 
-        }
-
         private async void AddFolderClick(object sender, RoutedEventArgs e)
         {
             FolderPicker folderPicker = new FolderPicker();
@@ -314,12 +294,14 @@ namespace UWPAudioBookPlayer
             folderPicker.FileTypeFilter.Add(".wav");
 
             var folder = await folderPicker.PickSingleFolderAsync();
+            Tracker.SendEvent(nameof(MainPage), "AddFolderClick", "Started", 0);
             if (folder == null)
                 return;
             string pickedFolderToken = StorageApplicationPermissions.FutureAccessList.Add(folder);
            // ApplicationData.Current.LocalSettings.Values.Add(FolderTokenSettingsKey, pickedFolderToken);
             viewModel.AddPlaySource(folder.Path, pickedFolderToken);
             await viewModel.SaveData().ConfigureAwait(false);
+            Tracker.SendEvent(nameof(MainPage), "AddFolderClick", "Ended", 0);
         }
 
         private void MainPlayer_OnCurrentStateChanged(object sender, RoutedEventArgs e)
@@ -349,10 +331,12 @@ namespace UWPAudioBookPlayer
             
 
             var folder = await folderPicker.PickSingleFolderAsync();
+            Tracker.SendEvent(nameof(MainPage), "SelectBaseFolderClick", "Start", 0);
             if (folder == null)
                 return;
             string pickedFolderToken = StorageApplicationPermissions.FutureAccessList.Add(folder);
             viewModel.AddBaseFolder(folder.Path, pickedFolderToken);
+            Tracker.SendEvent(nameof(MainPage), "SelectBaseFolderClick", "Ended", 0);
         }
 
         protected override async void OnNavigatingFrom(NavigatingCancelEventArgs e)
@@ -369,11 +353,6 @@ namespace UWPAudioBookPlayer
 
         }
 
-        private void ButtonBase_OnClick(object sender, RoutedEventArgs e)
-        {
-            OneDriveController controller = new OneDriveController();
-            controller.Auth();
-        }
 
             MenuFlyout menu = new MenuFlyout();
         private DialDevicePicker picker;
@@ -383,6 +362,7 @@ namespace UWPAudioBookPlayer
             FillUploadList(menu.Items);
             if (menu.Items.Any())
                 menu.ShowAt(((FrameworkElement)sender));
+            Tracker.SendEvent(nameof(MainPage), "ShowContextMenuDownload", null, 0);
         }
 
         private void ShowContextMenuUpload(object sender, RoutedEventArgs e)
@@ -390,6 +370,7 @@ namespace UWPAudioBookPlayer
             FillDownloadList(menu.Items);
             if (menu.Items.Any())
                 menu.ShowAt(((FrameworkElement)sender));
+            Tracker.SendEvent(nameof(MainPage), "ShowContextMenuUpload", null, 0);
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -450,47 +431,16 @@ namespace UWPAudioBookPlayer
             if (args.AddedItems.Any())
                 this.viewModel.StreamToDeviceCommand.Execute(args.AddedItems[0]);
             sender.SelectedItem = null;
+            Tracker.SendEvent(nameof(MainPage), "RemoteDevicesPicked", null, 0);
         }
 
         private async void DeviceCastClick(object sender, RoutedEventArgs e)
         {
             castService.ShowPicker();
+            Tracker.SendEvent(nameof(MainPage), "DeviceCastClick", null, 0);
         }
 
-        private void DialAppClick(object sender, RoutedEventArgs e)
-        {
-            picker = new DialDevicePicker();
-
-            //Add the DIAL Filter, so that the application only shows DIAL devices that have 
-            // the application installed or advertise that they can install them.
-            picker.Filter.SupportedAppNames.Add("cloudbookplayer");
-
-            //Hook up device selected event
-            picker.DialDeviceSelected += Picker_DeviceSelected;
-
-            //Hook up the picker disconnected event
-            picker.DisconnectButtonClicked += Picker_DisconnectButtonClicked;
-
-            //Hook up the picker dismissed event
-            picker.DialDevicePickerDismissed += Picker_DevicePickerDismissed;
-            picker.Show(new Rect(0, 0, 300, 300));
-        }
-
-        private void Picker_DevicePickerDismissed(DialDevicePicker sender, object args)
-        {
-            
-        }
-
-        private void Picker_DisconnectButtonClicked(DialDevicePicker sender, DialDisconnectButtonClickedEventArgs args)
-        {
-            
-        }
-
-        private void Picker_DeviceSelected(DialDevicePicker sender, DialDeviceSelectedEventArgs args)
-        {
-            
-        }
-
+        
         private void GoToViewBookMarks(object sender, HoldingRoutedEventArgs e)
         {
 

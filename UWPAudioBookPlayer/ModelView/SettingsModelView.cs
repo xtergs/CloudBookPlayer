@@ -54,6 +54,10 @@ namespace UWPAudioBookPlayer.ModelView
             {
                 await _notification.ShowMessage("Failed", "Account hasn't been authorized");
             }
+            else
+            {
+                ControlersService.Update(obj);
+            }
         }
 
         private void MainViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)

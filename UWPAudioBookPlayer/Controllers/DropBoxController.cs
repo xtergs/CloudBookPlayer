@@ -115,7 +115,7 @@ namespace UWPAudioBookPlayer.DAL.Model
                 client = new DropboxClient(Token);
                 var account = await client.Users.GetCurrentAccountAsync();
                 Account = FullAccountInfo(account);
-                CloudStamp = account.AccountId;
+                CloudStamp = this.ToString() + account.AccountId;
                 try
                 {
                     var folder = await client.Files.CreateFolderAsync(BaseFolder);

@@ -1173,11 +1173,6 @@
                             </DataTemplate>
                         </ListView.ItemTemplate>
                     </ListView>
-                    <WebView x:Name="webView"
-                             Grid.Row="0"
-                             Grid.RowSpan="10"
-                             DefaultBackgroundColor="White"
-                             Visibility="Collapsed" />
                     <Rectangle x:Name="BottomRectagle"
                                Grid.Row="9"
                                Grid.RowSpan="10" />

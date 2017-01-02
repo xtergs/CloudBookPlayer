@@ -28,13 +28,29 @@ namespace UWPAudioBookPlayer
     /// </summary>
     sealed partial class App : Application
     {
+        public static string GetAppVersion()
+        {
+
+            Package package = Package.Current;
+            PackageId packageId = package.Id;
+            PackageVersion version = packageId.Version;
+
+            return string.Format("{0}.{1}.{2}.{3}", version.Major, version.Minor, version.Build, version.Revision);
+
+        }
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
         /// executed, and as such is the logical equivalent of main() or WinMain().
         /// </summary>
         public App()
         {
-            Microsoft.HockeyApp.HockeyClient.Current.Configure("b54af8e72dc84a2090803f7f5433ad24");
+            HockeyClient.Current.Configure("b54af8e72dc84a2090803f7f5433ad24");
+            var config = new GoogleAnalytics.EasyTrackerConfig();
+            config.AppVersion = GetAppVersion();
+            config.TrackingId = "UA-85431708-2";
+            config.AppName = Package.Current.PublisherDisplayName;
+            config.UseSecure = true;
+            GoogleAnalytics.EasyTracker.Current.Config = config;
             this.InitializeComponent();
             this.Suspending += OnSuspending;
             this.EnteredBackground += OnEnteredBackground;
@@ -49,6 +65,7 @@ namespace UWPAudioBookPlayer
 
         protected override async void OnActivated(IActivatedEventArgs args)
         {
+
             base.OnActivated(args);
             if (args.Kind == ActivationKind.Protocol)
             {
@@ -185,7 +202,8 @@ namespace UWPAudioBookPlayer
             builder.RegisterType<AudioBookSourceFactory>();
             builder.RegisterType<ManageSources>().SingleInstance();
             builder.RegisterType<OperationsService>();
-            builder.RegisterType<ControllersService>().SingleInstance();
+            builder.Register(c=> new ControllersService(c.ResolveNamed<IControllersRepository>("sqliteControllers"))).SingleInstance();
+            builder.RegisterType<SqliteRepository>().Named<IControllersRepository>("sqliteControllers");
 
             var container = builder.Build();
             Global.container = container;

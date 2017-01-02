@@ -8,7 +8,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Windows.Foundation;
@@ -31,6 +30,7 @@ using Google.Apis.Analytics.v3;
 using Google.Apis.Services;
 using Microsoft.Toolkit.Uwp;
 using Newtonsoft.Json;
+using Plugin.GoogleAnalytics;
 using PropertyChanged;
 using SQLite.Net.Attributes;
 using UWPAudioBookPlayer.Comparer;
@@ -40,6 +40,8 @@ using UWPAudioBookPlayer.Model;
 using UWPAudioBookPlayer.Helper;
 using UWPAudioBookPlayer.Service;
 using Buffer = System.Buffer;
+using Timer = System.Threading.Timer;
+using Tracker = GoogleAnalytics.Core.Tracker;
 
 namespace UWPAudioBookPlayer.ModelView
 {
@@ -318,8 +320,11 @@ namespace UWPAudioBookPlayer.ModelView
             1.5
         };
 
+        private Tracker Tracker => GoogleAnalytics.EasyTracker.GetTracker();
+
         private async void RefreshAll()
         {
+            Tracker.SendEvent(nameof(MainControlViewModel), "RefreshAll", null, 0);
             await RefreshAllAsync();
         }
 
@@ -498,13 +503,15 @@ namespace UWPAudioBookPlayer.ModelView
             };
             var serialized = JsonConvert.SerializeObject(launchParameters);
             var result = await _remoteDeviceService.LaunchOnRemote(obj, serialized, "1");
-
+            Tracker.SendEvent(nameof(MainControlViewModel), "OpenRemoteApp", "Try", 0);
             switch (result)
             {
                 case RemoteLaunchUriStatus.Success:
                     Pause();
+                    Tracker.SendEvent(nameof(MainControlViewModel), "RefreshAll", "Success", 0);
                     break;
                 default:
+                    Tracker.SendEvent(nameof(MainControlViewModel), "RefreshAll", "Failed", 0);
                     await notificator.ShowMessage("Error",
                         $"Occured error trying to launch app on remote machine {obj.DisplayName}\nErrorCode: {result}")
                         .ConfigureAwait(false);
@@ -672,6 +679,7 @@ namespace UWPAudioBookPlayer.ModelView
                 PlayingSource.Files.IndexOf(PlayingSource.Files.First(x => x.Name == obj.FileName));
             PlayingSource.Position = obj.Position;
             Play();
+            Tracker.SendEvent(nameof(MainControlViewModel), "PlayFromHistory", null, 0);
         }
 
         private async void ResumePlayBook(AudioBookSourceWithClouds audioBookSourceDetailWithCloud)
@@ -750,6 +758,7 @@ namespace UWPAudioBookPlayer.ModelView
                 ev.Clouds = sources.ToArray();
             }
             OnShowBookDetails(ev);
+            Tracker.SendEvent(nameof(MainControlViewModel), "ShowBookDetail", null, 0);
         }
 
 
@@ -893,6 +902,7 @@ namespace UWPAudioBookPlayer.ModelView
 
         private async void DownloadBookFromCloud(ICloudController cloudControllser)
         {
+            Tracker.SendEvent(nameof(MainControlViewModel), "DownloadBookFromCloud", cloudControllser.ToString(), 0);
             if (!cloudControllser.IsAutorized)
             {
                 notificator.ShowMessage("", "Before procide, pelase authorize in DropBox");
@@ -1124,6 +1134,7 @@ namespace UWPAudioBookPlayer.ModelView
 
         private async void UploadBookToCloud(ICloudController obj)
         {
+            Tracker.SendEvent(nameof(MainControlViewModel), "UploadBookToCloud", obj.ToString(), 0);
             var selectedFolderTemp = SelectedFolder;
             if (selectedFolderTemp == null || (selectedFolderTemp as AudioBookSourceCloud)?.CloudStamp == obj.CloudStamp)
                 return;
@@ -1203,6 +1214,7 @@ namespace UWPAudioBookPlayer.ModelView
         {
             if (_remoteDeviceService == null)
                 return;
+            Tracker.SendEvent(nameof(MainControlViewModel), "StartObserveDevices", null, 0);
             var res = (await _remoteDeviceService.RequestAccess());
             switch (res)
             {
@@ -1226,6 +1238,7 @@ namespace UWPAudioBookPlayer.ModelView
                 return;
             _remoteDeviceService.StopWatch();
             _remoteDeviceService.SystemsUpdated -= RemoteDeviceServiceOnSystemsUpdated;
+            Tracker.SendEvent(nameof(MainControlViewModel), "StopObserveDevices", null, 0);
         }
 
         public List<RemoteSystem> RemoteSystems => _remoteDeviceService?.RemoteSystems.ToList();
@@ -1485,6 +1498,7 @@ namespace UWPAudioBookPlayer.ModelView
         {
             if (source == null)
                 return;
+            Tracker.SendEvent(nameof(MainControlViewModel), "RemoveSource", $"{(source as AudioBookSourceCloud)?.Type}", 0);
             if (source.IsCloudBook() && !(source.IsOnlineBook()))
             {
                 if (settings.AskBeforeDeletionBook)
@@ -1798,6 +1812,7 @@ namespace UWPAudioBookPlayer.ModelView
         {
             ControllersService1.RemoveController(obj);
             await SaveData();
+            Tracker.SendEvent(nameof(MainControlViewModel), "RemoveCloudAccountAsync", obj.ToString(), 0);
         }
 
         public async void AddDropBoxAccount(CloudType type)
@@ -1816,11 +1831,7 @@ namespace UWPAudioBookPlayer.ModelView
                 return;
             await SaveData();
             await RefreshCloudData(cloudService);
-        }
-
-        public void AddOneDriveAccount()
-        {
-
+            Tracker.SendEvent(nameof(MainControlViewModel), "AddCloudAccount", type.ToString(), 0);
         }
 
         public async void AddBaseFolder(string folder, string accessToken)
@@ -1840,20 +1851,6 @@ namespace UWPAudioBookPlayer.ModelView
             ShowBookDetails?.Invoke(this, e);
         }
 
-        public event EventHandler<Tuple<Uri, Action<Uri>>> NavigateToAuthPage;
-
-        protected virtual void OnNavigateToAuthPage(Tuple<Uri, Action<Uri>> e)
-        {
-            NavigateToAuthPage?.Invoke(this, e);
-        }
-
-        public event EventHandler CloseAuthPage;
-
-        protected virtual void OnCloseAuthPage()
-        {
-            CloseAuthPage?.Invoke(this, EventArgs.Empty);
-        }
-
         public event PropertyChangedEventHandler PropertyChanged;
 
         protected virtual async void OnPropertyChanged([CallerMemberName] string propertyName = null)
@@ -1866,13 +1863,6 @@ namespace UWPAudioBookPlayer.ModelView
                 });
         }
 
-
-        //        public ICloudController[] GetAvalibleCloudControllers(AudioBookSourceWithClouds source)
-        //        {
-        //            if (source == null)
-        //                return null;
-        //            //source.AdditionSources.Where(s=> s.)
-        //        }
         public async Task StartPlaySource(string remove)
         {
             if (string.IsNullOrWhiteSpace(remove))
