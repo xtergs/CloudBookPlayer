@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Windows.Media.Core;
 using Windows.Media.Playback;
@@ -36,9 +37,9 @@ namespace UWPAudioBookPlayer.View
 
        public bool OpeningMedia { get; private set; }
 
-        public AddBookMark(ControllersService controllerService)
+        public AddBookMark()
         {
-            _controllerService = controllerService;
+            _controllerService = Global.container.Resolve<ControllersService>();
             this.InitializeComponent();
             this.Loading += OnLoading;
             this.Loaded += OnLoaded;
@@ -119,8 +120,15 @@ namespace UWPAudioBookPlayer.View
 
         private void OnBackRequested(object sender, BackRequestedEventArgs backRequestedEventArgs)
         {
-            SystemNavigationManager.GetForCurrentView().BackRequested -= OnBackRequested;
-            Frame.GoBack();
+	        try
+	        {
+		        Frame.GoBack();
+		        SystemNavigationManager.GetForCurrentView().BackRequested -= OnBackRequested;
+	        }
+	        catch (COMException exception)
+	        {
+				    
+	        }
         }
 
         protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)

@@ -11,7 +11,13 @@
       xmlns:modelView="using:UWPAudioBookPlayer.ModelView"
       d:DataContext="{d:DesignInstance modelView:BookMarksViewModel}"
       mc:Ignorable="d">
-
+    <Page.Transitions>
+        <NavigationThemeTransition>
+            <NavigationThemeTransition.DefaultNavigationTransitionInfo>
+                <SlideNavigationTransitionInfo />
+            </NavigationThemeTransition.DefaultNavigationTransitionInfo>
+        </NavigationThemeTransition>
+    </Page.Transitions>
     <Grid Margin="5" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />

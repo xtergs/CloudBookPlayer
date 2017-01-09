@@ -39,6 +39,7 @@
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
         <ListView x:Name="listView1"
+                  Margin="5"
                   Header="   App settings"
                   IsItemClickEnabled="True"
                   ItemClick="listView1_ItemClick"
@@ -51,6 +52,7 @@
         <ScrollViewer x:Name="scrollViewer"
                       Grid.Row="0"
                       Grid.Column="1"
+                      Margin="5"
                       VerticalAlignment="Stretch"
                       VerticalScrollBarVisibility="Auto">
             <StackPanel Grid.Row="3" Orientation="Vertical">
@@ -150,12 +152,12 @@
                                                        Converter={StaticResource IntToVisibilityConverter}}">
                         <AppBarButton.Flyout>
                             <MenuFlyout>
-                                <MenuFlyoutItem Command="{Binding MainViewModel.AddCloudAccountCommand}" Text="DropBox">
+                                <MenuFlyoutItem Command="{Binding AddCloudAccountCommand}" Text="DropBox">
                                     <MenuFlyoutItem.CommandParameter>
                                         <modelView:CloudType>DropBox</modelView:CloudType>
                                     </MenuFlyoutItem.CommandParameter>
                                 </MenuFlyoutItem>
-                                <MenuFlyoutItem Command="{Binding MainViewModel.AddCloudAccountCommand}" Text="OneDrive">
+                                <MenuFlyoutItem Command="{Binding AddCloudAccountCommand}" Text="OneDrive">
                                     <MenuFlyoutItem.CommandParameter>
                                         <modelView:CloudType>OneDrive</modelView:CloudType>
                                     </MenuFlyoutItem.CommandParameter>

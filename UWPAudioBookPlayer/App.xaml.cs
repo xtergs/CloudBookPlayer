@@ -191,7 +191,8 @@ namespace UWPAudioBookPlayer
         {
             Autofac.ContainerBuilder builder = new ContainerBuilder();
             builder.RegisterType<MainControlViewModel>().SingleInstance();
-            builder.RegisterType<SettingsModelView>().As<ISettingsService>().SingleInstance();
+            builder.RegisterType<SettingsModelView>().As<ISettingsService>()
+													.As<ITimerSettings>().SingleInstance();
             builder.RegisterType<UniversalApplicationSettingsHelper>().As<IApplicationSettingsHelper>();
             builder.RegisterType<LibrivoxOnlineBooksViewModel>();
             builder.RegisterType<LIbriVoxScraper>();
@@ -204,6 +205,8 @@ namespace UWPAudioBookPlayer
             builder.RegisterType<OperationsService>();
             builder.Register(c=> new ControllersService(c.ResolveNamed<IControllersRepository>("sqliteControllers"))).SingleInstance();
             builder.RegisterType<SqliteRepository>().Named<IControllersRepository>("sqliteControllers");
+	        builder.RegisterType<TimerService>();
+	        builder.RegisterType<TimerViewModel>();
 
             var container = builder.Build();
             Global.container = container;

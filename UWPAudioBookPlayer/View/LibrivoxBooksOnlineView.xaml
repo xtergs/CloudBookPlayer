@@ -16,7 +16,7 @@
     <Page.Resources>
         <ResourceDictionary>
             <DataTemplate x:Key="bookItemTemplate">
-                <UserControl Loading="UserControl_Loading">
+                <UserControl Loading="UserControl_Loading" Loaded="FrameworkElement_OnLoaded" DataContextChanged="FrameworkElement_OnDataContextChanged">
                     <Grid Margin="5">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -145,7 +145,7 @@
                             </StackPanel>
                         </Grid>
                         <VisualStateManager.VisualStateGroups>
-                            <VisualStateGroup x:Name="ShowBookInfoStateGroup">
+                            <VisualStateGroup x:Name="ShowBookLineStateGroup">
                                 <VisualState x:Name="CompactState">
                                     <VisualState.StateTriggers>
                                         <AdaptiveTrigger MinWindowWidth="0" />

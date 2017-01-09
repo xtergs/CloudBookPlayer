@@ -20,7 +20,7 @@
     <AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>
     <AppxPackageDir>D:\builds\UWPAudioBookPlayer\</AppxPackageDir>
     <AppxBundle>Always</AppxBundle>
-    <AppxBundlePlatforms>x86|x64</AppxBundlePlatforms>
+    <AppxBundlePlatforms>x86|x64|arm</AppxBundlePlatforms>
     <HockeyAppResourceId>b54af8e72dc84a2090803f7f5433ad24</HockeyAppResourceId>
     <PackageCertificateThumbprint>929840245EAAB12875C16DC55F8E659DBC31BA1B</PackageCertificateThumbprint>
   </PropertyGroup>
@@ -155,6 +155,7 @@
     <Compile Include="Service\ManageOperationsService.cs" />
     <Compile Include="Service\ManageSources.cs" />
     <Compile Include="Service\RemoteDevicesService.cs" />
+    <Compile Include="Service\TimerService.cs" />
     <Compile Include="Service\UniversalSettingsService.cs" />
     <Compile Include="TemplateSelector\AudioBookSourceTemplateSelector.cs" />
     <Compile Include="View\AddBookMark.xaml.cs">

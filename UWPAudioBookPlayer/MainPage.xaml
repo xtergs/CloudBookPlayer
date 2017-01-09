@@ -5,6 +5,7 @@
       xmlns:controls="using:Microsoft.Toolkit.Uwp.UI.Controls"
       xmlns:converter="using:UWPAudioBookPlayer.Converter"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:extensions="using:WinRTXamlToolkit.Controls.Extensions"
       xmlns:interactivity="using:Microsoft.Xaml.Interactivity"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:model="using:UWPAudioBookPlayer.Model"
@@ -554,6 +555,15 @@
         <ItemsPanelTemplate x:Key="listWrapPanel">
             <ItemsWrapGrid Orientation="Horizontal" />
         </ItemsPanelTemplate>
+        <Storyboard x:Name="show">
+            <FadeInThemeAnimation TargetName="bookListView" />
+            <FadeInThemeAnimation TargetName="commandBarManage" />
+        </Storyboard>
+        <Storyboard x:Name="hide">
+
+            <FadeOutThemeAnimation TargetName="bookListView" />
+            <FadeOutThemeAnimation TargetName="commandBarManage" />
+        </Storyboard>
     </Page.Resources>
     <Page.Transitions>
 
@@ -664,14 +674,6 @@
                 <Grid HorizontalAlignment="Stretch"
                       VerticalAlignment="Stretch"
                       Background="{x:Null}">
-                    <Grid.Resources>
-                        <Storyboard x:Name="EnterStoryboard">
-                            <FadeOutThemeAnimation Storyboard.TargetName="bookListView" />
-                        </Storyboard>
-                        <Storyboard x:Name="ExitStoryboard">
-                            <DoubleAnimation Storyboard.TargetName="bookListView" To="0" />
-                        </Storyboard>
-                    </Grid.Resources>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
@@ -703,7 +705,8 @@
                                                 IsChecked="{Binding Settings.ShowBooksList,
                                                                     Mode=TwoWay,
                                                                     UpdateSourceTrigger=PropertyChanged}"
-                                                Label="Books" />
+                                                Label="Books"
+                                                Unchecked="ShowBooks_OnUnchecked" />
                             <AppBarButton Click="OpenSettingsClick"
                                           Icon="Setting"
                                           Label="Settings" />
@@ -734,11 +737,15 @@
                                                               UpdateSourceTrigger=PropertyChanged}"
                                           Label="Continue">
                                 <AppBarButton.Flyout>
-                                    <ListPickerFlyout ItemsPicked="RemoteDevicesPicked"
+                                    <ListPickerFlyout Closed="FlyoutBase1_OnClosed"
+                                                      Closing="FlyoutBase1_OnClosing"
+                                                      ItemsPicked="RemoteDevicesPicked"
                                                       ItemsSource="{Binding RemoteSystems,
                                                                             Mode=OneWay,
                                                                             UpdateSourceTrigger=PropertyChanged}"
+                                                      Opening="FlyoutBase_OnOpening"
                                                       PickerFlyoutBase.Title="Choose where to continue (tip: you need sign in on all you devices with single microsoft account)"
+                                                      Placement="Bottom"
                                                       SelectionMode="Single">
                                         <ListPickerFlyout.ItemTemplate>
                                             <DataTemplate>
@@ -811,13 +818,13 @@
                                                      UpdateSourceTrigger=PropertyChanged}" />
                     </StackPanel>
                     <Grid Grid.Row="4" Margin="10,0,10,0">
-                        <TextBlock HorizontalAlignment="Left" Text="{Binding CurrentPosition.TotalSeconds, Converter={StaticResource SecondsToTimeSpanConverter}, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock HorizontalAlignment="Left" Text="{Binding CurrentPosition, Converter={StaticResource TimeSpanToShortenedMinutesConverter}, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock HorizontalAlignment="Center">
                             <Run Text="{Binding PlayingSource.CurrentFile}" />
                             <Run Text=" from " />
                             <Run Text="{Binding PlayingSource.Files.Count}" />
                         </TextBlock>
-                        <TextBlock HorizontalAlignment="Right" Text="{Binding FileDuration.TotalSeconds, Converter={StaticResource SecondsToTimeSpanConverter}, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock HorizontalAlignment="Right" Text="{Binding FileDuration, Converter={StaticResource TimeSpanToShortenedMinutesConverter}, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
                     </Grid>
 
                     <StackPanel Grid.Row="5"
@@ -914,16 +921,41 @@
                                     </ListPickerFlyout>
                                 </AppBarButton.Flyout>
                             </AppBarButton>
-                            <AppBarButton Command="{Binding ChangeTimerStateCommand}"
-                                          Icon="Clock"
-                                          IsEnabled="{Binding PlayingSource,
-                                                              Converter={StaticResource NullToBoolConverter},
-                                                              Mode=OneWay,
-                                                              UpdateSourceTrigger=PropertyChanged}"
-                                          Label="{Binding LeftSleepTimer,
-                                                          Mode=OneWay,
-                                                          UpdateSourceTrigger=PropertyChanged}"
-                                          ToolTipService.ToolTip="Set sleep timer" />
+                            <AppBarToggleButton Icon="Clock"
+                                                IsChecked="{Binding TimerViewModel.IsActive,
+                                                                    Mode=TwoWay,
+                                                                    UpdateSourceTrigger=PropertyChanged}"
+                                                IsEnabled="{Binding PlayingSource,
+                                                                    Converter={StaticResource NullToBoolConverter},
+                                                                    Mode=OneWay,
+                                                                    UpdateSourceTrigger=PropertyChanged}"
+                                                IsHoldingEnabled="True"
+                                                Label="{Binding TimerViewModel.TimerService.Left,
+                                                                Mode=OneWay,
+                                                                UpdateSourceTrigger=PropertyChanged,
+                                                                Converter={StaticResource TimeSpanToShortenedMinutesConverter}}"
+                                                ToolTipService.ToolTip="Set sleep timer">
+                                <AppBarToggleButton.ContextFlyout>
+                                    <ListPickerFlyout Title="Sleep timer"
+                                                      ItemsSource="{Binding TimerViewModel.DeleyMinutes,
+                                                                            Mode=OneTime}"
+                                                      LightDismissOverlayMode="Auto"
+                                                      Placement="Top"
+                                                      SelectedItem="{Binding TimerViewModel.TimerService.TimerMinutes,
+                                                                             Mode=TwoWay,
+                                                                             UpdateSourceTrigger=PropertyChanged}"
+                                                      SelectionMode="Single">
+                                        <ListPickerFlyout.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock>
+                                                    <Run Text="{Binding}" />
+                                                    <Run Text=" minutes" />
+                                                </TextBlock>
+                                            </DataTemplate>
+                                        </ListPickerFlyout.ItemTemplate>
+                                    </ListPickerFlyout>
+                                </AppBarToggleButton.ContextFlyout>
+                            </AppBarToggleButton>
                             <AppBarButton Click="ShowAttachedContextMenuClick"
                                           Icon="Volume"
                                           Label="Volum">
@@ -1018,6 +1050,7 @@
                                                     Grid.Row="7"
                                                     HorizontalAlignment="Stretch"
                                                     VerticalAlignment="Stretch"
+                                                    extensions:FrameworkElementExtensions.ClipToBounds="True"
                                                     Background="Silver"
                                                     ItemContainerStyle="{StaticResource FullListViewItemContainer}"
                                                     ItemsSource="{Binding Sources.Folders,
@@ -1029,11 +1062,12 @@
                                                                            Mode=TwoWay}"
                                                     Visibility="{Binding ElementName=showBooks,
                                                                          Path=IsChecked,
+                                                                         UpdateSourceTrigger=PropertyChanged,
                                                                          Converter={StaticResource BoolToVisibilityConverter}}">
                         <controls:PullToRefreshListView.Transitions>
                             <TransitionCollection>
-                                <RepositionThemeTransition />
-                                <EdgeUIThemeTransition />
+                                <ReorderThemeTransition />
+
                             </TransitionCollection>
                         </controls:PullToRefreshListView.Transitions>
 
@@ -1090,13 +1124,14 @@
                             <Run Text="add your cloud account" />
                         </Hyperlink>
                     </TextBlock>
-                    <CommandBar Grid.Row="8" Visibility="{Binding ElementName=showBooks, Path=IsChecked, Converter={StaticResource BoolToVisibilityConverter}}">
-                        <CommandBar.Transitions>
-                            <TransitionCollection>
-                                <RepositionThemeTransition />
-                            </TransitionCollection>
-                        </CommandBar.Transitions>
 
+                    <CommandBar x:Name="commandBarManage"
+                                Grid.Row="8"
+                                OverflowButtonVisibility="Auto"
+                                Visibility="{Binding ElementName=showBooks,
+                                                     Path=IsChecked,
+                                                     UpdateSourceTrigger=PropertyChanged,
+                                                     Converter={StaticResource BoolToVisibilityConverter}}">
                         <AppBarButton Click="ShowAttachedContextMenuClick"
                                       Icon="Add"
                                       IsCompact="False"

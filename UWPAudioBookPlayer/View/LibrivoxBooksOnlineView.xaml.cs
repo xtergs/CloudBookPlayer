@@ -162,7 +162,26 @@ namespace UWPAudioBookPlayer.View
 
         private void UserControl_Loading(FrameworkElement sender, object args)
         {
-            VisualStateManager.GoToState(sender as Control, ShowBookInfoStateGroup.Name, false);
+            
+        }
+
+        private void FrameworkElement_OnLoaded(object sender, RoutedEventArgs e)
+        {
+            var control = sender as Control;
+            bool res;
+            if (control.ActualWidth >= 720)
+            {
+                res = VisualStateManager.GoToState(control, "FullState", false);
+            }
+            else
+            {
+                res = VisualStateManager.GoToState(control, "CompactState", false);
+            }
+        }
+
+        private void FrameworkElement_OnDataContextChanged(FrameworkElement sender, DataContextChangedEventArgs args)
+        {
+            
         }
     }
 }

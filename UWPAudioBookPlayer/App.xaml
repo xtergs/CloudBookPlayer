@@ -19,6 +19,7 @@
         <converter:IntToBoolConverter x:Key="IntToBoolConverter" />
         <converter:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
         <converter:VisibilityToBoolConverter x:Key="VisibilityToBoolConverter" />
+        <converter:TimeSpanToShortenedMinutesConverter x:Key="TimeSpanToShortenedMinutesConverter" />
 
         <Style x:Name="FullListViewItemContainer" TargetType="ListViewItem">
             <Setter Property="HorizontalAlignment" Value="Stretch" />
