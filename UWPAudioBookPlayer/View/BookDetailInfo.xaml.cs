@@ -56,9 +56,10 @@ namespace UWPAudioBookPlayer.View
 	    {
 		    Loading -= OnLoading;
 		    InitComposition();
-		    await viewModel.LoadCloudData();
-		    await ViewHelper.LoadImage(smallCover, viewModel.Book as AudioBookSourceWithClouds, viewModel.Controllers1);
-		    await ViewHelper.LoadImage(backgroudn, viewModel.Book as AudioBookSourceWithClouds, viewModel.Controllers1);
+		    await Task.WhenAll(
+			    viewModel.LoadCloudData(),
+			    ViewHelper.LoadImage(backgroudn, viewModel.Book as AudioBookSourceWithClouds, viewModel.Controllers1));
+			    await ViewHelper.LoadImage(smallCover, viewModel.Book as AudioBookSourceWithClouds, viewModel.Controllers1);
 
 	    }
 

@@ -31,6 +31,7 @@ using UWPAudioBookPlayer.DAL.Model;
 using UWPAudioBookPlayer.Model;
 using UWPAudioBookPlayer.Helper;
 using UWPAudioBookPlayer.Service;
+using UWPAudioBookPlayer.View;
 using Timer = System.Threading.Timer;
 using Tracker = GoogleAnalytics.Core.Tracker;
 
@@ -295,7 +296,7 @@ namespace UWPAudioBookPlayer.ModelView
 		public ISettingsService Settings
 		{
 			get { return settings; }
-			set { settings = value; }
+			private set { settings = value; }
 		}
 
 		public List<double> AvaliblePlayBackSpeed { get; } = new List<double>()
@@ -340,8 +341,9 @@ namespace UWPAudioBookPlayer.ModelView
 			}
 		}
 
-		public MainControlViewModel(RemoteDevicesService remoteDevicesService, ManageSources manage, OperationsService operService, ControllersService controllersService, TimerViewModel timerViewModel)
+		public MainControlViewModel(RemoteDevicesService remoteDevicesService, ManageSources manage, OperationsService operService, ControllersService controllersService, TimerViewModel timerViewModel, ISettingsService sett)
 		{
+			Settings = sett;
 			if (remoteDevicesService == null)
 				Debug.WriteLine($"{nameof(remoteDevicesService)} is null!");
 			_remoteDeviceService = remoteDevicesService;
@@ -406,7 +408,7 @@ namespace UWPAudioBookPlayer.ModelView
 			player.PlaybackSession.BufferingEnded += PlayerOnBufferingEnded;
 			player.PlaybackSession.BufferingProgressChanged += PlaybackSessionOnBufferingProgressChanged;
 			player.PlaybackSession.DownloadProgressChanged += PlaybackSessionOnDownloadProgressChanged;
-
+			ViewHelper.StandartCover = Settings.StandartCover;
 			OnPropertyChanged(nameof(AddBookMarkCommand));
 		}
 
@@ -1261,10 +1263,10 @@ namespace UWPAudioBookPlayer.ModelView
 				watch.Start();
 				
 				await Task.WhenAll(
-					Sources.Load(),
 					ControllersService1.Load(),
 					LoadGeneralData()
 					);
+				await Sources.Load();
 				await CheckBaseFolder();
 				foreach (var cloud in ControllersService1.GetOnlyClouds())
 					await RefreshCloudData(cloud);

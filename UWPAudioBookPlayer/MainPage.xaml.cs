@@ -111,7 +111,7 @@ namespace UWPAudioBookPlayer
 		public MainPage(/*SettingsModelView settingsModelView*/)
 		{
 			viewModel = Global.container.Resolve<MainControlViewModel>();
-			viewModel.Settings = Global.container.Resolve<ISettingsService>();
+//			viewModel.Settings = Global.container.Resolve<ISettingsService>();
 			this.InitializeComponent();
 			InitComposition();
 			Global.MainModelView = viewModel;

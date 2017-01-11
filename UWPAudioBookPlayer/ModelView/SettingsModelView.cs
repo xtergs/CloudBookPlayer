@@ -14,6 +14,7 @@ using UWPAudioBookPlayer.Service;
 using System.Linq;
 using GoogleAnalytics.Core;
 using UWPAudioBookPlayer.Helper;
+using UWPAudioBookPlayer.View;
 
 namespace UWPAudioBookPlayer.ModelView
 {
@@ -263,7 +264,11 @@ namespace UWPAudioBookPlayer.ModelView
 				return debug;
 			}
 
-			set { helper.SimpleSet(value); }
+			set
+			{
+				helper.SimpleSet(value);
+				ViewHelper.StandartCover = StandartCover;
+			}
 		}
 
 		public string[] AvaliableStandartCovers { get; } = new[] { "no-image-available.jpg", "HDD.png", "DropBoxLogo.png" }.Select(x => "ms-appx:///Image/" + x).ToArray();

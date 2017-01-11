@@ -91,7 +91,7 @@
                           Source="{Binding Book,
                                            Mode=OneWay,
                                            UpdateSourceTrigger=PropertyChanged}"
-                          Stretch="UniformToFill" />
+                          Stretch="Uniform" />
         <ListView Grid.Row="1"
                   Grid.ColumnSpan="2"
                   ItemsSource="{Binding Files,
@@ -165,10 +165,12 @@
                         <TextBlock Grid.Column="5"
                                    FontSize="20"
                                    FontWeight="Bold"
-                                   Text="{Binding File.Name}" />
+                                   Text="{Binding File.Name}"
+                                   TextTrimming="CharacterEllipsis" />
                         <TextBlock Grid.Row="1"
                                    Grid.Column="5"
-                                   Text="{Binding File.Duration}" />
+                                   Text="{Binding File.Duration,
+                                                  Converter={StaticResource TimeSpanToShortenedMinutesConverter}}" />
                         <TextBlock Grid.Row="2"
                                    Grid.Column="5"
                                    Text="{Binding File.Size}" />
