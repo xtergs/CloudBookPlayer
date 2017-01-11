@@ -341,8 +341,9 @@ namespace UWPAudioBookPlayer
 
 		private void ViewModelOnShowBookDetails(object sender, AudioBookSourcesCombined audioBookSourcesCombined)
 		{
+			var fact = Global.container.Resolve<AudioBookSourceDetailViewModel.Factory>();
 			Frame.Navigate(typeof(BookDetailInfo),
-				new AudioBookSourceDetailViewModel(audioBookSourcesCombined.MainSource, audioBookSourcesCombined.Clouds));
+				fact(audioBookSourcesCombined.MainSource));
 		}
 
 		private async void AddFolderClick(object sender, RoutedEventArgs e)
@@ -399,7 +400,6 @@ namespace UWPAudioBookPlayer
 
 		protected override async void OnNavigatingFrom(NavigatingCancelEventArgs e)
 		{
-			fileImageCache.Clear();
 			await viewModel.SaveData();
 			base.OnNavigatingFrom(e);
 		}
@@ -568,23 +568,10 @@ namespace UWPAudioBookPlayer
 			}
 		}
 
-		private Dictionary<string, BitmapImage> fileImageCache = new Dictionary<string, BitmapImage>();
+		
 		private float _blurAmount;
 
-		private void SetDefaultImage(ImageEx img)
-		{
-			BitmapImage btm;
-			if (fileImageCache.TryGetValue("default", out btm))
-			{
-				img.Source = btm;
-				return;
-			}
-			if (viewModel?.Settings?.StandartCover == null)
-				return;
-			btm = new BitmapImage(new Uri(viewModel.Settings.StandartCover));
-			fileImageCache["defualt"] = btm;
-			img.Source = btm;
-		}
+		
 
 		private async void FrameworkElement_OnDataContextChanged(FrameworkElement sender, DataContextChangedEventArgs args)
 		{
@@ -595,71 +582,7 @@ namespace UWPAudioBookPlayer
 			var img = sender as ImageEx;
 			if (img == null)
 				return;
-			ImageStruct cover = source.Cover;
-			if (!cover.IsValide)
-			{
-				var mediaFile = await source.GetFile(source.GetCurrentFile.Name);
-				if (mediaFile != null)
-					using (StorageItemThumbnail thumbnail = await mediaFile.GetThumbnailAsync(ThumbnailMode.MusicView, 1080))
-					{
-						if (thumbnail != null && thumbnail.Type == ThumbnailType.Image)
-						{
-							var bitmapImage = new BitmapImage();
-							bitmapImage.SetSource(thumbnail);
-							img.Source = bitmapImage;
-						}
-						else
-							SetDefaultImage(img);
-					}
-				else
-					SetDefaultImage(img);
-				return;
-			}
-			if (source.IsLink(cover.Url))
-			{
-				try
-				{
-					var Bitmap = await ImageCache.Instance.GetFromCacheAsync(new Uri(cover.Url, UriKind.Absolute), Guid.NewGuid().ToString(), true);
-					img.Source = Bitmap;
-					return;
-				}
-				catch (Exception e)
-				{
-					SetDefaultImage(img);
-				}
-			}
-			string cachekey = source.Name + cover;
-			try
-			{
-				BitmapImage btmimage;
-				if (fileImageCache.TryGetValue(cachekey, out btmimage))
-				{
-					img.Source = btmimage;
-					return;
-				}
-				var streamResult = await source.GetFileStream(cover.Url);
-				btmimage = new BitmapImage();
-				streamResult.Item2.Seek(0);
-				await btmimage.SetSourceAsync(streamResult.Item2);
-				streamResult.Item2.Dispose();
-				fileImageCache[cachekey] = btmimage;
-				img.Source = btmimage;
-				streamResult = null;
-			}
-			catch (Exception e)
-			{
-				if (viewModel == null)
-					return;
-				using (var stream = await viewModel.DownloadFileFromBook(source, source.Cover.Title))
-				{
-					if (stream == null)
-						return;
-					var bitmap = new BitmapImage();
-					await bitmap.SetSourceAsync(stream.AsRandomAccessStream());
-					fileImageCache[cachekey] = bitmap;
-					img.Source = bitmap;
-				}
-			}
+			await ViewHelper.LoadImage(img, source, viewModel.ControllersService1);
 		}
 
 		private void ShowAttachedContextMenuClick(object sender, RoutedEventArgs e)

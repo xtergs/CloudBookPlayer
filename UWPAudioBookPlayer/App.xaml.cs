@@ -207,6 +207,7 @@ namespace UWPAudioBookPlayer
             builder.RegisterType<SqliteRepository>().Named<IControllersRepository>("sqliteControllers");
 	        builder.RegisterType<TimerService>();
 	        builder.RegisterType<TimerViewModel>();
+	        builder.RegisterType<AudioBookSourceDetailViewModel>();
 
             var container = builder.Build();
             Global.container = container;

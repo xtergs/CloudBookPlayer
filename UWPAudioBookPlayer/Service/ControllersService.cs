@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using PropertyChanged;
 using UWPAudioBookPlayer.DAL;
 using UWPAudioBookPlayer.DAL.Model;
+using UWPAudioBookPlayer.Model;
 using UWPAudioBookPlayer.ModelView;
 
 namespace UWPAudioBookPlayer.Service
@@ -84,7 +85,15 @@ namespace UWPAudioBookPlayer.Service
             return Controllers.FirstOrDefault(x => x.CloudStamp == cloudStamp);
         }
 
-        public CloudService[] GetDataToSave()
+		public ICloudController GetContorller(AudioBookSource source)
+		{
+			var cloudSource = source as AudioBookSourceCloud;
+			if (cloudSource == null)
+				return null;
+			return Controllers.FirstOrDefault(x => x.CanHandleSource(cloudSource));
+		}
+
+		public CloudService[] GetDataToSave()
         {
             return
                 Controllers.Where(x => x.IsAutorized && x.IsCloud)
@@ -167,5 +176,15 @@ namespace UWPAudioBookPlayer.Service
         {
             repository.UpdateCloudService(GetDataToSave(cloudController));
         }
+
+	    public Task<AudioBookSourceCloud[]> GetBookInfoFromAllControllers(AudioBookSource book)
+	    {
+		    List<Task <AudioBookSourceCloud >> tasks = new List<Task<AudioBookSourceCloud>>(Controllers.Count);
+		    foreach (var cloudController in Controllers)
+		    {
+			    tasks.Add(cloudController.GetAudioBookInfo(book));
+		    }
+		    return Task.WhenAll(tasks);
+	    }
     }
 }

@@ -631,14 +631,6 @@ namespace UWPAudioBookPlayer.Model
             var result = await book.GetFileStream(imageName);
             return result.Item2.AsStream();
         }
-
-        public ICloudController SelectContorller(AudioBookSource source, IEnumerable<ICloudController> activeContorllers)
-        {
-            var cloudSource = source as AudioBookSourceCloud;
-            if (cloudSource == null)
-                return null;
-            return activeContorllers.SingleOrDefault(x => x.CanHandleSource(cloudSource));
-        }
     }
 
 }

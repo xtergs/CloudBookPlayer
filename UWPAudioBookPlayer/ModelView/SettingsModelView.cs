@@ -110,7 +110,7 @@ namespace UWPAudioBookPlayer.ModelView
 								   $"4) Always show actual cloud accounts in settigns{Environment.NewLine}" +
 								   $"5) Now storing cloud credentions in sqlite, need to reauthenticate accounts{Environment.NewLine}" +
 								   $"6) If authentication of onedrive account is failed, show tip and you can refresh by clicking button Refresh{Environment.NewLine}" +
-								   $"7) Show cover from file tag if cover's file hasn't found{Environment.NewLine}" +
+								   $"7) Fixed animation, now you can close cast screen by clicking back button{Environment.NewLine}" +
 								   $"8) Correct way to add DropBox account{Environment.NewLine}";
 
 		public string ChanglogShowedForVersion

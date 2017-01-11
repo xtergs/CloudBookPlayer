@@ -123,24 +123,6 @@ namespace UWPAudioBookPlayer.View
             if (visual == null)
                 return;
             visual.Size = new Vector2((float)backFrame.ActualWidth, (float)backFrame.ActualHeight);
-
-//            if (defaultWidthOfPlayButtons == -1)
-//            {
-//                defaultWidthOfPlayButtons = (playGrid.Children[0] as AppBarButton).ActualWidth;
-//            }
-//            double totalWidth = playGrid.Children.Count *
-//                                defaultWidthOfPlayButtons;
-//            foreach (var result in playGrid.Children.OfType<AppBarButton>())
-//            {
-//                if (totalWidth >= Rectagle.ActualWidth)
-//                {
-//                    result.Width = Rectagle.ActualWidth / playGrid.Children.Count;
-//                }
-//                else
-//                {
-//                    result.Width = defaultWidthOfPlayButtons;
-//                }
-//            }
         }
 
         private void Pivot_OnSelectionChanged(object sender, SelectionChangedEventArgs e)

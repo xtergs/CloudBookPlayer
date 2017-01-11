@@ -752,13 +752,13 @@ namespace UWPAudioBookPlayer.ModelView
 			if (book == null)
 				return;
 			var ev = new AudioBookSourcesCombined() { MainSource = book };
-			if (ControllersService1.Controllers.Any())
-			{
-				List<AudioBookSource> sources = new List<AudioBookSource>();
-				foreach (var cloud in ControllersService1.Controllers)
-					sources.Add(await cloud.GetAudioBookInfo(book));
-				ev.Clouds = sources.ToArray();
-			}
+//			if (ControllersService1.Controllers.Any())
+//			{
+//				List<AudioBookSource> sources = new List<AudioBookSource>();
+//				foreach (var cloud in ControllersService1.Controllers)
+//					sources.Add(await cloud.GetAudioBookInfo(book));
+//				ev.Clouds = sources.ToArray();
+//			}
 			OnShowBookDetails(ev);
 			Tracker.SendEvent(nameof(MainControlViewModel), "ShowBookDetail", null, 0);
 		}
@@ -1910,13 +1910,7 @@ namespace UWPAudioBookPlayer.ModelView
 			Play();
 		}
 
-		public Task<Stream> DownloadFileFromBook(AudioBookSource source, string file)
-		{
-			var controller = factory.SelectContorller(source, ControllersService1.Controllers);
-			if (controller == null)
-				return Task.FromResult(default(Stream));
-			return controller.DownloadBookFile(source.Name, file);
-		}
+
 	}
 
 
