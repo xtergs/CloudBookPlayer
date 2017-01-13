@@ -7,8 +7,10 @@ using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 using Windows.Foundation;
+using Windows.Foundation.Metadata;
 using Windows.Graphics.DirectX;
 using Windows.Media.DialProtocol;
+using Windows.Phone.UI.Input;
 using Windows.Storage.AccessCache;
 using Windows.Storage.FileProperties;
 using Windows.Storage.Pickers;
@@ -48,6 +50,13 @@ namespace UWPAudioBookPlayer
 
 	public class BackButtonHelper
 	{
+		public BackButtonHelper()
+		{
+			if (ApiInformation.IsEventPresent("Windows.Phone.UI.Input.HardwareButtons", nameof(HardwareButtons.BackPressed)))
+				haveHardware = true;
+		}
+
+		private bool haveHardware = false;
 		private int backCounter = 0;
 		private readonly object locker = new object();
 		private readonly HashSet<EventHandler<BackRequestedEventArgs>> requests = new HashSet<EventHandler<BackRequestedEventArgs>>(); 
@@ -61,9 +70,16 @@ namespace UWPAudioBookPlayer
 				if (handler != null)
 				{
 					SystemNavigationManager.GetForCurrentView().BackRequested += handler;
+					if (haveHardware)
+						HardwareButtons.BackPressed += HardwareButtonsOnBackPressed;
 					requests.Add(handler);
 				}
 			}
+		}
+
+		private void HardwareButtonsOnBackPressed(object sender, BackPressedEventArgs backPressedEventArgs)
+		{
+			
 		}
 
 
